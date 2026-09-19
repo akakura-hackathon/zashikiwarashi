@@ -1,0 +1,23 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: google-github-actions/auth (WIF) -> build & push image -> deploy to Cloud Run
+      # See infra/terraform/iam_wif.tf for the pool/provider/service account this authenticates against.
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: npm run build -> firebase deploy --only hosting

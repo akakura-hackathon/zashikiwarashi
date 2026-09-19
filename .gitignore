@@ -1,0 +1,46 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+npm-debug.log*
+
+# Env / secrets
+.env
+.env.local
+*.env
+!*.env.example
+!*.env.local.example
+**/service-account*.json
+**/*-key.json
+**/*credentials*.json
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfplan
+infra/terraform/terraform.tfvars
+!infra/terraform/terraform.tfvars.example
+
+# Firebase
+.firebaserc
+!.firebaserc.example
+firebase-debug.log
+firestore-debug.log
+.firebase/
+
+# Sandbox / scratch
+sandbox/*
+!sandbox/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

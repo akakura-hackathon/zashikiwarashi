@@ -1,8 +1,9 @@
-# akakura-ai-web-template
+# Zashikiwarashi
 
-AkakuraのAI Agentを活用したWeb開発のテンプレートリポジトリ。ハッカソン等で新規プロジェクトを立ち上げる際の初期構成として使う。
+マンション内の潜在的な助け合いを、緊急時（停電・火災・地震・洪水）だけ安全に利用可能にする Multi-Agent サービス。Google Cloud Japan AI Hackathon Vol.5 向け（提出 2026-10-15）。
+課題と要件は [docs/SPEC.md](docs/SPEC.md)、設計は [docs/DESIGN.md](docs/DESIGN.md)、ドキュメントと図の案内は [docs/README.md](docs/README.md)。
 
-技術スタックは Next.js（frontend） + FastAPI/Google ADK（backend） + Firestore + Terraform（単一GCP環境） + GitHub Actions（WIFデプロイ）。
+このリポジトリは Akakura の `akakura-ai-web-template` をベースにしている。技術スタックは Next.js（frontend） + FastAPI/Google ADK（backend） + Firestore + Terraform（単一GCP環境） + GitHub Actions（WIFデプロイ）。
 
 ## 思想
 
@@ -20,7 +21,7 @@ docs/PLAN.md          タスクに分解する
 実装（backend / frontend / infra）
 ```
 
-各 `docs/*.md` はスケルトンの状態で、先頭に `> エージェントへ:` というコメントが入っている。エージェントはこれを読み、ユーザーに質問しながら中身を埋めていく。仕様が変わったら実装より先にドキュメントを更新する（ドキュメントとコードを乖離させない）。この流れの詳細は `AGENTS.md` の Workflow セクションを参照。
+`docs/*.md` は v1.0 として記述済み。エージェントは実装の前にこれらを読み、不明点はユーザーに確認する。仕様が変わったら実装より先にドキュメントを更新する（ドキュメントとコードを乖離させない）。この流れの詳細は `AGENTS.md` の Workflow セクションを参照。
 
 その他の技術的な方針:
 
@@ -28,37 +29,48 @@ docs/PLAN.md          タスクに分解する
 - **シングル環境**: dev/stg/prodのような環境分割はしない。GCPプロジェクトは1つ、Terraform stateも1つ。
 - **AIエージェントはADKに集約**: `backend/src/agents/agent.py` の `root_agent` を唯一のエントリポイントとし、マルチエージェント化する場合は `sub_agents/` に追加する。
 - **デプロイはWIF経由**: サービスアカウントキーを発行せず、GitHub Actions → Workload Identity Federation → Cloud Run / Firebase Hosting でデプロイする。
-- **レイヤード構成（backend）**: `routers → services → clients/db`、`agents` は独立レイヤー。責務を混ぜない（詳細は `.agents/rules/backend.md`）。
+- **レイヤード構成（backend）**: `routers → services → clients/db`、`agents` は独立レイヤー。責務を混ぜない（詳細は `rules/backend.md`）。
 - **秘密情報はコミットしない**: `.env` 系は `*.env.example` のみコミット。実際の値やサービスアカウントキーは対象外（`.gitignore` 参照）。
 - **使い捨てコードは `sandbox/`**: 実験的なコードは `src/` に置かず `sandbox/`（gitignore対象）に置く。
 
 ## 使い方
 
-1. このリポジトリをコピー（またはテンプレートとして使用）してプロジェクトを開始する。
-2. Claude Code / Antigravity（Gemini CLI）などのAIコーディングエージェントを起動する。どのツールも `AGENTS.md` を読み込む前提（`CLAUDE.md` / `GEMINI.md` は各ツール向けのポインタ。下記「エージェント向け設定ファイル」参照）。
-3. エージェントと対話しながら `docs/SPEC.md` → `DESIGN.md` → `ARCHITECTURE.md` → `PLAN.md` を埋める。
-4. 合意した設計をもとに `backend/` `frontend/` `infra/` を実装する。各ファイルの `TODO` コメントが実装対象の目印。
+1. このリポジトリを clone する。
+2. Claude Code / Antigravity（Gemini CLI）/ GitHub Copilot などのAIコーディングエージェントを起動する。どのツールも `AGENTS.md` を読み込む前提（`CLAUDE.md` / `GEMINI.md` / `.github/copilot-instructions.md` は各ツール向けのポインタ。下記「エージェント向け設定ファイル」参照）。
+3. `docs/PLAN.md` で担当タスクと MVP の範囲を確認し、関連する docs を読んでから実装する。
+4. `backend/` `frontend/` `infra/` を実装する。各ファイルの `TODO` コメントが実装対象の目印。
 5. Getting Started（下記）でローカル起動して動作確認する。
 
 ## エージェント向け設定ファイル
 
 | ファイル | 対象ツール | 役割 |
 |---|---|---|
-| `AGENTS.md` | 共通 | 指示の実体。Workflow・Core Rules・Commands・Code Styleを定義 |
-| `CLAUDE.md` | Claude Code | `AGENTS.md` を参照するだけのポインタ |
+| `AGENTS.md` | 共通 | 指示の実体。プロジェクト概要・Domain Principles・Workflow・Core Rules・Commands・Code Style・Skills を定義 |
+| `CLAUDE.md` | Claude Code | `@AGENTS.md` で取り込むだけのポインタ |
 | `GEMINI.md` | Antigravity / Gemini CLI | `AGENTS.md` を参照するだけのポインタ |
-| `.agents/rules/{backend,frontend,infra}.md` | 共通 | 各領域の詳細規約 |
+| `.github/copilot-instructions.md` | GitHub Copilot | `AGENTS.md` を参照するだけのポインタ |
+| `rules/{backend,frontend,infra}.md` | 共通 | 各領域の詳細規約 |
+| `.agents/skills/` | 共通（Antigravity・Copilot が読む） | draw.io 図作成スキル3種。実体はここに置く |
+| `.claude/skills/` | Claude Code・Copilot | `.agents/skills/` の各スキルへのシンボリックリンク（Windows では下記注意） |
+
+> **Windows で clone する場合**: `.claude/skills/` はシンボリックリンクなので、開発者モードを有効にして `git config --global core.symlinks true` を設定してから clone する。設定できない場合は、`.agents/skills/` の3フォルダを `.claude/skills/` にコピーして使う（そのコピーはコミットしない）。
 
 ## ディレクトリ構成
 
 ```
 .
 ├── AGENTS.md / CLAUDE.md / GEMINI.md  # AIエージェント向け指示（上表参照）
-├── docs/                  # 企画・設計ドキュメント（対話で埋めるスケルトン）
+├── .agents/skills/         # draw.io 図作成スキル（実体）
+├── .claude/skills/         # ↑へのシンボリックリンク（Claude Code 用）
+├── rules/                  # 領域ごとの実装規約（backend / frontend / infra）
+├── docs/                  # 企画・設計ドキュメント
+│   ├── README.md          # docs と図の案内（まずここ）
 │   ├── SPEC.md            # 課題・要件
 │   ├── DESIGN.md          # API・データモデル・エージェント設計
 │   ├── ARCHITECTURE.md    # システム構成
-│   └── PLAN.md            # マイルストーン・タスク分解
+│   ├── PLAN.md            # マイルストーン・タスク分解
+│   ├── FUCHIUE_REVIEW.txt # レビュー指摘・未決事項
+│   └── diagrams/          # draw.io の図（構成図・業務フロー）
 ├── frontend/               # Next.js (App Router)
 │   ├── app/                # ルーティング・ページ
 │   ├── components/         # UIコンポーネント

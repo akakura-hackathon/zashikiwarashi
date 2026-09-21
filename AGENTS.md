@@ -1,21 +1,38 @@
 # AGENTS.md
 
 ## Project Overview
-モノレポのハッカソンテンプレート: Next.js フロントエンド + FastAPI/Google ADK バックエンド。
-Cloud Run + Firebase Hosting に GitHub Actions (Workload Identity Federation) でデプロイする。
-詳細は `docs/ARCHITECTURE.md` を参照。
+**Zashikiwarashi**: マンション内の潜在的な助け合いを、緊急時（停電・火災・地震・洪水）だけ安全に利用可能にする Multi-Agent サービス。
+住民ごとの Resident Agent と建物全体の Building Agent が、個人情報を出さずに「誰が困っていて、誰なら無理なく助けられるか」を見つけ、本人の承認を得て協力計画を実行する。
+Google Cloud Japan AI Hackathon Vol.5 向け（提出 2026-10-15 23:59）。MVP は「動くデモ ＋ 設計済み拡張候補の明示」に絞る。
+
+技術構成: Next.js（frontend）＋ FastAPI / Google ADK（backend）＋ Firestore ＋ Terraform（単一GCP環境）。
+Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation）でデプロイする。
+
+## Where to look
+| 知りたいこと | 読む場所 |
+|---|---|
+| 何を解決するか・要件・受け入れ基準・プライバシー要件 | `docs/SPEC.md` |
+| データモデル・Agent 構成・承認フロー・デモシナリオ4種 | `docs/DESIGN.md` |
+| GCP 構成・外部連携・停電時のフォールバック | `docs/ARCHITECTURE.md` |
+| MVP の範囲（実装する/しない）・スケジュール・タスク | `docs/PLAN.md` |
+| 未解決の指摘・未決事項 | `docs/FUCHIUE_REVIEW.txt`、各図の TBD 欄 |
+| 図の一覧と、どの docs に対応するか | `docs/README.md`（図は `docs/diagrams/`） |
+| 領域ごとの実装規約 | `rules/backend.md` / `frontend.md` / `infra.md` |
+
+## Domain Principles（実装で必ず守る）
+1. **平時の手入力ゼロ**: 住民に日常的な入力・登録を求めない（DESIGN §1）。
+2. **人物プロファイリングをしない**: 性格・協力度・嗜好を推定・保存しない。承認/拒否の履歴は監査用で、評価やスコアに変換しない（SPEC §3.2〜3.3）。
+3. **段階的開示（Progressive Disclosure）**: Agent 間は抽象化したトークンのみ。部屋番号などは本人が承認した後にだけ開示する（DESIGN §4）。
+4. **LLM に権限を与えない**: アクセス権・開示可否・未承認アクションの遮断は、LLM ではなくコード（Policy Engine）で強制する（DESIGN §1）。
+5. **Human-in-the-Loop**: 実世界の行動の確定と高識別情報の開示は、必ず本人承認を経る（SPEC §4.1、DESIGN §5.5）。
+6. **Agent Isolation / Outbound Gate**: Resident Agent は他住民の Raw Data・Memory に直接触れない。Agent の外向き通信はすべて Privacy Gateway を通す（SPEC §4.1）。
 
 ## Workflow（ドキュメント駆動・対話開発）
-このテンプレートは、エージェントがユーザーと対話しながら実装を進めることを前提にしている。コードを書く前に必ずこの順で進める。
+`docs/` は v1.0 として記述済み。コードを書く前に、関連する docs を読む。
 
-1. `docs/SPEC.md` — 課題・想定ユーザー・機能要件・非対象をユーザーに確認しながら埋める。
-2. `docs/DESIGN.md` — API・データモデル・エージェント設計をユーザーと合意する。
-3. `docs/ARCHITECTURE.md` — 上記を実際のシステム構成に落とす。
-4. `docs/PLAN.md` — タスクに分解し、実装を進めながら更新する。
-5. 実装は各ドキュメントの合意後に着手する。仕様や設計に不明点・複数の選択肢がある場合は、仮実装せずユーザーに確認する。
-6. 実装中に仕様変更が発生したら、先に該当ドキュメントを更新してから実装に反映する（ドキュメントとコードを乖離させない）。
-
-各 `docs/*.md` の先頭にエージェント向けの短い指示コメント（`> エージェントへ:`）がある。
+1. 実装の前に `docs/PLAN.md` §2 で、対象が MVP 範囲か（拡張予定はダミーで代替）を確認する。
+2. 仕様・設計に不明点や複数の選択肢がある場合は、仮実装せずユーザーに確認する。未決事項は `docs/FUCHIUE_REVIEW.txt` と各図の TBD に残っている。
+3. 仕様変更が発生したら、先に該当の docs（と対応する図）を更新してから実装に反映する。ドキュメントとコードを乖離させない。
 
 ## Core Rules
 - 秘密情報・サービスアカウントキー・`.env` ファイルは絶対にコミットしない。
@@ -39,6 +56,17 @@ Cloud Run + Firebase Hosting に GitHub Actions (Workload Identity Federation) �
 - Python: ruff（line-length 100, py312 target）。レイヤード構成 `src/{routers,clients,agents,models,services,db}`。
 - TypeScript: Next.js App Router 規約。コンポーネントは `frontend/components` に配置。
 
+## Skills（図の作成）
+| スキル | 用途 | 呼び出し例 |
+|---|---|---|
+| `create-diagram` | 汎用（構成図・ER・シーケンス・CI/CD・業務フロー・画面遷移・体制図） | 「CI/CD パイプラインの図を作って」 |
+| `create-diagram-d-flow` | 業務フロー特化（As-Is/To-Be、ギャップ分析） | 「この業務フローを To-Be で図にして」 |
+| `create-diagram-d-nodeedge` | 構成図・画面遷移・体制図など、ノードとエッジの図 | 「画面遷移図を作って」 |
+
+- 実体は `.agents/skills/`（Antigravity・Copilot が読む）。`.claude/skills/` はそこへのシンボリックリンク（Claude Code・Copilot が読む）。スキルの中身は編集しない。
+- スキル既定の出力先（`03_設計・開発/…` など）は使わず、`docs/diagrams/` に保存する。ファイル名は `Zashikiwarashi_<図の名前>_v{MAJOR}.{MINOR}.drawio`。既存ファイルは上書きせず、バージョンを繰り上げる。
+- `.drawio` は XML でアイコンが埋め込まれており大きい。図の内容を知りたいときは全文を読まず、`docs/README.md` と対応する docs を見る。編集するときだけ開く。
+- 出典: [enomoso-pm/drawio-diagram-skills](https://github.com/enomoso-pm/drawio-diagram-skills)（MIT。ライセンスは `.agents/skills/LICENSE.drawio-diagram-skills`）。更新は出典から取り込み直す。
+
 ## Further Reading
-- `.agents/rules/backend.md` / `frontend.md` / `infra.md` に各領域の詳細規約がある。
-- `CLAUDE.md`（Claude Code）/ `GEMINI.md`（Antigravity, Gemini CLI）は、それぞれのツールが参照する規約に合わせて用意した、このファイルへのポインタ。指示の実体は常にこの `AGENTS.md`。
+- `CLAUDE.md`（Claude Code）/ `GEMINI.md`（Antigravity, Gemini CLI）/ `.github/copilot-instructions.md`（GitHub Copilot）は、それぞれのツール向けの、このファイルへのポインタ。指示の実体は常にこの `AGENTS.md`。

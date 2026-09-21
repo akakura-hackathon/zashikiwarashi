@@ -40,6 +40,12 @@ firestore-debug.log
 sandbox/*
 !sandbox/.gitkeep
 
+# Claude Code (個人ごとの許可設定)
+.claude/settings.local.json
+
+# 外部リポジトリのクローン（スキルは ~/.claude/skills/ に導入済み）
+drawio-diagram-skills/
+
 # OS / editor
 .DS_Store
 .vscode/

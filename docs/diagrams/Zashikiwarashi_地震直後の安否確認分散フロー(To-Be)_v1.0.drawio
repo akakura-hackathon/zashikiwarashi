@@ -1,0 +1,307 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram id="flow-quake" name="flow-quake">
+    <mxGraphModel dx="1640" dy="1850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1640" pageHeight="1850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="LANE-1" value="管理人" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="40" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-2" value="住民（全員）" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="260" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-3" value="住民I（隣室の確認担当）" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="480" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-4" value="外部（FCM/DLP/Vertex）" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="700" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-5" value="バックエンド（Agent群）" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="920" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-6" value="DB（Firestore）" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="LANE-7" value="例外・エスカレーション" style="swimlane;startSize=30;horizontal=1;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;fontStyle=1;fontSize=12;fontColor=#555555;" parent="1" vertex="1">
+          <mxGeometry x="1360" y="70" width="220" height="1558" as="geometry" />
+        </mxCell>
+        <mxCell id="L-001" value="緊急モード発令" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-001" target="B-001">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030.0" y="144.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-002" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-001" target="D-001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-003" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="D-001" target="B-002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250.0" y="312.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-004" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-002" target="X-001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-005" value="プッシュ通知" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="X-001" target="U-002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810.0" y="396.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-006" value="回答（未応答あり）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-002" target="B-003">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370.0" y="438.0" />
+              <mxPoint x="1030.0" y="438.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-007" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-003" target="D-002">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-008" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="D-002" target="B-004">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250.0" y="514.0" />
+              <mxPoint x="1030.0" y="514.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-009" value="はい（要確認）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-004" target="B-005">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-40" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-010" value="いいえ（外出予定）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-004" target="E-001">
+          <mxGeometry relative="1" x="-0.55" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-011" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-005" target="B-006">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-012" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-006" target="X-002">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-013" value="プッシュ通知" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="X-002" target="U-003">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810.0" y="816.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-014" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-003" target="U-004">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-015" value="承諾" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-004" target="B-007">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590.0" y="984.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-016" value="辞退・無応答" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-004" target="E-002">
+          <mxGeometry relative="1" x="-0.6" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-017" value="あり：次の近隣住民へ再打診（戻り）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#E53935;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#C62828;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="E-002" target="B-006">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1470.0" y="732.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-018" value="なし" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="E-002" target="E-003">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="16" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-019" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-007" target="D-003">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-020" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="D-003" target="B-008">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250.0" y="1068.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-021" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-008" target="X-003">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-022" value="確定指示" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="X-003" target="U-005">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810.0" y="1152.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-023" value="確認結果" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-005" target="B-009">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590.0" y="1194.0" />
+              <mxPoint x="1030.0" y="1194.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-024" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-009" target="D-004">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="L-025" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="D-004" target="B-010">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250.0" y="1270.0" />
+              <mxPoint x="1030.0" y="1270.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-026" value="はい" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-010" target="B-011">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-16" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-027" value="いいえ" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-010" target="E-004">
+          <mxGeometry relative="1" x="-0.55" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-028" value="Priority Alert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="B-011" target="U-006">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030.0" y="1488.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L-029" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#757575;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;fontColor=#555555;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="U-006" target="END">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="U-001" value="管理人: 震度5強を確認し&lt;br&gt;全館緊急モード（安否確認）を発令&lt;br&gt;(U-001)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="60" y="116" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-001" value="緊急モードを受理&lt;br&gt;管理人権限を検証&lt;br&gt;(B-001)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="200" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="D-001" value="緊急モード状態 UPDATE&lt;br&gt;(D-001)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#F3E5F5;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="200" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-002" value="全150戸へ安否確認を依頼&lt;br&gt;(B-002)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="284" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="X-001" value="FCM:「無事／被害あり」&lt;br&gt;を一斉配信&lt;br&gt;(X-001)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E8F5E9;strokeColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="720" y="284" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="U-002" value="住民:「無事／被害あり」を&lt;br&gt;1タップ回答（未応答も発生）&lt;br&gt;(U-002)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="280" y="368" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-003" value="応答を集計し&lt;br&gt;未応答住戸を抽出&lt;br&gt;(B-003)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="452" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="D-002" value="住戸配置・属性・在宅傾向 SELECT&lt;br&gt;(D-002)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#F3E5F5;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="452" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-004" value="在宅可能性あり&lt;br&gt;× 要配慮？&lt;br&gt;(B-004)" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=9;fontColor=#333333;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="930" y="522" width="200" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="E-001" value="低優先として保持&lt;br&gt;外出予定の未応答&lt;br&gt;(E-001)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFEBEE;strokeColor=#D32F2F;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="536" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-005" value="最寄りの「無事」住民を&lt;br&gt;1住戸1担当で割当&lt;br&gt;(B-005)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="620" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-006" value="隣室確認を極小タスクとして&lt;br&gt;打診（約20秒）&lt;br&gt;(B-006)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="704" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="X-002" value="FCM: 打診を通知&lt;br&gt;(X-002)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E8F5E9;strokeColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="720" y="704" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="U-003" value="住民I: 打診画面で回答&lt;br&gt;(U-003)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="500" y="788" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="U-004" value="協力できる？&lt;br&gt;(U-004)" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=9;fontColor=#333333;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="490" y="858" width="200" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="E-002" value="候補・時間が&lt;br&gt;残っている？&lt;br&gt;(E-002)" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=9;fontColor=#333333;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="1370" y="858" width="200" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="B-007" value="承認済みの確認タスクを確定&lt;br&gt;Commit&lt;br&gt;(B-007)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="956" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="D-003" value="Plan / Approval INSERT&lt;br&gt;監査ログ追記&lt;br&gt;(D-003)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#F3E5F5;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="956" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-008" value="Progressive Disclosure:&lt;br&gt;承認後のみ隣室の番号を開示&lt;br&gt;(B-008)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="1040" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="X-003" value="FCM: 確定指示を通知&lt;br&gt;(X-003)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E8F5E9;strokeColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="720" y="1040" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="E-003" value="管理人へエスカレーション&lt;br&gt;確認担当が確保できない住戸&lt;br&gt;(E-003)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFEBEE;strokeColor=#D32F2F;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="1040" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="U-005" value="住民I: インターホンを1回鳴らし&lt;br&gt;応答有無を報告&lt;br&gt;(U-005)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="500" y="1124" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-009" value="結果を受信し&lt;br&gt;優先度を更新&lt;br&gt;(B-009)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="1208" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="D-004" value="住戸状態・Plan status UPDATE&lt;br&gt;監査ログ追記&lt;br&gt;(D-004)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#F3E5F5;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="1208" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-010" value="本人未応答 かつ&lt;br&gt;隣室も応答なし？&lt;br&gt;(B-010)" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=9;fontColor=#333333;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="930" y="1278" width="200" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="E-004" value="無事確認として&lt;br&gt;分類を更新&lt;br&gt;(E-004)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFEBEE;strokeColor=#D32F2F;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="1292" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="B-011" value="管理人へ Priority Alert&lt;br&gt;現地確認を最優先で表示&lt;br&gt;(B-011)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="940" y="1376" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="U-006" value="管理人: 表示された数戸へ&lt;br&gt;直行し現地確認&lt;br&gt;(U-006)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="60" y="1460" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="END" value="完了" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=11;fontStyle=1;fontColor=#333333;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="100" y="1544" width="100" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Zashikiwarashi — 業務フロー（To-Be）：地震直後の安否確認分散（シナリオ3 / L2）" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#1A2538;" parent="1" vertex="1">
+          <mxGeometry x="40" y="16" width="780" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="TBD" value="&lt;b&gt;未確定（TBD）&lt;/b&gt;：①再打診の上限回数・時間切れの閾値（E-系ノードは案・未合意）　②拒否理由の扱い　③緊急モード終了の判断者（管理人想定）　④救急要請などシステム対応外への分岐　⑤在宅確認の再確認間隔　⑥災害時の通知基盤に FCM を使えるか（構成図の TBD と連動）" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=9;fontColor=#444444;spacingLeft=8;spacingTop=4;strokeColor=#D0D0D0;fillColor=#FAFAFA;" parent="1" vertex="1">
+          <mxGeometry x="840" y="8" width="740" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#1A2538;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1652" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-1" value="業務／ユーザー操作" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF8E1;strokeColor=#FFB300;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1676" width="150" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-2" value="システム処理" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E3F2FD;strokeColor=#1E88E5;" parent="1" vertex="1">
+          <mxGeometry x="202" y="1676" width="130" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-3" value="外部連携" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8F5E9;strokeColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="344" y="1676" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-4" value="DB操作" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#F3E5F5;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="466" y="1676" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-5" value="例外／エスカレーション（案）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFEBEE;strokeColor=#D32F2F;" parent="1" vertex="1">
+          <mxGeometry x="588" y="1676" width="190" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-6" value="◇ 条件分岐" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#757575;" parent="1" vertex="1">
+          <mxGeometry x="790" y="1676" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-7" value="‑ ‑ ‑ 戻り（ループ）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;dashed=1;fillColor=#FFFFFF;strokeColor=#E53935;fontColor=#C62828;" parent="1" vertex="1">
+          <mxGeometry x="912" y="1676" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="NOTE" value="&lt;b&gt;Scope（対象）&lt;/b&gt;：シナリオ3「地震直後 × 初動5分トリアージ」の To-Be 業務フロー（管理人の緊急モード発令 〜 未応答住戸の並列確認 〜 現地確認対象の絞り込み / L2）。&lt;br&gt;&lt;b&gt;対象外&lt;/b&gt;：平常時のデータ収集／シナリオ1・2・4／救急要請・現地救助の手順／余震・火災など二次災害への対応／フロント画面の遷移（別図）。&lt;br&gt;&lt;b&gt;入力ソース&lt;/b&gt;：docs/DESIGN.md §5・§6.3、SPEC.md、docs/FUCHIUE_REVIEW.txt　／　&lt;b&gt;Assumptions&lt;/b&gt;：要配慮フラグ（高齢単身など）は管理側の判定にのみ使い、確認を依頼される住民には開示しない。1住戸につき担当は1名（重複派遣しない）。住民I は近隣で「無事」と回答した住民の代表。&lt;br&gt;&lt;b&gt;因果ルール&lt;/b&gt;：バックエンド→外部(FCM/DLP/Vertex AI)→ユーザー通知／DBはバックエンドと同じ高さ／外向きの Agent 通信は Privacy Gateway を経由／部屋番号は承認後のみ開示。　v1.0（初版）" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#444444;spacingLeft=8;spacingTop=6;strokeColor=#D0D0D0;fillColor=#FAFAFA;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1714" width="1540" height="96" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

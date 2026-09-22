@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="ChatGPT" version="24.7.17">
+  <diagram id="zashiki-er-cat1-5" name="ER_Cat1-5">
+    <mxGraphModel dx="1900" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="ZASHIKIWARASHI — ER図（Cat 1〜5 / L2） v1.1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#1A2538;" vertex="1" parent="1">
+          <mxGeometry x="420" y="16" width="1060" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="CAT-1" value="&lt;b&gt;Cat 1：建物・空間静的データ&lt;/b&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.2;dashed=1;fillOpacity=20;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#E3F2FD;strokeColor=#1E88E5;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1820" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="CAT-2" value="&lt;b&gt;Cat 2：住戸・住民静的データ&lt;/b&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.2;dashed=1;fillOpacity=20;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="900" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="CAT-3" value="&lt;b&gt;Cat 3：在館コンテキスト（Presence Context）&lt;/b&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.2;dashed=1;fillOpacity=20;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#F3E5F5;strokeColor=#8E24AA;fontColor=#6A1B9A;" vertex="1" parent="1">
+          <mxGeometry x="970" y="440" width="890" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="CAT-4" value="&lt;b&gt;Cat 4：緊急時動的状態&lt;/b&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.2;dashed=1;fillOpacity=20;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#FFF3E0;strokeColor=#FB8C00;fontColor=#EF6C00;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="1820" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="CAT-5" value="&lt;b&gt;Cat 5：Issue / Task / 協調・実行データ&lt;/b&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.2;dashed=1;fillOpacity=20;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#FFEBEE;strokeColor=#E53935;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1170" width="1820" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="R-001" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-001" target="E-002">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-002" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-001" target="E-003">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-003" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-001" target="E-004">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-004" value="1..N entrance" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-002">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-005" value="1..N from" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-004">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-006" value="1..N to" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-004">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-007" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-002" target="E-005">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-008" value="1..1" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERone;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-002" target="E-006">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-009" value="1..1" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERone;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-005" target="E-007">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-010" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-001" target="E-008">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-011" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-008" target="E-009">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-012" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-005" target="E-009">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-013" value="1..N location" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-009">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-014" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-008" target="E-010">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-015" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-005" target="E-010">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-016" value="1..N location" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-010">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-017" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-008" target="E-011">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-018" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-011" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-019" value="1..N assignee" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-005" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-020" value="0..N target" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-005" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-021" value="0..N start" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-022" value="0..N destination" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-003" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-023" value="1..N assistance" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-012" target="E-012">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-024" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-012" target="E-013">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-026" value="1..N" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=9;fontColor=#455A64;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="E-008" target="E-016">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="R-025" value="0..N actor" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;strokeColor=#607D8B;strokeWidth=1.5;endArrow=ERmany;startArrow=ERone;fontSize=10;fontColor=#455A64;" edge="1" parent="1" source="E-005" target="E-013">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="E-001" value="&lt;b&gt;Building / 建物 (E-001)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK building_id&lt;br&gt;name&lt;br&gt;floor_count&lt;br&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="E-002" value="&lt;b&gt;Unit / 住戸 (E-002)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK unit_id&lt;br&gt;🔗 FK building_id → Building&lt;br&gt;🔗 FK entrance_node_id → Node&lt;br&gt;room_number&lt;br&gt;floor" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
+          <mxGeometry x="400" y="115" width="270" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="E-003" value="&lt;b&gt;Node / 移動ノード (E-003)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK node_id&lt;br&gt;🔗 FK building_id → Building&lt;br&gt;node_type&lt;br&gt;floor" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
+          <mxGeometry x="770" y="125" width="260" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="E-004" value="&lt;b&gt;Edge / 移動経路 (E-004)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK edge_id&lt;br&gt;🔗 FK building_id → Building&lt;br&gt;🔗 FK from_node_id → Node&lt;br&gt;🔗 FK to_node_id → Node&lt;br&gt;movement_type&lt;br&gt;distance_meters&lt;br&gt;standard_travel_seconds" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="95" width="330" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="E-005" value="&lt;b&gt;Resident / 住民 (E-005)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK resident_id&lt;br&gt;🔗 FK unit_id → Unit&lt;br&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E8F5E9;strokeColor=#43A047;" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="250" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="E-006" value="&lt;b&gt;HouseholdProfile / 世帯プロファイル (E-006)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK/FK unit_id → Unit&lt;br&gt;member_count&lt;br&gt;elderly_count&lt;br&gt;infant_count&lt;br&gt;other_support_required_count&lt;br&gt;additional_non_helper_count&lt;br&gt;mobility_difficulty_count&lt;br&gt;stair_assistance_required_count" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#E8F5E9;strokeColor=#43A047;" vertex="1" parent="1">
+          <mxGeometry x="470" y="485" width="410" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="E-007" value="&lt;b&gt;PresenceContext / 在館コンテキスト (E-007)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK/FK resident_id → Resident&lt;br&gt;presence_state&lt;br&gt;&amp;nbsp;&amp;nbsp;IN_BUILDING / OUTSIDE_BUILDING / UNKNOWN&lt;br&gt;observed_at&lt;br&gt;expires_at&lt;br&gt;source_type" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#F3E5F5;strokeColor=#8E24AA;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="500" width="420" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="E-008" value="&lt;b&gt;Emergency / 緊急事象 (E-008)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK emergency_id&lt;br&gt;🔗 FK building_id → Building&lt;br&gt;emergency_type&lt;br&gt;status&lt;br&gt;triggered_by&lt;br&gt;triggered_at&lt;br&gt;closed_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFF3E0;strokeColor=#FB8C00;" vertex="1" parent="1">
+          <mxGeometry x="90" y="850" width="300" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="E-009" value="&lt;b&gt;ResidentEmergencyCurrentState / 現在状態 (E-009)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK (emergency_id, resident_id)&lt;br&gt;🔗 FK emergency_id → Emergency&lt;br&gt;🔗 FK resident_id → Resident&lt;br&gt;🔗 FK current_node_id → Node&lt;br&gt;safety_status&lt;br&gt;&amp;nbsp;&amp;nbsp;SAFE / NEED_HELP / UNKNOWN&lt;br&gt;observed_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFF3E0;strokeColor=#FB8C00;" vertex="1" parent="1">
+          <mxGeometry x="520" y="825" width="390" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="E-010" value="&lt;b&gt;ResidentEmergencyStateEvent / 状態履歴 (E-010)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK event_id&lt;br&gt;🔗 FK emergency_id → Emergency&lt;br&gt;🔗 FK resident_id → Resident&lt;br&gt;🔗 FK current_node_id → Node&lt;br&gt;safety_status&lt;br&gt;occurred_at&lt;br&gt;source" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFF3E0;strokeColor=#FB8C00;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="825" width="390" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="E-011" value="&lt;b&gt;Issue / 管理人Issue (E-011)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK issue_id&lt;br&gt;🔗 FK emergency_id → Emergency&lt;br&gt;issue_type&lt;br&gt;instruction&lt;br&gt;route_constraint (nullable)&lt;br&gt;status&lt;br&gt;created_by_admin_id&lt;br&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFEBEE;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1240" width="300" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="E-012" value="&lt;b&gt;Task / 住民タスク (E-012)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK task_id&lt;br&gt;🔗 FK issue_id → Issue&lt;br&gt;🔗 FK parent_task_id → Task (nullable)&lt;br&gt;🔗 FK resident_id → Resident&lt;br&gt;🔗 FK target_resident_id → Resident (nullable)&lt;br&gt;🔗 FK start_node_id → Node (nullable)&lt;br&gt;🔗 FK destination_node_id → Node (nullable)&lt;br&gt;task_type&lt;br&gt;estimated_seconds&lt;br&gt;status&lt;br&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFEBEE;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="470" y="1200" width="410" height="345" as="geometry" />
+        </mxCell>
+        <mxCell id="E-013" value="&lt;b&gt;TaskEvent / タスクイベント (E-013)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK event_id&lt;br&gt;🔗 FK task_id → Task&lt;br&gt;🔗 FK actor_resident_id → Resident (nullable)&lt;br&gt;event_type&lt;br&gt;&amp;nbsp;&amp;nbsp;EVALUATED / APPROVED / DECLINED&lt;br&gt;&amp;nbsp;&amp;nbsp;STARTED / COMPLETED / FAILED&lt;br&gt;result (nullable)&lt;br&gt;&amp;nbsp;&amp;nbsp;CAN_EXECUTE / REQUIRES_ASSISTANCE&lt;br&gt;&amp;nbsp;&amp;nbsp;CANNOT_EXECUTE / UNKNOWN / NOT_APPLICABLE&lt;br&gt;reason_code (nullable)&lt;br&gt;actor_type&lt;br&gt;occurred_at&lt;br&gt;expires_at (nullable)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFEBEE;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="950" y="1200" width="390" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="E-016" value="&lt;b&gt;AuditEvent / 監査イベント (E-016)&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔑 PK audit_event_id&lt;br&gt;🔗 FK emergency_id → Emergency&lt;br&gt;actor_type / actor_id&lt;br&gt;action&lt;br&gt;target_type / target_id&lt;br&gt;data_used[]&lt;br&gt;data_disclosed[]&lt;br&gt;occurred_at" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=10;fontColor=#333333;strokeWidth=1.5;fillColor=#FFEBEE;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="1200" width="390" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-1" value="🔑 PK（主キー）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8EAF6;strokeColor=#3949AB;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1760" width="150" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-2" value="🔗 FK（外部キー）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E8EAF6;strokeColor=#3949AB;" vertex="1" parent="1">
+          <mxGeometry x="220" y="1760" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-3" value="—|&lt; 1..N（一対多）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#607D8B;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1760" width="170" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-4" value="1..1（一対一）" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#607D8B;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="570" y="1760" width="150" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-5" value="nullable = 任意" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFFFFF;strokeColor=#9E9E9E;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="730" y="1760" width="150" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="LG-6" value="援助Task = parent_task_id で自己参照" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFEBEE;strokeColor=#E53935;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="890" y="1760" width="260" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="NOTE" value="&lt;b&gt;Scope&lt;/b&gt;：Cat 1〜5 の主要エンティティと関係（L2：主要属性＋FK）　／　&lt;b&gt;対象外&lt;/b&gt;：物理インデックス・Firestore固有のコレクション分割・詳細制約（L3で別途）&lt;br&gt;&lt;b&gt;設計ルール&lt;/b&gt;：UnitとNodeは分離。Taskは現在状態を保持し、実行可否判定・本人承認/辞退・開始・完了・失敗はTaskEventへ統合。援助Taskはparent_task_idによるTask自己参照で表現。&lt;br&gt;&lt;b&gt;Cat 3&lt;/b&gt;：Lifestyle Memoryではなく在館状態の鮮度・根拠を管理するPresenceContext。　v1.1" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#444444;spacingLeft=8;spacingTop=6;strokeColor=#D0D0D0;fillColor=#FAFAFA;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1810" width="1760" height="105" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

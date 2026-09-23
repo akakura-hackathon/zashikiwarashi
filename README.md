@@ -60,35 +60,45 @@ docs/PLAN.md          タスクに分解する
 ```
 .
 ├── AGENTS.md / CLAUDE.md / GEMINI.md  # AIエージェント向け指示（上表参照）
+├── PLAN.md                 # MVP仕様書 v0.2（概要・スコープ・要件の旧版的まとめ）
+├── PLAN_review.md          # PLAN.md レビュー（審査基準ごとの指摘・補強案）
+├── DEMO_SCENARIOS.md       # デモシナリオ詳細設計（データアーキテクチャ＋4シナリオ）
+├── DATA_SPECIFICATION.md   # データ洗い出し・取得・活用定義
+├── SYSTEM_ARCHITECTURE.md  # システムアーキテクチャ設計書（最新版 v1.1）
+├── DESIGN_SPECIFICATION.md # フロントエンドデザイン仕様（Studio Architecture / UX）
+├── DESIGN_VENTRILOC.md     # 座敷わらし（Ventriloquist）コンセプトメモ
 ├── .agents/skills/         # draw.io 図作成スキル（実体）
 ├── .claude/skills/         # ↑へのシンボリックリンク（Claude Code 用）
 ├── rules/                  # 領域ごとの実装規約（backend / frontend / infra）
-├── docs/                  # 企画・設計ドキュメント
-│   ├── README.md          # docs と図の案内（まずここ）
-│   ├── SPEC.md            # 課題・要件
-│   ├── DESIGN.md          # API・データモデル・エージェント設計
-│   ├── ARCHITECTURE.md    # システム構成
-│   ├── PLAN.md            # マイルストーン・タスク分解
-│   ├── FUCHIUE_REVIEW.txt # レビュー指摘・未決事項
-│   └── diagrams/          # draw.io の図（構成図・業務フロー）
+├── docs/                   # 企画・設計ドキュメント（構造化済み v1.0）
+│   ├── README.md           # docs と図の案内（まずここ）
+│   ├── SPEC.md             # 課題・ユーザー・要件
+│   ├── DESIGN.md           # API・データモデル・エージェント設計
+│   ├── ARCHITECTURE.md     # システム構成
+│   ├── PLAN.md             # マイルストーン・タスク分解
+│   ├── FUCHIUE_REVIEW.txt  # レビュー指摘・未決事項
+│   ├── FUCHIUE_REVIEW_RESPONSE.txt  # 上記への回答・対策方針
+│   └── diagrams/           # draw.io の図（構成図・ER図・業務フロー）
 ├── frontend/               # Next.js (App Router)
 │   ├── app/                # ルーティング・ページ
 │   ├── components/         # UIコンポーネント
-│   └── lib/                 # Firebaseクライアント・APIクライアント
+│   └── lib/                # Firebaseクライアント・APIクライアント
 ├── backend/                # FastAPI + Google ADK
 │   ├── src/
-│   │   ├── routers/         # エンドポイント定義
-│   │   ├── services/        # ビジネスロジック・ADK Runner呼び出し
-│   │   ├── agents/          # ADKエージェント定義（root_agent, sub_agents/）
-│   │   ├── clients/         # 外部サービスへの薄いラッパー
-│   │   ├── db/               # データアクセス層
-│   │   └── models/           # Pydanticスキーマ
+│   │   ├── routers/        # エンドポイント定義
+│   │   ├── services/       # ビジネスロジック・ADK Runner呼び出し
+│   │   ├── agents/         # ADKエージェント定義（root_agent, sub_agents/）
+│   │   ├── clients/        # 外部サービスへの薄いラッパー
+│   │   ├── db/             # データアクセス層
+│   │   └── models/         # Pydanticスキーマ
 │   ├── tests/
-│   └── scripts/              # デプロイ等の運用スクリプト
+│   └── scripts/            # デプロイ等の運用スクリプト
 ├── infra/terraform/        # GCPリソース定義（シングル環境）
 ├── .github/workflows/      # CI / WIFデプロイ
-└── sandbox/                 # 使い捨てコード（gitignore対象）
+└── sandbox/                # 使い捨てコード（gitignore対象）
 ```
+
+> **ルート直下の設計書ファイルについて**: `docs/` 配下の v1.0 ドキュメントが正規の仕様書。ルート直下の `*.md` / `*.txt` は検討過程・補足仕様として作成されたもの。矛盾がある場合は `docs/*.md` を優先する。
 
 ## Getting Started
 

@@ -14,8 +14,9 @@ Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation�
 | 何を解決するか・要件・受け入れ基準・プライバシー要件 | `docs/SPEC.md` |
 | データモデル・Agent 構成・承認フロー・デモシナリオ4種 | `docs/DESIGN.md` |
 | GCP 構成・外部連携・停電時のフォールバック | `docs/ARCHITECTURE.md` |
-| MVP の範囲（実装する/しない）・スケジュール・タスク | `docs/PLAN.md` |
+| MVP の範囲（実装する/しない）・スケジュール・タスク | `docs/PLAN.md` §2〜4 |
 | 未解決の指摘・未決事項 | `docs/FUCHIUE_REVIEW.txt`、各図の TBD 欄 |
+| レビュー指摘への回答・対策方針 | `docs/FUCHIUE_REVIEW_RESPONSE.txt` |
 | 図の一覧と、どの docs に対応するか | `docs/README.md`（図は `docs/diagrams/`） |
 | 領域ごとの実装規約 | `rules/backend.md` / `frontend.md` / `infra.md` |
 

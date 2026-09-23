@@ -15,12 +15,14 @@ Zashikiwarashi の企画・設計ドキュメントと図の入口。実装の�
 | GCP 構成・外部連携・停電時のフォールバック | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | MVP で実装する範囲・スケジュール・タスク | [PLAN.md](PLAN.md) §2〜4 |
 | 未解決の指摘・未決事項 | [FUCHIUE_REVIEW.txt](FUCHIUE_REVIEW.txt)、各図の TBD 欄 |
+| レビュー指摘への回答・対策方針 | [FUCHIUE_REVIEW_RESPONSE.txt](FUCHIUE_REVIEW_RESPONSE.txt) |
 
 ## 図（`diagrams/`）
 
 | 図 | 何が分かるか | 対応する docs |
 |---|---|---|
 | `Zashikiwarashi_structure_architecture_ランタイム構成_v1.0.drawio` | 緊急時のデータ・制御フロー（Client / App / Data / External の層、Agent Runtime、Privacy Gateway） | [ARCHITECTURE.md](ARCHITECTURE.md) §1・§3 |
+| `Zashikiwarashi_ER図_v1.0.drawio` | Firestore の3コレクション（`/buildings` / `/residents` / `/active_plans`）とドキュメント構造 | [DESIGN.md](DESIGN.md) §7 |
 | `Zashikiwarashi_緊急時の物資支援フロー(To-Be)_v1.0.drawio` | シナリオ1 停電×EV停止：物資の階段バケツリレー | [DESIGN.md](DESIGN.md) §6.1 |
 | `Zashikiwarashi_火災時の避難同行フロー(To-Be)_v1.0.drawio` | シナリオ2 火災：要支援者と避難可能住民のマッチング | [DESIGN.md](DESIGN.md) §6.2 |
 | `Zashikiwarashi_地震直後の安否確認分散フロー(To-Be)_v1.0.drawio` | シナリオ3 地震：未応答住戸確認の並列化 | [DESIGN.md](DESIGN.md) §6.3 |

@@ -12,9 +12,10 @@ Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation�
 | 知りたいこと | 読む場所 |
 |---|---|
 | 何を解決するか・要件・受け入れ基準・プライバシー要件 | `docs/SPEC.md` |
-| データモデル・Agent 構成・承認フロー・デモシナリオ4種 | `docs/DESIGN.md` |
+| データモデル・Agent 構成・承認フロー・デモシナリオ4種・API | `docs/DESIGN.md`（データモデルの正は ER図） |
 | GCP 構成・外部連携・停電時のフォールバック | `docs/ARCHITECTURE.md` |
 | MVP の範囲（実装する/しない）・スケジュール・タスク | `docs/PLAN.md` §2〜4 |
+| 機能（FN-xx）に関係する要件・設計・データ・API | `docs/TRACEABILITY.md` |
 | 未解決の指摘・未決事項 | `docs/FUCHIUE_REVIEW.txt`、各図の TBD 欄 |
 | レビュー指摘への回答・対策方針 | `docs/FUCHIUE_REVIEW_RESPONSE.txt` |
 | 図の一覧と、どの docs に対応するか | `docs/README.md`（図は `docs/diagrams/`） |
@@ -31,9 +32,11 @@ Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation�
 ## Workflow（ドキュメント駆動・対話開発）
 `docs/` は v1.0 として記述済み。コードを書く前に、関連する docs を読む。
 
-1. 実装の前に `docs/PLAN.md` §2 で、対象が MVP 範囲か（拡張予定はダミーで代替）を確認する。
+1. 実装の前に `docs/PLAN.md` §2 で、対象が MVP 範囲か（拡張予定はダミーで代替）を確認する。担当機能の FN-xx を `docs/TRACEABILITY.md` で引き、関連する要件・設計だけを読む。
 2. 仕様・設計に不明点や複数の選択肢がある場合は、仮実装せずユーザーに確認する。未決事項は `docs/FUCHIUE_REVIEW.txt` と各図の TBD に残っている。
 3. 仕様変更が発生したら、先に該当の docs（と対応する図）を更新してから実装に反映する。ドキュメントとコードを乖離させない。
+4. データモデル（エンティティ・属性・関係）は ER図を正とする。ER図に無い項目が必要になったら、`docs/DESIGN.md` §7.4 に追記してユーザーに確認する。
+5. ブランチ名・コミット・PR・コード内コメントには機能ID（FN-xx）を書く。IDは変えず、廃止したら欠番にする。
 
 ## Core Rules
 - 秘密情報・サービスアカウントキー・`.env` ファイルは絶対にコミットしない。

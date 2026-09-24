@@ -7,7 +7,7 @@
 
 ## 1. システム全体構成図
 
-本システムは、日常の追加ハードウェア購入や手入力を一切要求せず、住民の既存スマートフォン、マンション既設設備、および電力スマートメーターからデータを収集し、Google Cloud上で安全に抽象化（Lifestyle Memory化）してMulti-Agent協調を実行するサーバーレス・イベント駆動型アーキテクチャ。
+本システムは、日常の追加ハードウェア購入や手入力を一切要求せず、住民の既存スマートフォン、マンション既設設備、および電力スマートメーターからデータを収集し、Google Cloud上で在館コンテキスト（DESIGN.md E-007）へ安全に抽象化してMulti-Agent協調を実行するサーバーレス・イベント駆動型アーキテクチャ。
 
 ```mermaid
 flowchart TD
@@ -30,8 +30,8 @@ flowchart TD
   end
 
   subgraph DataLayer [データ永続化層]
-    Firestore[(Cloud Firestore)<br>・Lifestyle Memory<br>・住戸空間グラフ<br>・Active Coordination Plan]
-    BigQuery[(BigQuery)<br>・電力・生活時系列データ<br>・統計分析用データレイク]
+    Firestore[(Cloud Firestore)<br>・建物・空間グラフ E-001〜004<br>・住民・世帯・在館 E-005〜007<br>・緊急状態・Issue・Task E-008〜016]
+    BigQuery[(BigQuery)<br>・電力時系列データ<br>・在館判定の入力]
     SecretMgr[Secret Manager<br>APIキー・OAuth証明書暗号化保持]
   end
 
@@ -122,7 +122,7 @@ flowchart TD
 - **データ処理パイプライン**:
   1. 初回連携時に取得したリフレッシュトークンを **Secret Manager** に暗号化保存。
   2. Cloud Runが日次バッチ（または緊急発令時）に `freeBusy:query` および `events.list`（`eventTypes=workingLocation`）を実行。
-  3. 会議名や参加者等の生テキストは**即時破棄**し、「終日外出・出張フラグ」「直近の拘束有無（`busy` / `free`）」「勤務場所（在宅勤務 / オフィス）」のみをFirestoreへ抽出。
+  3. 会議名や参加者等の生テキストは**即時破棄**し、「終日外出・出張」「直近の拘束有無（`busy` / `free`）」「勤務場所（在宅勤務 / オフィス）」から在館コンテキスト（E-007）の presence_state・expires_at を更新する。これらの元情報そのものは保存しない。
 
 ### 2.3 電力スマートメーター API 連携
 
@@ -132,7 +132,7 @@ flowchart TD
 - **データ処理パイプライン**:
   1. 電力データ管理協会配信サーバーから、各住戸の30分値電力実績（kWh）がWebhookでCloud RunへPOSTされる。
   2. Cloud Runが署名検証後、**Cloud Pub/Sub** (`power-metrics` トピック) に投入。
-  3. BigQueryに蓄積されるとともに、待機電力（冷蔵庫等）のみか活動電力かを判定し、スマホを置いて外出した場合の不在検知に利用。
+  3. BigQueryに蓄積されるとともに、待機電力（冷蔵庫等）のみか活動電力かを判定し、スマホを置いて外出した場合の不在検知（在館コンテキスト E-007 の入力）に利用。
 
 ### 2.4 マンション集合インターホン盤 連携
 
@@ -147,7 +147,7 @@ flowchart TD
 
 - **Firebase Authentication**:
   - Google OAuth / 電話番号SMS認証。
-  - カスタムクレーム（JWT）に `resident_id`、`room_number`、`building_id`、`role: resident | admin` を保持。
+  - カスタムクレーム（JWT）に `role: resident | admin`、`building_id`、住民は `resident_id`・`unit_id`（E-005 / E-002）を保持。部屋番号は Unit から引き、クレームには載せない。
 - **Secret Manager**:
   - 電力データ管理協会APIのmTLS証明書、Google OAuth Client Secret、FCMサービストークンを集中管理。
 
@@ -168,20 +168,20 @@ flowchart TD
 ### 3.3 データ永続化層
 
 - **Cloud Firestore (NoSQL Document DB)**:
-  - `/buildings/{buildingId}`: 空間グラフ、階段所要時間、共用部安全エリア台帳
-  - `/residents/{residentId}/private/lifestyle_memory`: 在宅傾向、睡眠時間帯、身体制約（他住民は完全読み取り不可）
-  - `/residents/{residentId}/public/abstract_state`: 他Agentが見てよい最小抽象トークン
-  - `/active_plans/{planId}`: Building Agentが策定中の協力計画と承認ステータス
+  - ER図（DESIGN.md §7）の E-001〜E-016 を保持する。コレクション分割・インデックス・セキュリティルールは L3 で定義する（未決、DESIGN.md §7.3）。
+  - 他住民の世帯プロファイル（E-006）・在館コンテキスト（E-007）は、Resident Agent・クライアントから読み取れないようにする。
 - **BigQuery**:
-  - 30分電力データ、生活リズムパターンの時系列分析用データレイク。
+  - 30分電力データの時系列。在館判定の入力として使う（生活リズムの推定・蓄積には使わない）。
 
 ### 3.4 プライバシー & Multi-Agent 実行基盤
 
-- **Sensitive Data Protection (旧 Cloud DLP)**:
+Agent・コンポーネントのID（AG-xx）は DESIGN.md §5.1 と同じ。
+
+- **Sensitive Data Protection (旧 Cloud DLP)**（AG-03 Privacy Gateway の中核）:
   - Resident AgentからBuilding AgentおよびLLMへ渡るすべてのメッセージを自動検査。
   - 日本の住所、電話番号、人名、居室番号（3〜4桁の数字）を検知し、`[MASKED_ROOM]`、`[MASKED_NAME]` に強制置換。
-- **Policy Engine (Cloud Run決定論的ガードレール)**:
-  - 児童保護ポリシー（私室連れ込み禁止、防犯ラウンジ限定）および本人未承認の部屋番号開示をコードレベルで強制。
+- **Policy Engine (Cloud Run決定論的ガードレール)**（AG-04）:
+  - 児童保護ポリシー（私室連れ込み禁止、防犯ラウンジ限定）、本人未承認（TaskEvent `APPROVED` 無し）のTask実行と部屋番号開示の遮断をコードレベルで強制。
 - **Vertex AI / Gemini Enterprise**:
   - **Gemini 3.8 Flash**（2026年9月GA、最新最速モデル）: Resident Agent間のメッセージ抽象化・リアルタイム意図解釈。
   - **Gemini 3.1 Pro**（100万トークンコンテキスト高度推論モデル）: 空間グラフと多者間制約を最適化する協力計画（Coordination Plan）の構造化生成（JSON Schema厳格指定）。
@@ -190,6 +190,7 @@ flowchart TD
 
 - **Cloud Logging & Cloud Audit Logs**:
   - Agent間の協議履歴、参照されたデータ項目、Human Approvalのタイムスタンプを改ざん不能な追記専用（Append-only）ログとして記録。事後の説明責任（Explainability）を担保。
+  - 住民が閲覧する監査情報は Firestore の AuditEvent（E-016）に持つ。Cloud Logging は運用・改ざん検知用の二次記録とする。
 
 ---
 
@@ -210,16 +211,16 @@ sequenceDiagram
   Note over Phone: 停電発生: 自宅Wi-Fiが電源断で消失<br>スマホが4G/5G回線へ即座に自動切替
 
   管理人->>AdminConsole: 全館緊急モード発令
-  AdminConsole->>Run: POST /emergency/trigger (停電フラグ)
+  AdminConsole->>Run: API-01 POST /emergency/trigger (停電)
   Run->>FCM: 全戸へ高優先度プッシュ送信 (4G/5G経由)
   FCM->>Phone: 緊急安否・在宅確認通知を受信
 
   Note over Phone: 画面にダイアログ表示<br>「停電が発生しました。ご自宅にいらっしゃいますか？」
   住民->>Phone: 「はい（自宅にいます）」を1タップ
 
-  Phone->>Run: POST /emergency/confirm-presence (JWT認証)
+  Phone->>Run: API-02 POST /emergency/confirm-presence (JWT認証)
   Note over Run: 停電直前の端末在宅シグナルと<br>応答内容を突合し「在宅確定」
-  Run->>Run: Firestoreの realtime_presence を TRUE に更新
+  Run->>Run: 在館コンテキスト E-007 を IN_BUILDING に更新<br>現在状態 E-009 更新・状態履歴 E-010 追記
 ```
 
 1. **Wi-Fi消失と4G/5G切替**: ルーター電源喪失と同時にスマホがキャリア回線へ切替。
@@ -245,3 +246,4 @@ sequenceDiagram
 - **課題・ユーザー・要件** → [SPEC.md](SPEC.md)
 - **データモデル・エージェント設計** → [DESIGN.md](DESIGN.md)
 - **タスク分解・マイルストーン** → [PLAN.md](PLAN.md)
+- **ID一覧・対応表** → [TRACEABILITY.md](TRACEABILITY.md)

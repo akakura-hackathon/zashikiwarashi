@@ -42,3 +42,26 @@ output "tools_url" {
   description = "ツールサービス（Cloud Run・非公開）の URL"
   value       = google_cloud_run_v2_service.service["tools"].uri
 }
+
+output "api_gateway_url" {
+  description = "画面から呼ぶ API の URL（API Gateway。Firebase の ID トークンが必要）"
+  value       = "https://${google_api_gateway_gateway.api.default_hostname}"
+}
+
+output "hosting_url" {
+  description = "画面（Firebase Hosting）の URL"
+  value       = "https://${google_firebase_hosting_site.web.site_id}.web.app"
+}
+
+# frontend のビルド時に NEXT_PUBLIC_FIREBASE_* として埋め込む。Web 用の API キーはブラウザに配る前提の識別子で秘密情報ではない
+output "firebase_web_config" {
+  description = "Firebase Web アプリの設定（deploy.yml が frontend のビルドに使う）"
+  value = {
+    api_key             = data.google_firebase_web_app_config.web.api_key
+    auth_domain         = data.google_firebase_web_app_config.web.auth_domain
+    project_id          = var.project_id
+    storage_bucket      = lookup(data.google_firebase_web_app_config.web, "storage_bucket", "")
+    messaging_sender_id = lookup(data.google_firebase_web_app_config.web, "messaging_sender_id", "")
+    app_id              = google_firebase_web_app.web.app_id
+  }
+}

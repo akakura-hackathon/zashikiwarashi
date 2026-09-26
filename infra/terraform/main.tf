@@ -40,4 +40,24 @@ resource "google_project_service" "platform" {
   disable_on_destroy = false
 }
 
-# TODO(ステップ 3b): Firestore、Firebase（Auth・Hosting）、セキュリティルール
+# ステップ 3b: Firestore・Firebase（Auth・Hosting）・API Gateway
+locals {
+  firebase_services = [
+    "firestore.googleapis.com",
+    "firebase.googleapis.com",
+    "firebasehosting.googleapis.com",
+    "firebaserules.googleapis.com",
+    "identitytoolkit.googleapis.com",
+    "apigateway.googleapis.com",
+    "servicemanagement.googleapis.com",
+    "servicecontrol.googleapis.com",
+  ]
+}
+
+resource "google_project_service" "firebase" {
+  for_each = toset(local.firebase_services)
+
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}

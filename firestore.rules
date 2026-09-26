@@ -1,0 +1,85 @@
+rules_version = '2';
+
+// Firestore のセキュリティルール（docs/DESIGN.md §7.3.2）
+// - 書き込みはすべてサーバー（API・ツールサービスの Admin SDK）で行う。クライアントからの書き込みは禁止
+// - クライアントの読み取りは画面の即時更新（onSnapshot）のためだけに、ロールと建物で絞って許可する
+// - resident_id = Firebase Auth の uid。ロールはカスタムクレーム（backend/scripts/set_claims.py）
+// サーバーはルールを経由しないため、PRV-04・追記専用・承認の書き込み制限はサーバーのコードで強制する
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function inBuilding(buildingId) {
+      return signedIn() && request.auth.token.building_id == buildingId;
+    }
+    function isAdmin(buildingId) {
+      return inBuilding(buildingId) && request.auth.token.role == 'admin';
+    }
+    function isResident(buildingId) {
+      return inBuilding(buildingId) && request.auth.token.role == 'resident';
+    }
+    function isSelf(buildingId, residentId) {
+      return isResident(buildingId) && request.auth.uid == residentId;
+    }
+
+    match /{document=**} {
+      allow write: if false;
+    }
+
+    match /buildings/{buildingId} {
+      allow read: if isAdmin(buildingId);
+
+      // 部屋番号を含むため住民は読めない（必要な情報は API で返す）
+      match /units/{unitId} {
+        allow read: if isAdmin(buildingId);
+      }
+      match /nodes/{nodeId} {
+        allow read: if isAdmin(buildingId);
+      }
+      match /edges/{edgeId} {
+        allow read: if isAdmin(buildingId);
+      }
+      match /residents/{residentId} {
+        allow read: if isAdmin(buildingId) || isSelf(buildingId, residentId);
+      }
+      // 高機密。管理人のトリアージの優先表示にだけ使う
+      match /household_profiles/{unitId} {
+        allow read: if isAdmin(buildingId);
+      }
+      match /presence_contexts/{residentId} {
+        allow read: if isAdmin(buildingId) || isSelf(buildingId, residentId);
+      }
+
+      match /emergencies/{emergencyId} {
+        // 住民も緊急モードの開始を受け取る
+        allow read: if isAdmin(buildingId) || isResident(buildingId);
+
+        match /current_states/{residentId} {
+          allow read: if isAdmin(buildingId) || isSelf(buildingId, residentId);
+        }
+        match /state_events/{eventId} {
+          allow read: if isAdmin(buildingId);
+        }
+        match /issues/{issueId} {
+          allow read: if isAdmin(buildingId);
+        }
+        match /tasks/{taskId} {
+          allow read: if isAdmin(buildingId)
+            || (isResident(buildingId) && resource.data.resident_id == request.auth.uid);
+
+          match /events/{eventId} {
+            allow read: if isAdmin(buildingId)
+              || (isResident(buildingId)
+                && get(/databases/$(database)/documents/buildings/$(buildingId)/emergencies/$(emergencyId)/tasks/$(taskId)).data.resident_id == request.auth.uid);
+          }
+        }
+        match /audit_events/{auditEventId} {
+          allow read: if isAdmin(buildingId)
+            || (isResident(buildingId)
+              && (resource.data.actor_id == request.auth.uid || resource.data.target_id == request.auth.uid));
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+# API Gateway の API 定義（OpenAPI 2.0）。Terraform（infra/terraform/api_gateway.tf）が templatefile で値を埋める。
+# - Firebase の ID トークンを検証し、未ログインのリクエストは Gateway で拒否する（docs/ARCHITECTURE.md §3.1）
+# - 検証済みのリクエストは Gateway のサービスアカウントで非公開の Cloud Run（api）へ転送する
+# - API を追加したら docs/DESIGN.md §8 とこのファイルの両方に追加する（載っていないパスは 404）
+swagger: "2.0"
+info:
+  title: zashikiwarashi-api
+  description: Zashikiwarashi API（API Ingestion）
+  version: "1.0.0"
+schemes:
+  - https
+produces:
+  - application/json
+
+# ブラウザの事前確認（OPTIONS）を api にそのまま通し、CORS の応答は api（FastAPI）が返す
+x-google-endpoints:
+  - name: "${managed_service}"
+    allowCors: true
+
+x-google-backend:
+  address: ${backend_url}
+  path_translation: APPEND_PATH_TO_ADDRESS
+  deadline: 30.0
+
+securityDefinitions:
+  firebase:
+    authorizationUrl: ""
+    flow: implicit
+    type: oauth2
+    x-google-issuer: "https://securetoken.google.com/${project_id}"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "${project_id}"
+
+# すべての API で Firebase の ID トークンを必須にする
+security:
+  - firebase: []
+
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: 動作確認
+      responses:
+        "200":
+          description: OK
+  /me:
+    get:
+      operationId: getMe
+      summary: API-09 ログインユーザーのロールとクレーム
+      responses:
+        "200":
+          description: OK
+  /emergency/trigger:
+    post:
+      operationId: triggerEmergency
+      summary: API-01 緊急モード発令
+      responses:
+        "200":
+          description: OK
+  /emergency/confirm-presence:
+    post:
+      operationId: confirmPresence
+      summary: API-02 在館・安否の応答
+      responses:
+        "200":
+          description: OK
+  /issues/{issueId}:
+    get:
+      operationId: getIssue
+      summary: API-03 Issue と進行状況の取得
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+  /tasks/{taskId}/respond:
+    post:
+      operationId: respondTask
+      summary: API-04 打診への回答
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+  /tasks/{taskId}/report:
+    post:
+      operationId: reportTask
+      summary: API-05 タスクの開始・完了・失敗の報告
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+  /tasks/{taskId}:
+    get:
+      operationId: getTask
+      summary: API-06 Task の詳細
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: OK
+  /me/audit-events:
+    get:
+      operationId: listMyAuditEvents
+      summary: API-07 本人に関わる監査イベント
+      responses:
+        "200":
+          description: OK
+  /emergencies/{emergencyId}/triage:
+    post:
+      operationId: startTriage
+      summary: API-08 トリアージ開始（Building Agent を呼ぶため待ち時間を長くする）
+      parameters:
+        - name: emergencyId
+          in: path
+          required: true
+          type: string
+      x-google-backend:
+        address: ${backend_url}
+        path_translation: APPEND_PATH_TO_ADDRESS
+        deadline: 120.0
+      responses:
+        "200":
+          description: OK

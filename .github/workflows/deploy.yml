@@ -1,6 +1,7 @@
 # main へのマージでインフラの反映とデプロイを行う（docs/ARCHITECTURE.md §6.2、PLAN §4 ステップ 3）
 # ① terraform apply（tf-apply） ② backend イメージのビルドと push ③ Cloud Run（api・tools）の更新（deployer）
-# ステップ 3b 以降で Firebase（Hosting・Firestore のルール）へのデプロイ、ステップ 6 以降で Agent Runtime へのデプロイを足す。
+# ④ frontend のビルドと Firebase（Hosting・Firestore のルールとインデックス）へのデプロイ（deployer）
+# ステップ 6 以降で Agent Runtime へのデプロイを足す。
 # tf-apply・deployer は main ブランチのワークフローからしか使えない（infra/terraform/iam_wif.tf）。
 name: Deploy
 
@@ -30,6 +31,8 @@ jobs:
     outputs:
       image_repository: ${{ steps.out.outputs.image_repository }}
       api_url: ${{ steps.out.outputs.api_url }}
+      api_gateway_url: ${{ steps.out.outputs.api_gateway_url }}
+      firebase_web_config: ${{ steps.out.outputs.firebase_web_config }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -46,6 +49,8 @@ jobs:
         run: |
           echo "image_repository=$(terraform output -raw backend_image_repository)" >> "$GITHUB_OUTPUT"
           echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+          echo "api_gateway_url=$(terraform output -raw api_gateway_url)" >> "$GITHUB_OUTPUT"
+          echo "firebase_web_config=$(terraform output -json firebase_web_config | jq -c .)" >> "$GITHUB_OUTPUT"
 
   backend:
     needs: terraform
@@ -87,3 +92,36 @@ jobs:
           ID_TOKEN: ${{ steps.idtoken.outputs.id_token }}
         run: |
           curl -fsS --retry 5 --retry-delay 5 -H "Authorization: Bearer ${ID_TOKEN}" "${API_URL}/health"
+
+  frontend:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      # Web 用の Firebase の設定はブラウザに配る前提の識別子で秘密情報ではない（infra/terraform/outputs.tf）
+      - name: ビルド（静的エクスポート）
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ needs.terraform.outputs.api_gateway_url }}
+          FIREBASE_WEB_CONFIG: ${{ needs.terraform.outputs.firebase_web_config }}
+        run: |
+          export NEXT_PUBLIC_FIREBASE_API_KEY=$(jq -r .api_key <<<"$FIREBASE_WEB_CONFIG")
+          export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$(jq -r .auth_domain <<<"$FIREBASE_WEB_CONFIG")
+          export NEXT_PUBLIC_FIREBASE_PROJECT_ID=$(jq -r .project_id <<<"$FIREBASE_WEB_CONFIG")
+          export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$(jq -r .storage_bucket <<<"$FIREBASE_WEB_CONFIG")
+          export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$(jq -r .messaging_sender_id <<<"$FIREBASE_WEB_CONFIG")
+          export NEXT_PUBLIC_FIREBASE_APP_ID=$(jq -r .app_id <<<"$FIREBASE_WEB_CONFIG")
+          npm run build
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - name: Firebase へのデプロイ（Hosting・Firestore のルールとインデックス）
+        run: npx --yes firebase-tools@15 deploy --only hosting,firestore:rules,firestore:indexes --project "$PROJECT_ID" --non-interactive

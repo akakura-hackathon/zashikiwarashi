@@ -116,6 +116,11 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "GOOGLE_CLOUD_LOCATION"
         value = var.region
       }
+      # 画面（Firebase Hosting）からの呼び出しを許可するオリジン（API Gateway は OPTIONS を api に通す）
+      env {
+        name  = "CORS_ALLOW_ORIGINS"
+        value = jsonencode(["https://${var.project_id}.web.app", "https://${var.project_id}.firebaseapp.com", "http://localhost:3000"])
+      }
     }
   }
 

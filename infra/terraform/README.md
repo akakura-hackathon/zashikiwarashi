@@ -50,6 +50,21 @@ terraform apply
 | `GCP_TF_APPLY_SA` | `tf_apply_service_account` |
 | `GCP_DEPLOYER_SA` | `deployer_service_account` |
 
+## ステップ 3b の手作業（1 回だけ）
+
+Terraform で作らないもの。OAuth クライアントのシークレットを Terraform の state に残さないため、Google ログインは Firebase Console で有効にする。
+
+1. **Google ログインを有効にする**: [Firebase Console](https://console.firebase.google.com/project/zashikiwarashi/authentication/providers) → Authentication →（初回は「始める」）→ Sign-in method → 「Google」を有効にし、プロジェクトのサポートメールを選んで保存する。OAuth クライアントは自動で作られる。
+2. **許可ドメインを確認する**: Authentication → Settings → 承認済みドメイン に `zashikiwarashi.web.app` と `zashikiwarashi.firebaseapp.com` があること（Hosting のサイト ID をプロジェクト ID にしているので既定で入る）。
+3. **ロールを付ける**: 本人が画面（`https://zashikiwarashi.web.app`）から Google ログインを 1 回行ってから、`backend/scripts/set_claims.py` でロールを付ける。ロールが無いユーザーは API で 403 になる。
+
+```sh
+cd backend
+export GOOGLE_CLOUD_QUOTA_PROJECT=zashikiwarashi
+uv run python scripts/set_claims.py --email ADMIN@example.com --role admin --building-id B-001
+uv run python scripts/set_claims.py --email RESIDENT@example.com --role resident --building-id B-001 --unit-id U-301
+```
+
 ## 注意
 
 - `tf-apply`・`deployer` は「main ブランチで動くワークフロー」なら使える。ワークフローに `pull_request_target` トリガーを使わないこと（PR のコードが main の権限で動いてしまうため）。

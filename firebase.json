@@ -1,0 +1,17 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "site": "zashikiwarashi",
+    "public": "frontend/out",
+    "ignore": ["firebase.json", "**/.*"],
+    "cleanUrls": true
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8081 },
+    "ui": { "enabled": true }
+  }
+}

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "akakura-ai-web-template",
-  description: "AI agent web app template",
+  title: "Zashikiwarashi",
+  description: "マンションの緊急時の助け合いを支える Multi-Agent サービス",
 };
 
 export default function RootLayout({

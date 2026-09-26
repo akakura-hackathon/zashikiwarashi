@@ -90,6 +90,11 @@ locals {
     "roles/artifactregistry.admin",
     "roles/run.admin",
     "roles/iam.serviceAccountUser", # Cloud Run に実行用サービスアカウントを割り当てるため
+    # ステップ 3b: Firestore・Firebase・API Gateway（firebase.tf・api_gateway.tf）
+    "roles/datastore.owner",
+    "roles/firebase.admin",
+    "roles/apigateway.admin",
+    "roles/servicemanagement.admin", # API Gateway の API 設定がマネージドサービスを作るため
   ]
 
   # デプロイ（イメージの push と Cloud Run の更新）に必要なロール。
@@ -97,6 +102,12 @@ locals {
   deployer_roles = [
     "roles/artifactregistry.writer",
     "roles/run.developer",
+    # ステップ 3b: Firebase CLI で Hosting と Firestore のルール・インデックスをデプロイする
+    "roles/firebasehosting.admin",
+    "roles/firebaserules.admin",
+    "roles/datastore.indexAdmin",
+    "roles/firebase.viewer",
+    "roles/serviceusage.serviceUsageConsumer",
   ]
 }
 

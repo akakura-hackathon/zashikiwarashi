@@ -807,7 +807,8 @@ SC-3 の実装に必要な値だけを先に決める。他のシナリオで必
 | API-08 | `POST /emergencies/{emergencyId}/triage` | 安否確認を締め切り、トリアージ（未応答住戸の分類と隣室確認 Task の作成）を開始する。Building Agent を Agent Gateway の Ingress 経由で呼ぶ（LLM 失敗時はルールベース） | 管理人Webコンソール | E-011 status 更新、E-012 作成、E-013 追記 |
 
 - API-02 の本文は `{emergency_id, safety_status: SAFE | NEED_HELP, message?}`。message（自由文）がある場合は Agent Gateway の Ingress 経由で Resident Agent に渡す（§5.8 R3）。
-- 認証はすべて Firebase Auth の ID トークン（`Authorization: Bearer`）。管理人用の API（API-01・API-08）はカスタムクレーム `role = admin` を必須にする。
+- 認証はすべて Firebase Auth の ID トークン（画面は `Authorization: Bearer` を付けて API Gateway を呼ぶ）。API Gateway がトークンを検証し、API は `X-Apigateway-Api-Userinfo` ヘッダーからユーザー情報を読む（ARCHITECTURE.md §3.1）。カスタムクレーム `role` が無いユーザーは拒否し、管理人用の API（API-01・API-08）は `role = admin` を必須にする。
+- API を追加するときは、この表と API Gateway の API 定義（`infra/api-gateway/openapi.yaml.tftpl`）の両方に追加する。
 
 ---
 

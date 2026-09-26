@@ -23,6 +23,7 @@ flowchart TD
 
   subgraph Ingestion [認証 & 受信層 Edge / Gateway]
     Auth[Firebase Authentication<br>Google OAuth / JWTカスタムクレーム]
+    APIGW[API Gateway<br>Firebase の ID トークンを検証<br>未ログインはここで拒否]
     RunIngest[Cloud Run: API Ingestion<br>FastAPI / Python<br>Webhook & クライアントREST API]
   end
 
@@ -71,9 +72,10 @@ flowchart TD
   end
 
   %% クライアント接続
-  App -->|JWT認証| Auth
-  App -->|在宅シグナル/安否フラグ送信| RunIngest
-  AdminWeb -->|緊急モード発令| RunIngest
+  App -->|Google ログイン| Auth
+  App -->|在宅シグナル/安否フラグ送信（ID トークン付き）| APIGW
+  AdminWeb -->|緊急モード発令（ID トークン付き）| APIGW
+  APIGW -->|検証済みのリクエストだけ転送| RunIngest
   CalendarAPI -->|OAuth不在予定同期| RunIngest
   PowerAPI -->|30分値Webhook| RunIngest
   Intercom -->|解錠ログWebhook| RunIngest
@@ -178,8 +180,14 @@ flowchart TD
 ### 3.1 認証 & セキュリティ基盤
 
 - **Firebase Authentication**:
-  - Google OAuth / 電話番号SMS認証。
+  - MVP は Google ログイン（Google アカウント）。電話番号SMS認証は拡張候補。
   - カスタムクレーム（JWT）に `role: resident | admin`、`building_id`、住民は `resident_id`・`unit_id`（E-005 / E-002）を保持。部屋番号は Unit から引き、クレームには載せない。
+- **API Gateway**（FN-02）:
+  - 画面（管理人Webコンソール・住民アプリ）から API への入口。Firebase の ID トークンを検証し、Google ログインしていないリクエストはここで拒否する（「誰でも触れる」状態にしない）。
+  - 検証済みのリクエストだけを、Gateway 専用のサービスアカウントで非公開の Cloud Run（API Ingestion）へ転送する。ログインユーザーの情報は `X-Apigateway-Api-Userinfo` ヘッダー（検証済みトークンのペイロード、base64url）で API に渡る。API Gateway は元の `Authorization` ヘッダーを上書きする。
+  - API 定義（OpenAPI）は `infra/api-gateway/openapi.yaml.tftpl`。API を追加したら定義にも追加する（載っていないパスは Gateway で 404）。CORS はブラウザの事前確認（OPTIONS）を API にそのまま通し（`allowCors`）、API が応答する。
+  - API はさらに、カスタムクレーム `role` が付いた登録済みユーザーかを確認する（未登録の Google アカウントはログインできても API は使えない）。
+  - Agent Gateway（§3.4）とは別の製品。API Gateway は「画面 → API」、Agent Gateway は「Agent の入出力」の関所。
 - **Secret Manager**:
   - 電力データ管理協会APIのmTLS証明書、Google OAuth Client Secret、FCMサービストークンを集中管理。
 
@@ -187,6 +195,7 @@ flowchart TD
 
 - **Cloud Run (API Ingestion)**:
   - Python FastAPI による高スケーラブルなサーバーレスコンテナ。
+  - 非公開（`allUsers` に呼び出しを許可しない）。呼び出せるのは API Gateway のサービスアカウントと、デプロイ時の動作確認用の deployer だけ（§3.1）。
   - クライアント通信および外部Webhookの終端。停電・地震発生直後のアクセススパイクを自動スケールアウトで吸収。
 - **Cloud Pub/Sub**:
   - `presence-events`（在宅シグナル用）
@@ -365,7 +374,8 @@ Actions が GCP に認証するための土台は、Actions が動く前に作�
 
 - **Terraform とデプロイの分担**: Cloud Run のサービス定義（サービスアカウント・環境変数・シークレットの参照）は Terraform、コンテナイメージの更新は `deploy.yml` が行う。二重管理にならないよう、Terraform 側はイメージの変更を無視する（`lifecycle.ignore_changes`）。
 - **Firestore のルールとインデックス**: リポジトリの `firestore.rules`・`firestore.indexes.json` を正とし、`deploy.yml` から Firebase CLI でデプロイする。ローカルの Firestore エミュレーターも同じファイルを使う。
-- **frontend**: Next.js を静的エクスポートして Firebase Hosting に置く。データは Firebase SDK（読み取りのみ）と API で取得する。
+- **frontend**: Next.js を静的エクスポートして Firebase Hosting に置く。データは Firebase SDK（読み取りのみ）と API で取得する。API は API Gateway の URL を呼ぶ（§3.1）。
+- **API Gateway**: API 定義（`infra/api-gateway/openapi.yaml.tftpl`）から Terraform が API 設定を作る。API 設定は作成後に変更できないため、定義を変えるたびに新しい設定を作って差し替える。
 - **シークレット**: Secret Manager の「箱」は Terraform で作り、値は `gcloud secrets versions add` で手動登録する（`rules/infra.md`）。
 - **Terraform 化しないもの**: provider が未対応のリソース（Agent Gateway 周りの alpha / beta 機能など）は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する（§3.4.5）。
 

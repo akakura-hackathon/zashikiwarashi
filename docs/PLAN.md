@@ -131,8 +131,9 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 - [ ] CI でも backend のイメージをビルドする（push はしない）
 
 **3b: Firebase・Firestore・frontend**
-- [ ] Terraform（google-beta を併用）: Firestore（`(default)`・us-central1）とセキュリティルール・インデックス（DESIGN §7.3）、Firebase（プロジェクト・Web アプリ・Hosting）、Authentication の Google ログイン（OAuth クライアントの作成は Console で手動1回）
-- [ ] 画面（frontend）から非公開の api を呼ぶ方法を決める（IAP で許可した Google アカウントに限定する、など）。誰でも触れる状態にはしない
+- [ ] Terraform（google-beta を併用）: Firestore（`(default)`・us-central1）とセキュリティルール・インデックス（DESIGN §7.3）、Firebase（プロジェクト・Web アプリ・Hosting）、Authentication の Google ログイン（Firebase Console で Google ログインを有効にする操作は手動1回。OAuth クライアントのシークレットを Terraform の state に残さないため）
+- [x] 画面（frontend）から非公開の api を呼ぶ方法を決める → **API Gateway**（Firebase の ID トークンを Gateway で検証し、api は非公開のまま。ARCHITECTURE §3.1）
+- [ ] API Gateway（API 定義・Gateway 用サービスアカウント）と、api 側でユーザー情報（`X-Apigateway-Api-Userinfo`）とロールを確認する処理
 - [ ] `deploy.yml`: Firestore のルール・インデックスと frontend（静的エクスポート）を Firebase にデプロイ
 - [ ] カスタムクレーム（`role`・`building_id`・`resident_id`・`unit_id`）を付けるスクリプト（FN-02）
 - [ ] 完了の目安: 本番の URL で API の `/health` と空の画面が開き、Google ログインできる

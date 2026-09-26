@@ -8,6 +8,7 @@ __pycache__/
 # Node
 frontend/node_modules/
 frontend/.next/
+frontend/*.tsbuildinfo
 frontend/out/
 npm-debug.log*
 

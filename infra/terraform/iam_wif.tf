@@ -86,10 +86,18 @@ locals {
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/resourcemanager.projectIamAdmin",
     "roles/serviceusage.serviceUsageAdmin",
+    # ステップ 3a: Artifact Registry・Cloud Run（cloud_run.tf）
+    "roles/artifactregistry.admin",
+    "roles/run.admin",
+    "roles/iam.serviceAccountUser", # Cloud Run に実行用サービスアカウントを割り当てるため
   ]
 
-  # ステップ 3 で Cloud Run・Artifact Registry などを作るときに追加する
-  deployer_roles = []
+  # デプロイ（イメージの push と Cloud Run の更新）に必要なロール。
+  # 実行用サービスアカウントを「使う」権限は、プロジェクト全体ではなく各サービスアカウントに付ける（cloud_run.tf）。
+  deployer_roles = [
+    "roles/artifactregistry.writer",
+    "roles/run.developer",
+  ]
 }
 
 resource "google_project_iam_member" "tf_plan" {

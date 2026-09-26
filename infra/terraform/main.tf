@@ -22,4 +22,22 @@ resource "google_project_service" "bootstrap" {
   disable_on_destroy = false
 }
 
-# TODO(ステップ 3): Artifact Registry、Firestore、Firebase、Cloud Run、Secret Manager など
+# ステップ 3a: Artifact Registry・Cloud Run
+locals {
+  platform_services = [
+    "artifactregistry.googleapis.com",
+    "run.googleapis.com",
+    "logging.googleapis.com",
+    "cloudtrace.googleapis.com",
+  ]
+}
+
+resource "google_project_service" "platform" {
+  for_each = toset(local.platform_services)
+
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
+# TODO(ステップ 3b): Firestore、Firebase（Auth・Hosting）、セキュリティルール

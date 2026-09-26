@@ -27,3 +27,18 @@ output "deployer_service_account" {
   description = "GitHub Variables: GCP_DEPLOYER_SA"
   value       = google_service_account.deployer.email
 }
+
+output "backend_image_repository" {
+  description = "backend イメージの保存先（deploy.yml が <この値>/backend:<commit SHA> で push する）"
+  value       = "${google_artifact_registry_repository.backend.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.backend.repository_id}"
+}
+
+output "api_url" {
+  description = "API Ingestion（Cloud Run）の URL"
+  value       = google_cloud_run_v2_service.service["api"].uri
+}
+
+output "tools_url" {
+  description = "ツールサービス（Cloud Run・非公開）の URL"
+  value       = google_cloud_run_v2_service.service["tools"].uri
+}

@@ -1,23 +1,89 @@
+# main へのマージでインフラの反映とデプロイを行う（docs/ARCHITECTURE.md §6.2、PLAN §4 ステップ 3）
+# ① terraform apply（tf-apply） ② backend イメージのビルドと push ③ Cloud Run（api・tools）の更新（deployer）
+# ステップ 3b 以降で Firebase（Hosting・Firestore のルール）へのデプロイ、ステップ 6 以降で Agent Runtime へのデプロイを足す。
+# tf-apply・deployer は main ブランチのワークフローからしか使えない（infra/terraform/iam_wif.tf）。
 name: Deploy
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 permissions:
   contents: read
   id-token: write # Workload Identity Federation
 
-jobs:
-  deploy-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # TODO: google-github-actions/auth (WIF) -> build & push image -> deploy to Cloud Run
-      # See infra/terraform/iam_wif.tf for the pool/provider/service account this authenticates against.
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
 
-  deploy-frontend:
+jobs:
+  terraform:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    outputs:
+      image_repository: ${{ steps.out.outputs.image_repository }}
+      api_url: ${{ steps.out.outputs.api_url }}
     steps:
       - uses: actions/checkout@v4
-      # TODO: npm run build -> firebase deploy --only hosting
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+          terraform_wrapper: false
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_TF_APPLY_SA }}
+      - run: terraform init -input=false
+      - run: terraform apply -input=false -auto-approve
+      - id: out
+        run: |
+          echo "image_repository=$(terraform output -raw backend_image_repository)" >> "$GITHUB_OUTPUT"
+          echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: terraform
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ needs.terraform.outputs.image_repository }}/backend:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Artifact Registry へのログイン
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - name: イメージのビルドと push
+        run: |
+          docker build -t "$IMAGE" backend
+          docker push "$IMAGE"
+      - name: Cloud Run の更新（api・tools は同じイメージ）
+        run: |
+          for svc in api tools; do
+            gcloud run deploy "$svc" --image "$IMAGE" --region "$REGION" --project "$PROJECT_ID" --quiet
+          done
+      # api は非公開なので、deployer の ID トークンを付けて呼ぶ（deployer にだけ api の呼び出しを許可している）
+      - name: 動作確認用の ID トークン
+        id: idtoken
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+          token_format: id_token
+          id_token_audience: ${{ needs.terraform.outputs.api_url }}
+          id_token_include_email: true
+          create_credentials_file: false
+      - name: 動作確認（api の /health）
+        env:
+          API_URL: ${{ needs.terraform.outputs.api_url }}
+          ID_TOKEN: ${{ steps.idtoken.outputs.id_token }}
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 -H "Authorization: Bearer ${ID_TOKEN}" "${API_URL}/health"

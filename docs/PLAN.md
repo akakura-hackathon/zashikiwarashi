@@ -114,7 +114,7 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 - [x] Workload Identity Pool / Provider（GitHub リポジトリ `akakura-hackathon/zashikiwarashi` に限定）
 - [x] サービスアカウント: Terraform の plan 用（閲覧のみ）・apply 用（必要最小限のロール）・デプロイ用
 - [x] オーナー権限を持つ人がローカルで1回 `terraform apply` する（9/26 実施。#9）
-- [ ] `terraform output` を GitHub の Variables に登録する
+- [x] `terraform output` を GitHub の Variables に登録する（9/26 実施）
 
 ### ステップ 2: CI（9/29）✅
 

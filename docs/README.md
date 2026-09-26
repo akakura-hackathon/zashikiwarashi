@@ -23,7 +23,8 @@ Zashikiwarashi の企画・設計ドキュメントと図の入口。実装の�
 
 | 図 | 何が分かるか | 対応する docs |
 |---|---|---|
-| `Zashikiwarashi_structure_architecture_ランタイム構成_v1.0.drawio` | 緊急時のデータ・制御フロー（Client / App / Data / External の層、Agent Runtime、Privacy Gateway） | [ARCHITECTURE.md](ARCHITECTURE.md) §1・§3 |
+| `Zashikiwarashi_structure_architecture_ランタイム構成_v1.2.drawio` | **全体構成図**。緊急時のデータ・制御フロー全体（Client / App / Data / External の層、Agent ガバナンスの制御ポイント [G1]〜[G6]、Agent Runtime の Building Agent・Resident Agent、Cloud Run のツールサービス、Cloud Logging・Cloud Trace。リージョンは us-central1） | [ARCHITECTURE.md](ARCHITECTURE.md) §1・§3 |
+| `Zashikiwarashi_structure_architecture_Agentガバナンス・オブザーバビリティ_v1.1.drawio` | **Agent ガバナンス・オブザーバビリティ図**。制御ポイント [G1]〜[G8]・観測点 [O1]〜[O5] の詳細と一覧、MVP の区分（無印／余力／図のみ）。村上作成の v1.0 を今回の決定事項で更新 | [ARCHITECTURE.md](ARCHITECTURE.md) §3.4・§3.5 |
 | `Zashikiwarashi_ER図_v1.0.drawio` | 論理データモデル（L2）。Cat 1〜5 の13エンティティ（E-001〜E-013, E-016）と関係。**データモデルの正**（図中表記は v1.1） | [DESIGN.md](DESIGN.md) §3・§7 |
 | `Zashikiwarashi_緊急時の物資支援フロー(To-Be)_v1.0.drawio` | シナリオ1 停電×EV停止：物資の階段バケツリレー | [DESIGN.md](DESIGN.md) §6.1 |
 | `Zashikiwarashi_火災時の避難同行フロー(To-Be)_v1.0.drawio` | シナリオ2 火災：要支援者と避難可能住民のマッチング | [DESIGN.md](DESIGN.md) §6.2 |

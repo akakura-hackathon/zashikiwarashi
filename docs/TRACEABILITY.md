@@ -30,14 +30,14 @@
 | 機能 | 満たす要件 | 守る原則・非機能 | 設計（DESIGN.md） | 主なエンティティ | API | Agent | シナリオ |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | FN-01 管理人コンソール（発令・指示） | REQ-01, REQ-03 | ― | §3.4, §5.2, §5.6 | E-008, E-011 | API-01 | AG-02 | SC-1〜4 |
-| FN-02 認証とロール分離 | REQ-02 | PRV-04 | §3.2（ARCHITECTURE §3.1） | E-002, E-005 | ― | ― | 全シナリオ |
+| FN-02 認証とロール分離 | REQ-02 | PRV-04 | §3.2, §7.3.2（ARCHITECTURE §3.1） | E-002, E-005 | 全 API（ID トークン） | ― | 全シナリオ |
 | FN-03 Resident Agent（Context分離・タスク評価・逆提案・開示の最小化・本人との対話） | REQ-04, REQ-15 | PRV-02, PRV-03, PRV-04, NFR-04 | §3.2, §3.3, §5.1, §5.3, §5.8 | E-005〜E-007, E-013 | ― | AG-01 | SC-1〜4 |
-| FN-04 Building Agent（援助Taskの計画生成） | REQ-05 | NFR-01, NFR-02, NFR-03, NFR-04 | §3.1, §5.3, §5.4, §6 | E-001〜E-004, E-011, E-012 | API-03 | AG-02 | SC-1〜4 |
+| FN-04 Building Agent（援助Taskの計画生成） | REQ-05 | NFR-01, NFR-02, NFR-03, NFR-04 | §3.1, §5.3, §5.4, §6 | E-001〜E-004, E-011, E-012 | API-03, API-08 | AG-02 | SC-1〜4 |
 | FN-05 Privacy Gateway | REQ-06, REQ-11 | PRV-02, PRV-05 | §4, §5.1 | ― | ― | AG-03 | SC-1〜4 |
-| FN-06 打診とHuman Approval | REQ-07 | PRV-06 | §5.5, §5.7 | E-012, E-013 | 未定義（API-04 以降） | AG-02, AG-04 | SC-1〜4 |
-| FN-07 Progressive Disclosure の画面遷移 | REQ-07, REQ-11 | PRV-06, PRV-08 | §4, §5.5 | E-002, E-013, E-016 | 未定義 | AG-04 | SC-1〜4 |
-| FN-08 タスク進捗の報告とダッシュボード | REQ-08, REQ-09 | NFR-03 | §3.4, §5.7 | E-009, E-010, E-012, E-013 | API-02, API-03 | ― | SC-1〜4 |
-| FN-09 監査ログの事後閲覧 | REQ-10 | PRV-07, NFR-01 | §3.5 | E-016 | 未定義 | ― | 全シナリオ |
+| FN-06 打診とHuman Approval | REQ-07 | PRV-06 | §5.5, §5.7 | E-012, E-013 | API-04 | AG-02, AG-04 | SC-1〜4 |
+| FN-07 Progressive Disclosure の画面遷移 | REQ-07, REQ-11 | PRV-06, PRV-08 | §4, §5.5 | E-002, E-013, E-016 | API-06 | AG-04 | SC-1〜4 |
+| FN-08 タスク進捗の報告とダッシュボード | REQ-08, REQ-09 | NFR-03 | §3.4, §5.7, §6.3 D | E-009, E-010, E-012, E-013 | API-02, API-03, API-05, API-08 | ― | SC-1〜4 |
+| FN-09 監査ログの事後閲覧 | REQ-10 | PRV-07, NFR-01 | §3.5 | E-016 | API-07 | ― | 全シナリオ |
 | FN-10 Agent ガバナンス（G1〜G4・G6） | REQ-13 | PRV-04, PRV-05 | §5.1（ARCHITECTURE §3.4） | ― | ― | AG-05 | SC-1〜4 |
 | FN-11 Agent Observability と監査ログ（O1・O2・G7） | REQ-14 | PRV-03, PRV-07, NFR-01 | ARCHITECTURE §3.5 | ― | ― | AG-01, AG-02 | SC-1〜4 |
 | EXT-01 Google Calendar 実連携 | ― | PRV-01 | §3.3.1 | E-007 | ― | ― | SC-1, SC-3 |
@@ -82,7 +82,7 @@
 | :--- | :--- | :--- |
 | SC-1 停電 × EV停止（物資の階段リレー） | DESIGN.md §6.1 | `Zashikiwarashi_緊急時の物資支援フロー(To-Be)_v1.0.drawio` |
 | SC-2 火災 × 避難同行 | DESIGN.md §6.2 | `Zashikiwarashi_火災時の避難同行フロー(To-Be)_v1.0.drawio` |
-| SC-3 地震直後 × 安否確認分散 | DESIGN.md §6.3 | `Zashikiwarashi_地震直後の安否確認分散フロー(To-Be)_v1.0.drawio` |
+| SC-3 地震直後 × 安否確認分散（基幹デモ） | DESIGN.md §6.3 | `Zashikiwarashi_地震直後の安否確認分散フロー(To-Be)_v1.0.drawio` |
 | SC-4 洪水 × 垂直避難 | DESIGN.md §6.4 | `Zashikiwarashi_洪水時の垂直避難同行フロー(To-Be)_v1.0.drawio` |
 
 > 業務フロー図の DB レーン（「Plan / Approval INSERT」など）と「Lifestyle Memory」の記述は、ER図準拠に改める前の表現のまま。図の更新は未対応。

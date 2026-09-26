@@ -341,6 +341,36 @@ sequenceDiagram
 
 ---
 
+## 6. IaC とデプロイ（Terraform ＋ GitHub Actions）
+
+GCP プロジェクトは `zashikiwarashi`（単一環境・us-central1）。インフラは Terraform（`infra/terraform/`）で管理し、GitHub Actions が Workload Identity Federation（WIF）で GCP に認証して plan・apply・デプロイを行う。サービスアカウントのキーは作らない。
+
+### 6.1 初回構築（手動で1回）
+
+Actions が GCP に認証するための土台は、Actions が動く前に作る必要がある。オーナー権限を持つ人がローカルで次を行う。
+
+1. Terraform の state 用 GCS バケットを作り、`provider.tf` の GCS backend を有効にする。
+2. `terraform apply` で、API の有効化、WIF の Pool / Provider（GitHub リポジトリ `akakura-hackathon/zashikiwarashi` からのトークンだけを受け付ける条件を付ける）、次のサービスアカウントを作る。
+   - `tf-plan`: plan 用。閲覧系のロールと state バケットの読み取りのみ
+   - `tf-apply`: apply 用。Terraform で管理するリソースに必要な最小限のロール（`owner` / `editor` は付けない）
+   - `deployer`: デプロイ用。Cloud Run・Artifact Registry・Firebase Hosting・Agent Runtime へのデプロイに必要なロール
+3. `terraform output` の値（WIF Provider 名、各サービスアカウントのメール）を GitHub リポジトリの Variables に登録する。
+
+### 6.2 ワークフロー
+
+| ワークフロー | トリガー | 内容 | 認証 |
+| :--- | :--- | :--- | :--- |
+| `ci.yml` | Pull Request | backend の `ruff check`・`pytest`、frontend の `lint`・`typecheck`・`build`、Terraform の `fmt -check`・`validate`・`plan`（plan の結果を PR にコメント） | `tf-plan` |
+| `deploy.yml` | main への push | ① `terraform apply` ② backend のイメージをビルドして Artifact Registry へ push ③ Cloud Run（API・ツールサービス）を新しいイメージで更新 ④ Agent Runtime へ Agent をデプロイ（ステップ 6 以降）⑤ `infra/gcloud/` のスクリプトを実行（ステップ 7 以降）⑥ Firestore のセキュリティルール・インデックスと frontend を Firebase にデプロイ | `tf-apply`・`deployer` |
+
+- **Terraform とデプロイの分担**: Cloud Run のサービス定義（サービスアカウント・環境変数・シークレットの参照）は Terraform、コンテナイメージの更新は `deploy.yml` が行う。二重管理にならないよう、Terraform 側はイメージの変更を無視する（`lifecycle.ignore_changes`）。
+- **Firestore のルールとインデックス**: リポジトリの `firestore.rules`・`firestore.indexes.json` を正とし、`deploy.yml` から Firebase CLI でデプロイする。ローカルの Firestore エミュレーターも同じファイルを使う。
+- **frontend**: Next.js を静的エクスポートして Firebase Hosting に置く。データは Firebase SDK（読み取りのみ）と API で取得する。
+- **シークレット**: Secret Manager の「箱」は Terraform で作り、値は `gcloud secrets versions add` で手動登録する（`rules/infra.md`）。
+- **Terraform 化しないもの**: provider が未対応のリソース（Agent Gateway 周りの alpha / beta 機能など）は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する（§3.4.5）。
+
+---
+
 ## 相互参照
 
 - **課題・ユーザー・要件** → [SPEC.md](SPEC.md)

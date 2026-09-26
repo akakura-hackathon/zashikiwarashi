@@ -1,6 +1,6 @@
 # Zashikiwarashi — マイルストーン・タスク分解
 
-*Version 1.0 / Hackathon MVP*
+*Version 1.1 / Hackathon MVP（基幹デモ SC-3）*
 *提出締切 2026-10-15 23:59*
 
 ---
@@ -35,8 +35,8 @@
 | FN-03 | Resident Agent × 3名以上のContext分離実行とタスク評価。逆提案・開示の最小化・本人との対話（DESIGN.md §5.8 R1〜R3） | Agent Runtime + Gemini（データはツールサービス経由） | REQ-04, REQ-15 |
 | FN-04 | Building Agentによる空間グラフベースの協力計画（援助Task）生成 | Agent Runtime + Vertex AI (Gemini 3.1 Pro) + Firestore空間グラフ | REQ-05 |
 | FN-05 | Privacy Gatewayによるメッセージ検査・抽象化 | Resident Agent の抽象化コード + Model Armor の SDP フィルタ（Sensitive Data Protection の検査テンプレート） | REQ-06, REQ-11 |
-| FN-06 | FCMプッシュ通知による打診 → Human Approval | FCM HTTP v1 + Cloud Run | REQ-07 |
-| FN-07 | Progressive Disclosureの画面遷移デモ | Flutter / Web Mock | REQ-07, REQ-11 |
+| FN-06 | 打診 → Human Approval | Cloud Run（API-04）+ Firestore の `onSnapshot`（FCM HTTP v1 は余力） | REQ-07 |
+| FN-07 | Progressive Disclosureの画面遷移デモ | Next.js（デモ用Web）+ API-06 | REQ-07, REQ-11 |
 | FN-08 | タスクの開始・完了・失敗の報告と進捗ダッシュボード | Cloud Run + Next.js | REQ-08, REQ-09 |
 | FN-09 | 監査ログの事後閲覧 | Firestore（AuditEvent）/ Cloud Logging | REQ-10 |
 | FN-10 | Agent ガバナンス（Agent への入力・Agent 間通信の統制。制御ポイント G1〜G4・G6） | Agent Gateway + Agent Registry + Agent Identity + IAP ポリシー + Model Armor | REQ-13 |
@@ -63,145 +63,146 @@
 
 ## 3. マイルストーン
 
+基幹デモは **SC-3（地震直後の安否確認分散）**。「Agent なしで SC-3 を最後まで通す → Agent とガバナンスを重ねる」の順で縦に積み上げる。ステップ 5 の時点で Agent なしのデモが成立するので、以降が遅れても提出できる。Agent Gateway は不確実性が高いため、ステップ 1 の直後から検証を並行する（ステップ G）。
+
 ```mermaid
 gantt
-  title Zashikiwarashi MVP 開発スケジュール
+  title Zashikiwarashi MVP 開発スケジュール（基幹デモ SC-3）
   dateFormat YYYY-MM-DD
   axisFormat %m/%d
 
-  section Phase 0: 設計完了
-  ドキュメント整合性確保          :done, p0_1, 2026-09-19, 2d
-  デモシナリオ確定               :done, p0_2, 2026-09-19, 2d
+  section 準備
+  S0 docs 更新（SC-3・L3・API）       :done, s0, 2026-09-26, 2d
+  S1 Terraform 初回構築（WIF）        :s1, 2026-09-27, 2d
 
-  section Phase 1: 基盤構築（Week 1）
-  Firebase Auth + Firestore設計   :p1_1, 2026-09-22, 3d
-  Cloud Run API骨格 (FastAPI)     :p1_2, 2026-09-22, 3d
-  空間グラフデータ投入            :p1_3, 2026-09-24, 2d
-  ダミー住民データ投入            :p1_4, 2026-09-24, 2d
+  section 基盤
+  S2 CI                               :s2, 2026-09-29, 1d
+  S3 基盤とデプロイ                    :s3, 2026-09-29, 3d
+  SG Agent Gateway の検証             :sg, 2026-09-29, 3d
 
-  section Phase 2: Agent実装（Week 2）
-  Resident Agent                  :p2_1, 2026-09-27, 4d
-  Building Agent Coordinator      :p2_2, 2026-09-27, 4d
-  Privacy Gateway (抽象化+SDP)    :p2_3, 2026-09-29, 3d
-  Policy Engine (Child Safety)    :p2_4, 2026-10-01, 2d
-  Agent Gateway + Model Armor     :p2_5, 2026-09-27, 4d
+  section SC-3（Agent なし）
+  S4 業務ロジック・Policy Engine       :s4, 2026-09-30, 4d
+  S5 画面                             :s5, 2026-09-30, 5d
 
-  section Phase 3: Vertex AI連携（Week 3）
-  Gemini 3.1 Pro 協力計画生成     :p3_1, 2026-10-03, 3d
-  Gemini 3.8 Flash メッセージ抽象化:p3_2, 2026-10-03, 3d
-  FCM通知 + Human Approval        :p3_3, 2026-10-05, 2d
-  Cloud Trace (Agent Observability):p3_4, 2026-10-05, 1d
+  section Agent とガバナンス
+  S6 Agent（Building / Resident）      :s6, 2026-10-04, 4d
+  S7 Agent ガバナンス（FN-10）         :s7, 2026-10-06, 3d
+  S8 オブザーバビリティ（FN-11）        :s8, 2026-10-08, 2d
 
-  section Phase 4: フロント & デモ（Week 4）
-  管理人Webコンソール             :p4_1, 2026-10-07, 3d
-  住民アプリ(デモ用Web/Flutter)   :p4_2, 2026-10-07, 4d
-  Progressive Disclosure画面遷移  :p4_3, 2026-10-09, 2d
-  監査ログ閲覧画面               :p4_4, 2026-10-10, 2d
-
-  section Phase 5: 統合テスト & 提出
-  シナリオ1通しテスト             :p5_1, 2026-10-12, 2d
-  デモ動画撮影                   :p5_2, 2026-10-13, 1d
-  提出資料整備                   :p5_3, 2026-10-14, 1d
-  提出                           :milestone, p5_4, 2026-10-15, 0d
+  section 仕上げ
+  機能凍結                             :milestone, m1, 2026-10-11, 0d
+  S9 通しリハーサル・動画・提出資料     :s9, 2026-10-12, 3d
+  提出                                 :milestone, m2, 2026-10-15, 0d
 ```
 
 ---
 
-## 4. フェーズ別タスク詳細
+## 4. ステップ別タスク
 
-### Phase 0: 設計完了 ✅
+### ステップ 0: docs の更新（9/26 - 9/27）✅
 
-- [x] 全仕様書の整合性確保（SPEC.md / DESIGN.md / ARCHITECTURE.md / PLAN.md）
-- [x] デモシナリオ4種の確定
-- [x] Webモック（Studio Architecture）の構築・検証
+- [x] 基幹デモを SC-3 に変更（SPEC §2.3、DESIGN §6.3 D）
+- [x] Firestore の物理設計（DESIGN §7.3）、SC-3 で使う値の一覧（§7.4 #5・案）、API-04〜08（§8）
+- [x] Terraform と GitHub Actions の運用（ARCHITECTURE §6、`rules/infra.md`）
 
-### Phase 1: 基盤構築（9/22 - 9/26）
+### ステップ 1: Terraform の初回構築（9/27 - 9/28）
 
-- [ ] Firebase Authenticationのセットアップ（Google OAuth + カスタムクレーム）
-- [ ] Cloud Firestoreの物理設計（L3）・セキュリティルール実装（DESIGN.md §7.3）
-  - ER図の E-001〜E-016 をコレクションへ割り当てる
-  - 他住民の E-006 / E-007 を読めないルール、E-010 / E-013 / E-016 の追記専用ルール
-- [ ] Cloud Run API骨格（FastAPI / Python）のデプロイ
-  - API-01 `POST /emergency/trigger` — 緊急モード発令（FN-01）
-  - API-02 `POST /emergency/confirm-presence` — 在館・安否応答（FN-08）
-  - API-03 `GET /issues/{issueId}` — Issue・Task・進行状況の取得（FN-08）
-- [ ] デモ用ダミーデータの投入
-  - 15階建て150戸の Building / Unit / Node / Edge（E-001〜E-004。階段所要時間、踊り場位置）
-  - 住民A〜D（SC-1用）の Resident / HouseholdProfile / PresenceContext（E-005〜E-007）
+GitHub Actions が GCP に認証するための土台だけは、Actions が動く前に人が作る（ARCHITECTURE §6.1）。
 
-### Phase 2: Agent実装（9/27 - 10/2）
+- [ ] Terraform の state 用 GCS バケットを作り、`provider.tf` の GCS backend を有効化する
+- [ ] 必要な API の有効化（`google_project_service`）
+- [ ] Workload Identity Pool / Provider（GitHub リポジトリ `akakura-hackathon/zashikiwarashi` に限定）
+- [ ] サービスアカウント: Terraform の plan 用（閲覧のみ）・apply 用（必要最小限のロール）・デプロイ用
+- [ ] オーナー権限を持つ人がローカルで1回 `terraform apply` し、`terraform output` を GitHub の Variables に登録する
 
+### ステップ 2: CI（9/29）
+
+- [ ] `ci.yml`: backend（`ruff check`・`pytest`）、frontend（`lint`・`typecheck`・`build`）、Terraform（`fmt -check`・`validate`・`plan`）。plan の結果を PR にコメントする
+
+### ステップ 3: 基盤とデプロイ（9/29 - 10/1）（FN-02 ほか）
+
+- [ ] Terraform: Artifact Registry、Firestore（`(default)`・us-central1）とセキュリティルール・インデックス（DESIGN §7.3）、Firebase（プロジェクト・Web アプリ・Authentication の Google ログイン）、Firebase Hosting、実行用サービスアカウント（API・ツールサービス）、Cloud Run（API・ツールサービス。初回はプレースホルダーのイメージ）、Secret Manager（値は手動で登録）
+- [ ] `deploy.yml`: main へのマージで `terraform apply` → backend のイメージをビルドして Artifact Registry へ → Cloud Run を更新 → frontend をビルドして Firebase Hosting へ
+- [ ] カスタムクレーム（`role`・`building_id`・`resident_id`・`unit_id`）を付けるスクリプト（FN-02）
+- [ ] 完了の目安: 本番の URL で API の `/health` と空の画面が開く
+
+### ステップ 4: SC-3 の業務ロジック（Agent なし）（9/30 - 10/3）
+
+- [ ] シードスクリプト（DESIGN §7.3.4。15階・150戸、住民 H・I・J・K、在館コンテキストはダミー）
+- [ ] API-01〜08（DESIGN §8）（FN-01・FN-06・FN-07・FN-08・FN-09）
+- [ ] ルールベースのトリアージ: 未応答住戸の分類（在宅可能性あり／Likely Away）、同じ階の最寄りの「無事」の住民への割り当て（1住戸1担当・重複なし）、応答期限と再打診（DESIGN §7.4 #6）、管理人への優先表示（§6.3 D）。LLM 失敗時のフォールバックとしても使う（NFR-03）
+- [ ] Policy Engine（FN-06, FN-07）
+  - TaskEvent `APPROVED` が無いTaskの実行・部屋番号開示の遮断
+  - 承認（`APPROVED` / `DECLINED`）を書き込めるのは API-04 だけ
+  - Child Safetyルール（私室連れ込み禁止、防犯カメラ付きラウンジ限定。SC-3 では使わないがテストは書く）
+- [ ] ツールサービス（MCP）: 上のロジックをツールとして公開する（未応答の一覧、担当候補の検索、隣室確認 Task の作成、打診、結果の記録）
+- [ ] 監査イベント（E-016）の記録（FN-09）
+- [ ] 完了の目安: API だけで SC-3 が最後まで動く（pytest の通しシナリオテスト）
+
+### ステップ 5: 画面（9/30 - 10/4）
+
+- [ ] 管理人Webコンソール（FN-01, FN-08）
+  - 緊急モード発令・自然言語の指示入力（Issue）
+  - 150戸の状態（`current_states` を `onSnapshot` で表示）、トリアージ開始（API-08）
+  - 優先アラート（本人未応答 × 隣室確認も応答なし × 要配慮世帯）
+- [ ] 住民アプリ（デモ用Web）（FN-06, FN-07, FN-08）
+  - 安否回答（無事 / 被害あり、自由文も可）
+  - 打診の承認 / 辞退 → 承認後に初めて部屋番号を表示（Progressive Disclosure） → 結果報告（応答あり / なし）
+  - Resident Agent からの聞き返しの表示（FN-03 R3）
+  - デモ用に住民（H・I・J・K）を切り替えて操作できるようにする
+- [ ] 監査ログ閲覧画面（FN-09）
+- [ ] 完了の目安: **Agent なしの SC-3 デモが成立する**
+
+### ステップ 6: Agent（10/4 - 10/7）（FN-03・FN-04・FN-05）
+
+- [ ] Building Agent Coordinator（FN-04）
+  - トリアージ開始（API-08）を受けて、ツールサービスで未応答住戸を分類し、隣室確認 Task を作る
+  - 辞退・期限切れ・逆提案を受けて再計画する（上限ラウンドは NFR-04）
+  - Gemini 3.1 Pro による割り当て案の構造化出力（JSON Schema）と出力検証。失敗時はステップ 4 のルールベースへ
 - [ ] Resident Agent（FN-03）
   - `resident_id` によるContext分離（Agent Runtime のセッションを `user_id=resident_id` で分ける）
   - 世帯プロファイル・在館コンテキストの読み取り、Taskの評価（TaskEvent `EVALUATED`）
-  - Emergency Context生成
-  - R1 逆提案: 本人の制約から代案（例: 「8Fまでなら可」）を返す（DESIGN.md §5.8）
-  - R2 開示の番人: 問い合わせに最小の粒度で答える
-  - R3 本人との対話: 自由文の回答を Need / Capability に構造化し、足りない情報を聞き返す
-- [ ] Building Agent Coordinator（FN-04）
-  - 緊急モード受信 → Issue から本人Taskを作成 → 関連Resident Agent選定
-  - Resident Agent の逆提案・辞退を受けて再計画する（上限ラウンドは NFR-04）
-  - 空間グラフ参照 → 援助Task（parent_task_id）への分割ロジック
-  - 協力計画の生成指示（Vertex AI連携は Phase 3）
+  - R1 逆提案（例: 「今は無理、1分後なら可」）、R2 開示の番人、R3 本人との対話（例: 「ドアが開かない」を構造化し、足りない情報を聞き返す）（DESIGN.md §5.8）
 - [ ] Privacy Gateway（FN-05）
-  - Resident Agent の回答を抽象トークン（例: `[14F / 水4L / 階段不可]`）だけで組み立てるコード
+  - Resident Agent の回答を抽象トークンだけで組み立てるコード
   - Sensitive Data Protection の検査テンプレート（カスタム infoType：居室番号・氏名、日本語の住所・電話番号）を作り、Model Armor の SDP フィルタから参照する（G2）
-  - 部屋番号・氏名を含む回答が Agent Gateway で遮断されることを確認するテスト
-- [ ] Policy Engine（FN-06, FN-07）
-  - Child Safetyルール（私室連れ込み禁止、防犯カメラ付きラウンジ限定）
-  - TaskEvent `APPROVED` が無いTaskの実行・部屋番号開示の遮断
-- [ ] Agent ガバナンス（FN-10。構成は ARCHITECTURE.md §3.4）
-  - リージョンは us-central1（ARCHITECTURE.md §3.4.1）
-  - Building Agent と Resident Agent を Agent Runtime にデプロイし、それぞれに Agent Identity を付与する
-  - Agent Gateway（Standalone モード）の Ingress（G1: API → Agent）と Egress（G3: Agent → Resident Agent（A2A）/ ツールサービス（MCP）/ Gemini API）を作り、両 Agent をデプロイ時に紐づける
-  - ツールサービス（MCP）と Gemini API のエンドポイントを Agent Registry に登録する（G6）。Gemini API を Egress 経由にできるかを最初に確認する（ARCHITECTURE.md §3.4.5 の TBD ①）
-  - IAP ポリシーで Agent Identity ごとに呼べるツールを制限する（G4。Resident Agent は自分の住民のデータの読み取りと評価結果の記録のみ。承認の書き込みと部屋番号の開示はどの Agent も不可）
-  - Model Armor テンプレート（プロンプトインジェクション・ジェイルブレイク・SDP フィルタ）を作り、Gateway に付ける（G2）
-  - デモ用に、プロンプトインジェクションを含む入力が遮断されることを確認するテストを用意する
+- [ ] 開発は `adk web` でローカル実行し、Agent Runtime へのデプロイを `deploy.yml` に追加する
 
-### Phase 3: Vertex AI連携（10/3 - 10/6）
+### ステップ 7: Agent ガバナンス（10/6 - 10/8）（FN-10。構成は ARCHITECTURE.md §3.4）
 
-- [ ] Gemini 3.1 Pro — 協力計画の構造化生成（FN-04）
-  - JSON Schema定義（Task の task_type、担当者、所要時間 estimated_seconds、start / destination_node_id）
-  - 空間グラフ + 住民制約のプロンプト設計
-  - 出力検証（不可能なタスクの排除）
-- [ ] Gemini 3.8 Flash — メッセージ抽象化（FN-05）
-  - Resident Agent間メッセージの意図解釈
-  - 生Need → 抽象化Needへの変換
-- [ ] FCM通知 + Human Approval（FN-06）
-  - 高優先度データメッセージの送信
-  - 1タップ応答の受信 → TaskEvent `APPROVED` / `DECLINED` を追記
-  - 承認/辞退・応答期限切れのフロー完成
-- [ ] Agent Observability と監査ログ（FN-11）
-  - Agent Runtime・Cloud Run の両方で ADK のトレースを Cloud Trace に出し、plan_id で Agent をまたいで追えるようにする（O1）
-  - プロンプトと応答の本文を記録しない設定にする（`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`）
-  - Agent Gateway・IAP・Model Armor の判定ログを監査 sink でログバケットへ送る（O2・G7。ハッカソン中は保持ロックをかけない）
+- [ ] Building Agent と Resident Agent に Agent Identity を付与する
+- [ ] Agent Gateway（Standalone モード）の Ingress（G1: API → Agent）と Egress（G3: Agent → Resident Agent（A2A）/ ツールサービス（MCP）/ Gemini API）を作り、両 Agent をデプロイ時に紐づける
+- [ ] ツールサービス（MCP）と Gemini API のエンドポイントを Agent Registry に登録する（G6）
+- [ ] IAP ポリシーで Agent Identity ごとに呼べるツールを制限する（G4。Resident Agent は自分の住民のデータの読み取りと評価結果の記録のみ。承認の書き込みと部屋番号の開示はどの Agent も不可）
+- [ ] Model Armor テンプレート（プロンプトインジェクション・ジェイルブレイク・SDP フィルタ）を作り、Gateway に付ける（G2）
+- [ ] デモ用に、プロンプトインジェクションや部屋番号を含む入出力が遮断されることを確認するテストを用意する
+- [ ] Terraform で作れない部分は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する
 
-### Phase 4: フロントエンド & デモ（10/7 - 10/11）
+### ステップ 8: Agent Observability と監査ログ（10/8 - 10/9）（FN-11）
 
-- [ ] 管理人Webコンソール（FN-01, FN-08）
-  - 緊急モード発令ボタン・自然言語の指示入力（Issue）
-  - 進行状況ダッシュボード（住民の安否 E-009、Task の状態）
-  - トリアージ結果表示（応答なし＋高齢単身の赤色抽出）
-- [ ] 住民アプリ（デモ用）（FN-06, FN-07, FN-08）
-  - ロック画面 → FCMプッシュ通知 → 打診画面 → 承認後手順 → 開始・完了報告画面
-  - Progressive Disclosure（承認後に初めて部屋番号が開示）
-  - 困りごと・回答の自由文入力と、Resident Agent からの聞き返しの表示（FN-03 R3）
-  - Studio Architecture（既存Webモック）のデザインを流用
-- [ ] 監査ログ閲覧画面（FN-09）
-  - 住民が事後に自分のデータ利用・開示経緯を確認
+- [ ] Agent Runtime・Cloud Run の両方で ADK のトレースを Cloud Trace に出し、plan_id で Agent をまたいで追えるようにする（O1）
+- [ ] プロンプトと応答の本文を記録しない設定にする（`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`）
+- [ ] Agent Gateway・IAP・Model Armor の判定ログを監査 sink でログバケットへ送る（O2・G7。ハッカソン中は保持ロックをかけない）
 
-### Phase 5: 統合テスト & 提出（10/12 - 10/15）
+### ステップ G: Agent Gateway の検証（9/29 - 10/1。ステップ 1 の直後から並行）
 
-- [ ] SC-1（停電バケツリレー）の通しテスト
-  - 管理人発令 → Agent協議 → FCM打診 → Human Approval → 計画確定 → 完了
-- [ ] SC-2〜SC-4 の部分デモ確認
+- [ ] Standalone モードで Ingress / Egress を作れるか
+- [ ] Gemini API の呼び出しを Egress 経由にできるか（ARCHITECTURE.md §3.4.5 の TBD ①）
+- [ ] IAP ポリシーでツール単位の制限ができるか、Terraform で作れる範囲はどこまでか
+- [ ] 結果を ARCHITECTURE.md §3.4.5 に反映する。構成が成り立たない場合は、ステップ 7 に入る前に設計を見直す
+
+### ステップ 9: 仕上げと提出（10/12 - 10/15）
+
+- [ ] SC-3 の通しテストとリハーサル（Agent なし版を予備として残す）
+- [ ] SC-1・SC-2・SC-4 は設計と図で説明する（余力があれば部分デモ）
 - [ ] デモ動画の撮影・編集
-- [ ] 提出資料の最終整備
-  - README.md（概要・セットアップ手順）
-  - アーキテクチャ図（ARCHITECTURE.md）
-  - デモ動画
+- [ ] 提出資料の最終整備（README.md の概要・セットアップ手順、構成図、デモ動画）
 - [ ] 提出
+
+### 余力があれば（機能凍結 10/11 まで）
+
+- [ ] FCM プッシュ通知（FN-06。災害時の主要通知基盤にできるかは TBD）
+- [ ] EXT-06（Resident Agent 同士の直接調整）、EXT-07（評価ゲート・アラート・ext_authz）
 
 ---
 
@@ -212,8 +213,9 @@ gantt
 | Vertex AI Gemini 3.1 Proの構造化出力が安定しない | 協力計画の品質が不安定 | JSON Schemaでの厳格指定 + 出力検証ループ。最悪の場合はハードコードされたデモデータで代替 |
 | Model Armor（SDP フィルタ）の日本語の検出精度 | 居室番号（3桁数字）の誤検知・見逃し | カスタムinfoTypeの定義。Agent 間は抽象トークンだけを渡す作りにして、検出は二重の安全網にとどめる。テスト期間を十分に確保 |
 | Gemini API を Egress の Agent Gateway 経由にできない（Standalone モード） | G3「外向き通信はすべて Gateway を通る」が崩れる | 最初に確認する。できない場合は直接呼び出し＋Model Armor の floor 設定で補い、docs と図を見直す |
-| FCMプッシュ通知のデモ環境での安定性 | デモ中に通知が届かない | ローカル環境ではWebSocket fallbackも用意 |
-| 1人チームでの開発リソース不足 | 全Phase完了が困難 | Phase 1-3を最優先。Phase 4は最低限のデモ用UIに絞り、Studio Architecture（既存Webモック）を活用 |
+| FCMプッシュ通知のデモ環境での安定性 | デモ中に通知が届かない | MVP は Firestore の `onSnapshot` で画面を更新し、FCM は余力とする |
+| 開発期間が短い（9/26 時点で実装ゼロ、提出まで約3週間） | 全ステップ完了が困難 | ステップ 5 までで Agent なしの SC-3 デモを成立させ、以降は積み上げにする。基盤とガバナンス／バックエンドと Agent／フロントで分担して並行する |
+| Workload Identity Federation の初回構築でつまずく | CI/CD が動かず全員の作業が止まる | 初回はオーナー権限を持つ人がローカルで apply する（ステップ 1）。それまでの開発はローカルと Firestore エミュレーターで進める |
 | Agent Gateway・Agent Runtime の構築に時間がかかる（新しいサービスで手順の情報が少ない） | FN-10 が遅れ、Agent の実装も止まる | Agent 本体はローカル（`adk web`）で Gateway なしでも動くように作り、Gateway は後から前段に挟む |
 | Terraform の google provider が未対応のリソースがある | IaC で再現できない | 未対応分は Terraform 化せず、gcloud コマンドを `infra/gcloud/` にスクリプトとして残す（`rules/infra.md`） |
 
@@ -221,8 +223,8 @@ gantt
 
 ## 6. 実装時に残す判断事項
 
-- Firestoreの物理設計（L3）：ER図のエンティティのコレクション割り当て・インデックス・セキュリティルール（DESIGN.md §7.3）
-- ER図に保持先が無い項目の扱い（DESIGN.md §7.4：物資の品目・数量、端末到達性、協議メッセージ、各種の値の一覧）
+- SC-3 で使う値の一覧（DESIGN.md §7.4 #5）と応答期限・再打診（#6）の案を確定する
+- ER図に保持先が無い項目の扱い（DESIGN.md §7.4：物資の品目・数量、端末到達性、協議メッセージ、逆提案の条件）
 - Google Calendar APIの実連携対象とOAuthスコープの最終決定
 - 在館コンテキストの判定ロジックと有効期限（expires_at）の具体値
 - Privacy Gatewayの公開粒度ルールと、SDP 検査テンプレートの infoType 設定

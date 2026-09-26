@@ -5,8 +5,12 @@
 `infra/terraform/` に environments フォルダや workspace は作らず、`terraform.tfvars` 1つで管理する。
 
 ## State管理
-- デフォルトはローカル state（`terraform.tfstate` はコミットしない、`.gitignore` 済み）。
-- 複数人で `terraform apply` を行うようになった場合のみ、`provider.tf` にコメントアウトしてある GCS backend を有効化する。
+- state は GCS backend に置く（GitHub Actions が apply するため）。state 用のバケットは初回構築で1回だけ手動で作る（`docs/ARCHITECTURE.md` §6.1）。
+- ローカルの `terraform.tfstate` は作らない・コミットしない（`.gitignore` 済み）。
+
+## 実行の流れ
+- PR で `ci.yml` が `terraform plan` を実行し、結果を PR にコメントする。main へのマージで `deploy.yml` が `terraform apply` する。
+- ローカルからの `apply` は初回構築と障害対応のときだけにする。行った場合は、その内容を PR にも残す。
 
 ## 秘密情報
 - `google_secret_manager_secret_version` で実際のシークレット値を Terraform 管理しない（state に平文で残るため）。
@@ -22,4 +26,4 @@
 - デプロイ用サービスアカウントには `owner`/`editor` を付与せず、`roles/run.admin` 等の必要最小限のロールのみ付与する（`iam_wif.tf` 参照）。
 
 ## 変更後の運用
-- `terraform apply` 後に `terraform output` の値を GitHub リポジトリの Variables/Secrets にコピーする（`infra/terraform/README.md` 参照）。
+- `terraform output` の値（WIF Provider 名・サービスアカウントのメールなど）が変わったら、GitHub リポジトリの Variables にコピーする（`infra/terraform/README.md` 参照）。秘密情報ではないので Secrets ではなく Variables に置く。

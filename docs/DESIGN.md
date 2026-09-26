@@ -378,7 +378,7 @@ Resident Agent は、Building Agent の問い合わせにデータを返すだ�
 | SC-3 | 全館安否確認 | 安否応答（E-009 safety_status を更新。Hは `UNKNOWN`） | 隣室確認（I → target_resident_id = H）。1住戸につき担当1名 | 地震直後の安否確認分散フロー |
 | SC-4 | 1F・2F → 6F以上への垂直避難（route_constraint） | 上階への避難（Lが `REQUIRES_ASSISTANCE`） | 同行（M → target_resident_id = L）。destination_node_id = 6F共用部 | 洪水時の垂直避難同行フロー |
 
-### 6.1 SC-1: 大規模停電 × EV停止 — 物資の階段バケツリレー（基幹デモ）
+### 6.1 SC-1: 大規模停電 × EV停止 — 物資の階段バケツリレー
 
 #### A. 状況・課題
 落雷によりマンション全体が停電し、エレベーターが全基停止。商用電源途絶により**棟内の全戸Wi-Fiは一斉オフライン**となる。
@@ -512,7 +512,7 @@ sequenceDiagram
 
 ---
 
-### 6.3 SC-3: 地震直後 × 初動5分トリアージ — 未応答住戸確認の分散化
+### 6.3 SC-3: 地震直後 × 初動5分トリアージ — 未応答住戸確認の分散化（基幹デモ）
 
 #### A. 状況・課題
 震度5強の地震が発生。家具転倒・ドア枠歪み・室内負傷などが複数住戸で同時に起きる。
@@ -576,6 +576,15 @@ sequenceDiagram
 4. **Human Approvalによる20秒確認**: Iへ「*ご自身の安全確保後、隣の302号室のインターホンを1回だけ鳴らして応答有無を確認できますか？ 約20秒です。 [協力する / 今は無理]*」。承認後にのみ確認対象の部屋番号を開示。
 5. **結果の自動集計と優先度更新**: 「本人未応答」＋「近隣住民確認でも応答なし」の場合、管理人向け現地確認対象へ昇格。Cat 2で要配慮世帯なら管理人コンソール上で優先表示。
 6. **管理人を"全戸確認"から"例外対応"へ**: 住民による並列確認で150戸の大半を数分で分類。管理人は「未応答かつ現地確認が必要な数戸」だけに直行できる。
+
+#### D. MVP での実装範囲（基幹デモ）
+
+- **在館コンテキスト（E-007）はダミー**: Calendar 実連携（EXT-01）は行わず、シードデータで住民Kを `OUTSIDE_BUILDING`（source_type = `CALENDAR`）、それ以外を `IN_BUILDING` として投入する。
+- **安否確認の送信**: 住民アプリは Firestore の `onSnapshot` で緊急事象を受け取り、安否確認画面を出す。FCM は余力（TBD①）。
+- **トリアージの開始**: 安否確認の締め切りは管理人が決め、API-08 でトリアージを開始する（タイマーを持たない）。Building Agent（または LLM 失敗時のルールベース）が未応答住戸を分類し、隣室確認の Task を作る。
+- **結果の表し方**: 隣室確認 Task（task_type = `NEIGHBOR_CHECK`、target_resident_id = 未応答の住民）の `COMPLETED` に、確認結果を reason_code（`TARGET_RESPONDED` / `TARGET_NO_RESPONSE`）で記録する。
+- **管理人への優先表示**: 「本人未応答（E-009 safety_status = `UNKNOWN`）× 隣室確認も応答なし × 要配慮世帯（E-006 の人数から判定）」の住戸を、API-03 の応答で優先度付きで返す。優先度は保存せず、その都度計算する。
+- 値の一覧は §7.4 #5 の案を使う。
 
 ---
 
@@ -680,13 +689,67 @@ ER図（L2）を正とする。詳細属性は [§3](#3-カテゴリー別デー
 - **現在状態（E-009）と履歴（E-010）を分ける**。現在状態は上書き、履歴は追記のみ。
 - **生活文脈は保持しない**。Cat 3 は在館状態の鮮度（observed_at / expires_at）と根拠（source_type）だけを管理する。
 
-### 7.3 Firestore物理設計（L3・未決）
+### 7.3 Firestore物理設計（L3）
 
-ERは論理設計（L2）であり、Firestoreのコレクション分割・サブコレクション化・インデックス・セキュリティルールは対象外。L3として別途定義する（[PLAN.md §6](PLAN.md)）。L3で満たすべき制約は以下。
+ERは論理設計（L2）であり、ここでコレクション分割・インデックス・セキュリティルールを定義する。L3で満たすべき制約は以下。
 
 - 他住民の HouseholdProfile（E-006）・PresenceContext（E-007）を、Resident Agent・クライアントから直接読めないこと（SPEC PRV-04）。
 - TaskEvent（E-013）・状態履歴（E-010）・AuditEvent（E-016）は追記専用であること。
 - 緊急時に150戸分の現在状態（E-009）と在館コンテキスト（E-007）を少ないクエリで取得できること。
+
+#### 7.3.1 コレクション構成
+
+データベースは `(default)`（ネイティブモード、us-central1）。建物単位でまとめ、緊急事象に属するデータは緊急事象の下に置く。
+
+```
+buildings/{building_id}                                  E-001
+  units/{unit_id}                                        E-002
+  nodes/{node_id}                                        E-003
+  edges/{edge_id}                                        E-004
+  residents/{resident_id}                                E-005（resident_id = Firebase Auth の uid）
+  household_profiles/{unit_id}                           E-006
+  presence_contexts/{resident_id}                        E-007
+  emergencies/{emergency_id}                             E-008
+    current_states/{resident_id}                         E-009（emergency_id は親パスで表す）
+    state_events/{event_id}                              E-010
+    issues/{issue_id}                                    E-011
+    tasks/{task_id}                                      E-012（issue_id をフィールドで持つ）
+      events/{event_id}                                  E-013
+    audit_events/{audit_event_id}                        E-016
+```
+
+- 属性はER図（§3）どおり。親パスで表せる外部キー（building_id・emergency_id など）もフィールドとして持ち、コレクショングループのクエリに使う。
+- 150戸分の現在状態は `current_states` の1クエリ、在館コンテキストは `presence_contexts` の1クエリで取得できる。
+- 部屋番号（E-002 room_number）は `units` だけに持ち、Task には持たない。承認後の開示は API-06 が Policy Engine を通して応答で返し、AuditEvent の data_disclosed[] に記録する。
+
+#### 7.3.2 書き込みと読み取りの権限
+
+- **書き込みはすべてサーバー**（API Ingestion・ツールサービス、Admin SDK）で行う。クライアント（Firebase SDK）からの書き込みはセキュリティルールで全面禁止する。サーバーはルールを経由しないため、PRV-04・追記専用・承認の書き込み制限はサーバーのコード（Policy Engine とリポジトリ層）で強制する。
+- **クライアントの読み取り**は画面の即時更新（`onSnapshot`）のためだけに、次の範囲を許可する。カスタムクレーム `role` と `resident_id`（= uid）で判定する。
+
+| コレクション | 管理人（role = admin） | 住民（role = resident） |
+| :--- | :--- | :--- |
+| units・nodes・edges | 可 | 不可（部屋番号を含むため。必要な情報は API で返す） |
+| residents | 可 | 本人のみ |
+| household_profiles | 可（トリアージの優先表示に使う） | 不可 |
+| presence_contexts | 可 | 本人のみ |
+| emergencies | 可 | 可（緊急モードの開始を受け取るため） |
+| current_states | 可 | 本人のみ |
+| state_events | 可 | 不可 |
+| issues | 可 | 不可 |
+| tasks | 可 | `resident_id` が本人のもののみ |
+| tasks/…/events | 可 | 親の Task が本人のもののみ |
+| audit_events | 可 | `actor_id` または `target_id` が本人のもののみ（REQ-10） |
+
+#### 7.3.3 インデックス
+
+- `current_states`: `safety_status` 単体（未応答の抽出）
+- `tasks`: `resident_id` + `status`（住民の打診一覧）、`issue_id` + `status`（管理人の進捗）
+- `audit_events`: `actor_id` + `occurred_at`、`target_id` + `occurred_at`（住民の監査閲覧）
+
+#### 7.3.4 SC-3 のシードデータ
+
+建物1棟（15階・150戸、各階10戸）。Node は各住戸の玄関前・各階の廊下・階段・踊り場、Edge は同じ階の隣接と階段の上下。住民は SC-3 の H（302）・I（301）・J（303）・K（1204）と、それ以外の住戸に1名ずつ。世帯プロファイルは H を高齢単身（elderly_count = 1、mobility_difficulty_count = 1）とし、その他は固定の乱数シードで割り当てる（毎回同じデータになるようにする。NFR-05）。在館コンテキストは §6.3 D のダミー。
 
 ### 7.4 ER未収容の項目（未決）
 
@@ -703,6 +766,29 @@ ERは論理設計（L2）であり、Firestoreのコレクション分割・サ�
 | 7 | 在館コンテキストの有効期限（expires_at）の長さ | §3.3 | 未定義 |
 | 8 | 逆提案（§5.8 R1）: TaskEvent `EVALUATED` の result 値 `COUNTER` と、条件（例: 「8Fまでなら可」）の保持先 | §5.7、§5.8 | 案・要確認（ERに保持先なし） |
 
+**#5 の値の一覧（SC-3 で使うもの。案・要確認）**
+
+SC-3 の実装に必要な値だけを先に決める。他のシナリオで必要になった値は、この表に追記する。
+
+| 属性 | 値 |
+| :--- | :--- |
+| Emergency.emergency_type | `EARTHQUAKE`（他に `POWER_OUTAGE` / `FIRE` / `FLOOD` を予約） |
+| Emergency.status | `ACTIVE` / `CLOSED` |
+| Issue.issue_type | `SAFETY_CHECK` |
+| Issue.status | `OPEN` / `TRIAGING` / `RESOLVED` |
+| Task.task_type | `NEIGHBOR_CHECK`（隣室確認） |
+| Task.status | `PENDING`（作成直後）/ `OFFERED`（打診中）/ `APPROVED` / `DECLINED` / `IN_PROGRESS` / `COMPLETED` / `FAILED` / `EXPIRED`（最新の TaskEvent から導出する） |
+| TaskEvent.actor_type・AuditEvent.actor_type | `RESIDENT` / `ADMIN` / `BUILDING_AGENT` / `RESIDENT_AGENT` / `SYSTEM` |
+| TaskEvent.reason_code | `TARGET_RESPONDED` / `TARGET_NO_RESPONSE`（隣室確認の結果）、`BUSY` / `UNSAFE`（辞退・失敗の理由）、`TIMEOUT`（応答期限切れ） |
+| PresenceContext.source_type | `CALENDAR` / `SELF_REPORT`（本人の応答）/ `DEVICE_SIGNAL` |
+| Node.node_type | `UNIT_ENTRANCE` / `CORRIDOR` / `STAIRS` / `LANDING` / `LOUNGE` / `MANAGEMENT_OFFICE` |
+| Edge.movement_type | `WALK` / `STAIRS_UP` / `STAIRS_DOWN` |
+| ResidentEmergencyStateEvent.source | `SELF_REPORT` / `NEIGHBOR_CHECK` / `ADMIN` |
+
+- #2（端末到達性）: MVP は `onSnapshot` で画面を更新するため、FCM トークンは保持しない。FCM を入れる場合に改めて決める。
+- #6（応答期限）: SC-3 の隣室確認の打診は 60 秒（案）。再打診は同じ階の次に近い「無事」の住民へ1回まで、それでも決まらなければ管理人の優先表示に回す（案）。
+- #7（在館コンテキストの有効期限）: MVP はダミーデータのため、シードで十分長い値（例: 24 時間）を入れる。
+
 ---
 
 ## 8. API一覧
@@ -713,9 +799,15 @@ ERは論理設計（L2）であり、Firestoreのコレクション分割・サ�
 | :--- | :--- | :--- | :--- | :--- |
 | API-01 | `POST /emergency/trigger` | 緊急モード発令（管理人の指示を含む） | 管理人Webコンソール | E-008 作成、E-011 作成 |
 | API-02 | `POST /emergency/confirm-presence` | 在館・安否の1タップ応答 | 住民アプリ | E-007（source_type = 本人応答）、E-009 更新、E-010 追記 |
-| API-03 | `GET /issues/{issueId}` | Issueと配下のTask・進行状況の取得（旧 `GET /plans/{planId}`） | 管理人Webコンソール・住民アプリ | E-011、E-012、E-013 |
+| API-03 | `GET /issues/{issueId}` | Issueと配下のTask・進行状況の取得（旧 `GET /plans/{planId}`）。管理人には未応答住戸の優先度（§6.3 D）も返す | 管理人Webコンソール・住民アプリ | E-011、E-012、E-013、E-009、E-006 |
+| API-04 | `POST /tasks/{taskId}/respond` | 打診への回答（`APPROVED` / `DECLINED`）。本人の Task だけ受け付ける。承認を書き込めるのはこの API だけ（§5.5） | 住民アプリ | E-013 追記、E-012 status 更新、E-016 追記 |
+| API-05 | `POST /tasks/{taskId}/report` | タスクの開始・完了・失敗の報告（`STARTED` / `COMPLETED` / `FAILED`、reason_code 付き） | 住民アプリ | E-013 追記、E-012 status 更新、E-009・E-010（隣室確認の結果を援助対象の住民に反映） |
+| API-06 | `GET /tasks/{taskId}` | 本人の Task の詳細。部屋番号などは `APPROVED` 後にだけ返す（Policy Engine が判定し、開示を E-016 に記録） | 住民アプリ | E-012、E-013、E-002、E-016 追記 |
+| API-07 | `GET /me/audit-events` | 本人に関わる監査イベントの閲覧（REQ-10） | 住民アプリ | E-016 |
+| API-08 | `POST /emergencies/{emergencyId}/triage` | 安否確認を締め切り、トリアージ（未応答住戸の分類と隣室確認 Task の作成）を開始する。Building Agent を Agent Gateway の Ingress 経由で呼ぶ（LLM 失敗時はルールベース） | 管理人Webコンソール | E-011 status 更新、E-012 作成、E-013 追記 |
 
-> 打診への回答（承認/辞退）、タスクの開始・完了・失敗の報告、監査ログの閲覧のAPIは未定義。実装時に本表へ API-04 以降として追加する。
+- API-02 の本文は `{emergency_id, safety_status: SAFE | NEED_HELP, message?}`。message（自由文）がある場合は Agent Gateway の Ingress 経由で Resident Agent に渡す（§5.8 R3）。
+- 認証はすべて Firebase Auth の ID トークン（`Authorization: Bearer`）。管理人用の API（API-01・API-08）はカスタムクレーム `role = admin` を必須にする。
 
 ---
 

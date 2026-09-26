@@ -9,6 +9,8 @@
 
 本システムは、日常の追加ハードウェア購入や手入力を一切要求せず、住民の既存スマートフォン、マンション既設設備、および電力スマートメーターからデータを収集し、Google Cloud上で安全に抽象化（Lifestyle Memory化）してMulti-Agent協調を実行するサーバーレス・イベント駆動型アーキテクチャ。
 
+電力スマートメータって使うの？
+
 ```mermaid
 flowchart TD
   subgraph Clients [クライアント & 外部システム層（追加機器購入0円）]
@@ -116,6 +118,8 @@ flowchart TD
 > **MVPの最小構成**: Google Calendar連携のみを必須とし、端末シグナルはすべてオプトイン。デモではダミーデータで代替可能。
 
 ### 2.2 Google Calendar API v3 連携
+Google Calenderはその人が外出中かそうでないかの判断で使う？
+GPSではなく？
 
 - **公式仕様**: [Google Calendar API v3](https://developers.google.com/calendar/api/v3/reference)
 - **認証方式**: OAuth 2.0（認可コードフロー）。スコープは最小権限の `calendar.events.readonly`。
@@ -135,7 +139,7 @@ flowchart TD
   3. BigQueryに蓄積されるとともに、待機電力（冷蔵庫等）のみか活動電力かを判定し、スマホを置いて外出した場合の不在検知に利用。
 
 ### 2.4 マンション集合インターホン盤 連携
-
+ここもMVP?
 - **対象設備**: マンション既設のIP集合インターホン制御盤（アイホン、パナソニック等）。
 - **連携方式**: マンション共用ネットワークのローカルゲートウェイから、HTTPS Webhookでエントランスオートロック解錠イベント（住戸番号＋タイムスタンプ）を受信し、帰宅確定シグナルとする。
 
@@ -176,6 +180,15 @@ flowchart TD
   - 30分電力データ、生活リズムパターンの時系列分析用データレイク。
 
 ### 3.4 プライバシー & Multi-Agent 実行基盤
+もし、Sensitve Data Protection使うのはいいね！
+今回のハッカソンのテーマ的にAI Agent実行基盤としてのガバナンスやオブザーバビリティを実現するのがいいのかなと思った
+例えば、AI Agentに対する入力や出力は全部Agent Gatewayを通るように設計して、Model Armorでエージェントへの入力をチェック(プロンプトインジェクション対策だったりポリシーのアタッチ)。また、AI Agentがどういう動作をしているのかはAgent Observability(OpenTelemtry?)で追跡 とか
+データに対する防護策は結構ねられている一方で、AI Agentのガバナンス的な観点は、少なくともこのドキュメントではあまり語られていない印象
+
+`児童保護ポリシー（私室連れ込み禁止、防犯ラウンジ限定）`
+→この辺とかめっちゃいいけど、AI Agnetに判断とかさせるならAgent Gatewayでポリシーアタッチしてますとかの方が嬉しいかも
+
+
 
 - **Sensitive Data Protection (旧 Cloud DLP)**:
   - Resident AgentからBuilding AgentおよびLLMへ渡るすべてのメッセージを自動検査。

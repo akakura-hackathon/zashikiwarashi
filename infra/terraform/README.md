@@ -55,3 +55,4 @@ terraform apply
 - `tf-apply`・`deployer` は「main ブランチで動くワークフロー」なら使える。ワークフローに `pull_request_target` トリガーを使わないこと（PR のコードが main の権限で動いてしまうため）。
 - `tf-apply` の `roles/resourcemanager.projectIamAdmin` は IAM を Terraform で管理するために必要だが、権限の付け替えができる強いロール。main ブランチへのマージは PR のレビューを通すこと。
 - ロールを追加するときは `iam_wif.tf` の `tf_apply_roles` / `deployer_roles` に足す。
+- `tf_apply_roles` にロールを足す変更は、`tf-apply` 自身が新しいロールを使う前に権限の反映が間に合わず、`deploy.yml` の apply が失敗することがある。その PR はマージ前にオーナーがローカルで apply しておく（PR の plan で内容を確認してから）。

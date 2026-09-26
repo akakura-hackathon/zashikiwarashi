@@ -16,7 +16,7 @@
 
 ### 1.1 MVP実装方針
 
-ガバナンス設計（Privacy Gateway、Human Approval、Policy Engine等）の完成度が高い一方、実装面の記載が不足している（PLAN_review.md指摘事項）。残り25日で全機能を実装するのは困難なため、**デモの再現性・説得力を最大化する最小構成**に集中する。
+ガバナンス設計（Privacy Gateway、Human Approval、Policy Engine等）の完成度が高い一方、実装面の記載が不足している。提出までに全機能を実装するのは困難なため、**デモの再現性・説得力を最大化する最小構成**に集中する。
 
 > **原則**: 「動くデモ ＋ 設計済み拡張候補の明示」の二層構成で提出する。
 
@@ -24,28 +24,35 @@
 
 ## 2. 実装する機能と「設計済み・拡張予定」の線引き
 
+各機能に FN-xx（MVP）/ EXT-xx（拡張）のIDを振る。実装時のブランチ名・コミット・PR・コード内コメントではこのIDを参照する。機能から要件・設計・エンティティ・APIへの対応は [TRACEABILITY.md](TRACEABILITY.md) を参照。
+
 ### 2.1 MVPで実装する（デモで動かす）
 
-| # | 機能 | 技術要素 | SPEC.md 受け入れ基準 |
+| ID | 機能 | 技術要素 | 満たす受け入れ基準（SPEC §6） |
 | :--- | :--- | :--- | :--- |
-| M1 | 管理人Webコンソール（緊急モード発令） | Cloud Run + Next.js/React | ✅ 管理人が全館緊急モードにできる |
-| M2 | Resident Agent × 3名以上のContext分離実行 | Cloud Run + Firestore | ✅ 3名以上が異なるNeed/Capabilityで協議 |
-| M3 | Building Agentによる空間グラフベースの協力計画生成 | Vertex AI (Gemini 3.1 Pro) + Firestore空間グラフ | ✅ 1対1に限定されない協力計画を生成 |
-| M4 | Privacy Gatewayによるメッセージ検査・抽象化 | Sensitive Data Protection (旧Cloud DLP) | ✅ 外向きメッセージがGatewayを通る |
-| M5 | FCMプッシュ通知による打診 → Human Approval | FCM HTTP v1 + Cloud Run | ✅ 本人未承認のアクションがCommitされない |
-| M6 | Progressive Disclosureの画面遷移デモ | Flutter / Web Mock | ✅ 承認後に初めて部屋番号が開示される |
-| M7 | 監査ログの事後閲覧 | Cloud Logging / Firestore | ✅ 住民が後から協議要約を確認できる |
+| FN-01 | 管理人Webコンソール（緊急モード発令・自然言語の指示） | Cloud Run + Next.js/React | REQ-01, REQ-03 |
+| FN-02 | 認証とロール分離（住民は住戸に紐付け） | Firebase Auth カスタムクレーム | REQ-02 |
+| FN-03 | Resident Agent × 3名以上のContext分離実行とタスク評価 | Cloud Run + Firestore | REQ-04 |
+| FN-04 | Building Agentによる空間グラフベースの協力計画（援助Task）生成 | Vertex AI (Gemini 3.1 Pro) + Firestore空間グラフ | REQ-05 |
+| FN-05 | Privacy Gatewayによるメッセージ検査・抽象化 | Sensitive Data Protection (旧Cloud DLP) | REQ-06, REQ-11 |
+| FN-06 | FCMプッシュ通知による打診 → Human Approval | FCM HTTP v1 + Cloud Run | REQ-07 |
+| FN-07 | Progressive Disclosureの画面遷移デモ | Flutter / Web Mock | REQ-07, REQ-11 |
+| FN-08 | タスクの開始・完了・失敗の報告と進捗ダッシュボード | Cloud Run + Next.js | REQ-08, REQ-09 |
+| FN-09 | 監査ログの事後閲覧 | Firestore（AuditEvent）/ Cloud Logging | REQ-10 |
+
+> REQ-12（嗜好・人格プロフィールを生成しない）は特定の機能ではなく、全機能の制約として守る。
 
 ### 2.2 設計済み・拡張予定（提出資料で明示するが、デモでは動かさない）
 
-| # | 機能 | 設計済み文書 | 理由 |
+| ID | 機能 | 設計済み文書 | 理由 |
 | :--- | :--- | :--- | :--- |
-| E1 | Google Calendar API実連携 | DESIGN.md §3.3.1 | OAuth認可フローの実装・テストに時間がかかる。MVPではダミーデータで代替 |
-| E2 | 端末在宅シグナル（Wi-Fi/充電/歩行/ジオフェンス） | DESIGN.md §3.3.2 | OS権限審査・Foreground Service対応が複雑。MVPではダミーデータで代替 |
-| E3 | 電力スマートメーターAPI実連携 | ARCHITECTURE.md §2.3 | 電力データ管理協会との契約が必要。MVPではダミーデータで代替 |
-| E4 | インターホン盤Webhook連携 | ARCHITECTURE.md §2.4 | 設備アクセスが必要。MVPではダミーデータで代替 |
-| E5 | 住民がセルフ緊急モードにする（個人単位） | SPEC.md §3.1 | 管理人発令の全館モードに集中 |
-| E6 | Cloud KMS / VPC Service Controls | SPEC.md §4.4 | 本番拡張候補 |
+| EXT-01 | Google Calendar API実連携 | DESIGN.md §3.3.1 | OAuth認可フローの実装・テストに時間がかかる。MVPではダミーデータで代替 |
+| EXT-02 | 端末在宅シグナル（Wi-Fi/充電/歩行/ジオフェンス） | DESIGN.md §3.3.2 | OS権限審査・Foreground Service対応が複雑。MVPではダミーデータで代替 |
+| EXT-03 | 電力スマートメーターAPI実連携 | ARCHITECTURE.md §2.3 | 電力データ管理協会との契約が必要。MVPではダミーデータで代替 |
+| EXT-04 | インターホン盤Webhook連携 | ARCHITECTURE.md §2.4 | 設備アクセスが必要。MVPではダミーデータで代替 |
+| EXT-05 | Cloud KMS / VPC Service Controls | SPEC.md §4.4 | 本番拡張候補 |
+
+> 旧 E5「住民がセルフ緊急モードにする」は、災害以外を対象外としたため廃止した（FUCHIUE_REVIEW 指摘3）。
 
 ---
 
@@ -104,69 +111,67 @@ gantt
 ### Phase 1: 基盤構築（9/22 - 9/26）
 
 - [ ] Firebase Authenticationのセットアップ（Google OAuth + カスタムクレーム）
-- [ ] Cloud Firestoreのコレクション設計・セキュリティルール実装
-  - `/buildings/{buildingId}` 空間グラフ
-  - `/residents/{residentId}/private/lifestyle_memory`
-  - `/residents/{residentId}/public/abstract_state`
-  - `/active_plans/{planId}`
+- [ ] Cloud Firestoreの物理設計（L3）・セキュリティルール実装（DESIGN.md §7.3）
+  - ER図の E-001〜E-016 をコレクションへ割り当てる
+  - 他住民の E-006 / E-007 を読めないルール、E-010 / E-013 / E-016 の追記専用ルール
 - [ ] Cloud Run API骨格（FastAPI / Python）のデプロイ
-  - `POST /emergency/trigger` — 緊急モード発令
-  - `POST /emergency/confirm-presence` — 在宅確認応答
-  - `GET /plans/{planId}` — 計画詳細取得
+  - API-01 `POST /emergency/trigger` — 緊急モード発令（FN-01）
+  - API-02 `POST /emergency/confirm-presence` — 在館・安否応答（FN-08）
+  - API-03 `GET /issues/{issueId}` — Issue・Task・進行状況の取得（FN-08）
 - [ ] デモ用ダミーデータの投入
-  - 15階建て150戸の空間グラフ（階段所要時間、踊り場位置）
-  - 住民A〜D（シナリオ1用）のCat 2/3データ
+  - 15階建て150戸の Building / Unit / Node / Edge（E-001〜E-004。階段所要時間、踊り場位置）
+  - 住民A〜D（SC-1用）の Resident / HouseholdProfile / PresenceContext（E-005〜E-007）
 
 ### Phase 2: Agent実装（9/27 - 10/2）
 
-- [ ] Resident Agent Service
+- [ ] Resident Agent Service（FN-03）
   - `resident_id` によるContext分離
-  - Lifestyle Memory読み取り・Need/Capability応答
+  - 世帯プロファイル・在館コンテキストの読み取り、Taskの評価（TaskEvent `EVALUATED`）
   - Emergency Context生成
-- [ ] Building Agent Coordinator
-  - 緊急モード受信 → 関連Resident Agent選定
-  - 空間グラフ参照 → タスク分割ロジック
+- [ ] Building Agent Coordinator（FN-04）
+  - 緊急モード受信 → Issue から本人Taskを作成 → 関連Resident Agent選定
+  - 空間グラフ参照 → 援助Task（parent_task_id）への分割ロジック
   - 協力計画の生成指示（Vertex AI連携は Phase 3）
-- [ ] Privacy Gateway
+- [ ] Privacy Gateway（FN-05）
   - Sensitive Data Protectionとの連携
   - 日本語の住所・電話番号・人名・居室番号のマスキングルール設定
   - Agent外向きメッセージの通過検査
-- [ ] Policy Engine
+- [ ] Policy Engine（FN-06, FN-07）
   - Child Safetyルール（私室連れ込み禁止、防犯カメラ付きラウンジ限定）
-  - Human Approval未完了時の実世界アクション遮断
+  - TaskEvent `APPROVED` が無いTaskの実行・部屋番号開示の遮断
 
 ### Phase 3: Vertex AI連携（10/3 - 10/6）
 
-- [ ] Gemini 3.1 Pro — 協力計画の構造化生成
-  - JSON Schema定義（タスク、担当者、所要時間、受け渡し場所）
+- [ ] Gemini 3.1 Pro — 協力計画の構造化生成（FN-04）
+  - JSON Schema定義（Task の task_type、担当者、所要時間 estimated_seconds、start / destination_node_id）
   - 空間グラフ + 住民制約のプロンプト設計
   - 出力検証（不可能なタスクの排除）
-- [ ] Gemini 3.8 Flash — メッセージ抽象化
+- [ ] Gemini 3.8 Flash — メッセージ抽象化（FN-05）
   - Resident Agent間メッセージの意図解釈
   - 生Need → 抽象化Needへの変換
-- [ ] FCM通知 + Human Approval
+- [ ] FCM通知 + Human Approval（FN-06）
   - 高優先度データメッセージの送信
-  - 1タップ応答の受信 → Firestoreステータス更新
-  - 承認/辞退のフロー完成
+  - 1タップ応答の受信 → TaskEvent `APPROVED` / `DECLINED` を追記
+  - 承認/辞退・応答期限切れのフロー完成
 
 ### Phase 4: フロントエンド & デモ（10/7 - 10/11）
 
-- [ ] 管理人Webコンソール
-  - 緊急モード発令ボタン
-  - 進行状況ダッシュボード（住民の応答状況、計画のステータス）
+- [ ] 管理人Webコンソール（FN-01, FN-08）
+  - 緊急モード発令ボタン・自然言語の指示入力（Issue）
+  - 進行状況ダッシュボード（住民の安否 E-009、Task の状態）
   - トリアージ結果表示（応答なし＋高齢単身の赤色抽出）
-- [ ] 住民アプリ（デモ用）
-  - ロック画面 → FCMプッシュ通知 → 打診画面 → 承認後手順 → 完了画面
+- [ ] 住民アプリ（デモ用）（FN-06, FN-07, FN-08）
+  - ロック画面 → FCMプッシュ通知 → 打診画面 → 承認後手順 → 開始・完了報告画面
   - Progressive Disclosure（承認後に初めて部屋番号が開示）
-  - DESIGN_SPECIFICATION.md準拠のStudio Architecture
-- [ ] 監査ログ閲覧画面
+  - Studio Architecture（既存Webモック）のデザインを流用
+- [ ] 監査ログ閲覧画面（FN-09）
   - 住民が事後に自分のデータ利用・開示経緯を確認
 
 ### Phase 5: 統合テスト & 提出（10/12 - 10/15）
 
-- [ ] シナリオ1（停電バケツリレー）の通しテスト
+- [ ] SC-1（停電バケツリレー）の通しテスト
   - 管理人発令 → Agent協議 → FCM打診 → Human Approval → 計画確定 → 完了
-- [ ] シナリオ2〜4の部分デモ確認
+- [ ] SC-2〜SC-4 の部分デモ確認
 - [ ] デモ動画の撮影・編集
 - [ ] 提出資料の最終整備
   - README.md（概要・セットアップ手順）
@@ -189,9 +194,10 @@ gantt
 
 ## 6. 実装時に残す判断事項
 
-- Firestoreの具体的なCollection/Document設計の詳細（インデックス設計等）
+- Firestoreの物理設計（L3）：ER図のエンティティのコレクション割り当て・インデックス・セキュリティルール（DESIGN.md §7.3）
+- ER図に保持先が無い項目の扱い（DESIGN.md §7.4：物資の品目・数量、端末到達性、協議メッセージ、各種の値の一覧）
 - Google Calendar APIの実連携対象とOAuthスコープの最終決定
-- 生活文脈の抽象化ロジックと更新頻度の具体値
+- 在館コンテキストの判定ロジックと有効期限（expires_at）の具体値
 - Privacy Gatewayの公開粒度ルールとSensitive Data ProtectionのinfoType設定
 - Agent間会話の最大ラウンド数・終了条件の具体値
 - Building Agentが会話へ介入する条件
@@ -204,3 +210,4 @@ gantt
 - **課題・ユーザー・要件** → [SPEC.md](SPEC.md)
 - **データモデル・エージェント設計** → [DESIGN.md](DESIGN.md)
 - **システム構成** → [ARCHITECTURE.md](ARCHITECTURE.md)
+- **ID一覧・対応表** → [TRACEABILITY.md](TRACEABILITY.md)

@@ -3,13 +3,15 @@
 *Version 1.0 / Hackathon MVP*
 *SPEC.mdの要件に基づく、データ定義・Agent構成・協調プロトコルの詳細設計*
 
+> **データモデルの正**: エンティティ・属性・関係は ER図（`diagrams/Zashikiwarashi_ER図_v1.0.drawio`、図中表記 v1.1 / L2）を正とする。本書のエンティティID（E-001〜E-016）はER図のIDと同一。ER図に無い項目は「ER未収容」と明記し、[§7.4](#74-er未収容の項目未決) で扱いを管理する。
+
 ---
 
 ## 1. データ設計の基本方針
 
 1. **平時の手入力ゼロ（Zero Routine Input）**:
    - 住民へ日常的なアンケート、ステータス更新、所持品登録などを要求しない。
-   - 平常時に取得・抽象化されるのは、Google連携等の自動シグナルと初期登録された客観的属性のみ。
+   - 平常時に保持するのは、初期登録された客観的属性（世帯プロファイル E-006）と、自動シグナルから判定した現在の在館状態（在館コンテキスト E-007）のみ。生活リズム・在宅傾向は蓄積しない。
 2. **嗜好・人物学習の完全排除（No Preference Profiling）**:
    - 性格、趣味、価値観、ボランティア協力度などの人物プロファイリングは一切作成しない。
    - 意思決定・協調計画は、空間距離、時間的空き状況、身体的制約などの「客観的事実データ」のみに基づく。
@@ -23,39 +25,37 @@
 
 ## 2. 全データカテゴリー体系
 
-システムに必要なすべてのデータを、ライフサイクルと性質に応じて**5つのカテゴリー**に分類する。
+システムに必要なすべてのデータを、ライフサイクルと性質に応じて**5つのカテゴリー**に分類する。各カテゴリーに属するエンティティはER図のとおり。
 
 ```mermaid
 flowchart TD
-  subgraph Cat1 [Cat 1: 建物・空間データ]
-    D1_1[住戸配置・フロア構造]
-    D1_2[垂直移動・空間距離グラフ]
-    D1_3[共用部・安全エリア台帳]
+  subgraph Cat1 [Cat 1: 建物・空間静的データ]
+    E001[E-001 Building 建物]
+    E002[E-002 Unit 住戸]
+    E003[E-003 Node 移動ノード]
+    E004[E-004 Edge 移動経路]
   end
 
-  subgraph Cat2 [Cat 2: 世帯・属性データ]
-    D2_1[世帯構成属性 高齢/乳児等]
-    D2_2[身体・移動制約 階段不可等]
+  subgraph Cat2 [Cat 2: 住戸・住民静的データ]
+    E005[E-005 Resident 住民]
+    E006[E-006 HouseholdProfile 世帯プロファイル]
   end
 
-  subgraph Cat3 [Cat 3: 生活文脈データ 平時]
-    D3_1[Google Calendar 不在・拘束]
-    D3_2[平日生活時間帯・在宅傾向]
-    D3_3[端末在宅シグナル Wi-Fi/充電]
+  subgraph Cat3 [Cat 3: 在館コンテキスト]
+    E007[E-007 PresenceContext 在館コンテキスト]
   end
 
-  subgraph Cat4 [Cat 4: 有事動的シグナル]
-    D4_1[緊急モード発令イベント]
-    D4_2[即時安否応答フラグ]
-    D4_3[端末到達性 FCM v1接続状態]
+  subgraph Cat4 [Cat 4: 緊急時動的状態]
+    E008[E-008 Emergency 緊急事象]
+    E009[E-009 ResidentEmergencyCurrentState 現在状態]
+    E010[E-010 ResidentEmergencyStateEvent 状態履歴]
   end
 
-  subgraph Cat5 [Cat 5: 協議・合意データ]
-    D5_1[発話Need 困りごと要請]
-    D5_2[即時Capability 余剰物資/時間]
-    D5_3[協力計画 Coordination Plan]
-    D5_4[Human Approval 承認ログ]
-    D5_5[Audit Trail 監査履歴]
+  subgraph Cat5 [Cat 5: Issue / Task / 協調・実行データ]
+    E011[E-011 Issue 管理人Issue]
+    E012[E-012 Task 住民タスク]
+    E013[E-013 TaskEvent タスクイベント]
+    E016[E-016 AuditEvent 監査イベント]
   end
 
   Cat1 --> Coordination[Building Agent 計画立案]
@@ -71,43 +71,55 @@ flowchart TD
 
 ## 3. カテゴリー別データ詳細仕様
 
-### 3.1 Cat 1: 建物・空間・設備データ（Static Building Data）
+各エンティティの主要属性はER図（L2）を正とする。物理インデックス・Firestoreのコレクション分割・詳細制約はL3で別途定義する（[§7.3](#73-firestore物理設計l3未決)）。
 
-マンションの物理構造をAgentが理解し、「無理のない移動経路」「所要時間」「安全な待ち合わせ場所」を決定論的に計算するための基盤データ。
+### 3.1 Cat 1: 建物・空間静的データ（E-001〜E-004）
 
-| データ項目 | 具体的データ内容 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
+マンションの物理構造をAgentが理解し、「無理のない移動経路」「所要時間」「安全な待ち合わせ場所」を決定論的に計算するための基盤データ。**住戸（Unit）と移動ノード（Node）は分離**し、住戸はentrance_node_idで玄関前のノードに接続する。
+
+| ID | エンティティ | 主要属性 | 取得元・取得方法 | Agentの活用方法 |
 | :--- | :--- | :--- | :--- | :--- |
-| **住戸配置・フロア構造** | 部屋番号、階数、各フロアの住戸並び（隣接関係） | 管理会社・管理組合の初期データ（CSV/JSON → Firestore） | 公知の図面情報。個人のプライバシーは含まない | 地震時の同フロア隣室インターホン確認タスクの自動割り当て |
-| **垂直移動・空間距離グラフ** | 非常階段・EVの位置、階層間の標準歩行所要時間（1フロア≈30秒）、踊り場の位置 | 建物設計図面からグラフ構造（Node/Edge）を構築 | 建物設備データ | 荷物運搬タスクの分割立案（8F踊り場を中継デポに選定）、移動所要時間の事前算出（「所要約4分」の明示） |
-| **共用部設備台帳** | エントランスラウンジの位置、防犯カメラ画角エリア、管理人室の位置 | 建物設備台帳から登録 | 建物設備データ | **Child Safety Policyの強制**（子どもの見守り場所として他人の私室を排除し、防犯カメラのあるラウンジを指定） |
+| E-001 | **Building（建物）** | building_id, name, floor_count, created_at | 管理会社・管理組合の初期データ（CSV/JSON → Firestore） | 緊急事象・住戸・空間グラフの起点 |
+| E-002 | **Unit（住戸）** | unit_id, building_id, entrance_node_id, room_number, floor | 同上。公知の図面情報 | 同フロア隣室の特定（地震時の隣室確認タスク）。room_number は Progressive Disclosure の開示対象 |
+| E-003 | **Node（移動ノード）** | node_id, building_id, node_type, floor | 建物設計図面からグラフ構造を構築 | 玄関前・階段・踊り場・共用部などの位置。踊り場を中継デポに選定、合流位置・退避先の指定 |
+| E-004 | **Edge（移動経路）** | edge_id, building_id, from_node_id, to_node_id, movement_type, distance_meters, standard_travel_seconds | 同上（1フロア≈30秒を標準値とする） | 荷物運搬タスクの区間分割、所要時間の事前算出（「所要約4分」の明示）、逆方向移動の判定 |
+
+> 共用部の性質（防犯カメラ画角内のラウンジ、管理人室など）は Node の node_type で表す。**Child Safety Policy**（子どもの見守り場所として他人の私室を排除し、カメラのあるラウンジを指定）は node_type を参照して Policy Engine が強制する。node_type の値の一覧はER未定義（[§7.4](#74-er未収容の項目未決)）。
 
 ---
 
-### 3.2 Cat 2: 住民・世帯の基本属性データ（Static Resident Profile）
+### 3.2 Cat 2: 住戸・住民静的データ（E-005〜E-006）
 
-「誰が助けを必要としているか」「誰に重労働を依頼してはならないか」を平時から把握しておくための客観的属性。**入居時の初回登録1回のみ。平時の追加入力ゼロ。**
+「誰が助けを必要としうるか」「誰に重労働を依頼してはならないか」を把握するための客観的属性。**入居時の初回登録1回のみ。平時の追加入力ゼロ。**
 
-| データ項目 | 具体的データ内容 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
-| :--- | :--- | :--- | :--- | :--- |
-| **世帯構成属性** | 世帯タイプ（高齢単身、乳幼児同居、一般単身、ファミリー等） | 初回アカウント開設時の基本登録（1回のみ。契約情報と突合） | **高機密情報**。他Agentへは一切非公開。自室のResident Agentのみが参照 | 要援護者の自動推定（EV停止時に高齢単身・乳児世帯を優先トリアージ）、応答がない高齢世帯を管理人へ優先通報 |
-| **身体・移動制約** | 階段歩行困難、車椅子利用フラグ | 初回登録時の明示設定（病名ではなく「事実制約」として保持） | **高機密情報**。病名等は保持せず「階段不可」等の抽象トークンに限定 | 階段運搬タスクの候補から即座に自動除外、搬送支援が必要な対象（Need）として判定 |
+| ID | エンティティ | 主要属性 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| E-005 | **Resident（住民）** | resident_id, unit_id, created_at | 初回アカウント開設時（Firebase Authのユーザーと1対1） | 氏名・電話番号はERに持たない（最大公開ライン外） | 住戸への所属。タスクの担当者（assignee）・援助対象（target） |
+| E-006 | **HouseholdProfile（世帯プロファイル）** | unit_id（PK/FK）, member_count, elderly_count, infant_count, other_support_required_count, additional_non_helper_count, mobility_difficulty_count, stair_assistance_required_count | 初回登録時の明示設定（1回のみ。病名ではなく人数として保持） | **高機密情報**。他Agentへは非公開。世帯（住戸）単位の人数であり、個人を特定する属性は持たない | 要配慮世帯の優先トリアージ（応答がない高齢世帯を管理人へ優先通報）、階段運搬タスクの候補から除外 |
+
+> 世帯プロファイルは住戸単位の**人数**で保持する。「世帯の中の誰が階段不可か」は保持しない。個人の実行可否は、緊急時に本人（Resident Agent）がタスクを評価した結果（E-013 の result）で判断する。
 
 ---
 
-### 3.3 Cat 3: 生活文脈データ（Lifestyle Memory: Dynamic & Continuous）
+### 3.3 Cat 3: 在館コンテキスト（E-007 PresenceContext）
 
-日常の手入力を要求せず、Google連携や端末の自動シグナルから「今、在宅で動ける可能性が高いか」を裏側で把握するデータ。
+日常の手入力を要求せず、自動シグナルから「今、建物内にいるか」を判定して保持する。**生活リズム・在宅傾向などの長期的な生活文脈（Lifestyle Memory）は保持しない**。保持するのは現在の在館状態と、その鮮度・根拠だけである。
+
+| ID | エンティティ | 主要属性 | 説明 |
+| :--- | :--- | :--- | :--- |
+| E-007 | **PresenceContext（在館コンテキスト）** | resident_id（PK/FK）, presence_state, observed_at, expires_at, source_type | presence_state は `IN_BUILDING` / `OUTSIDE_BUILDING` / `UNKNOWN`。expires_at を過ぎた値は `UNKNOWN` として扱う。source_type は判定の根拠となった入力ソース |
+
+判定の入力ソース（source_type の候補）は以下。source_type の値の一覧・expires_at の長さはER未定義（[§7.4](#74-er未収容の項目未決)）。
 
 #### 3.3.1 Google Calendar連携（サーバーサイド自動取得）
 
-| データ項目 | 具体的データ内容 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
-| :--- | :--- | :--- | :--- | :--- |
-| **不在・拘束スケジュール** | 終日外出/出張/旅行の有無、直近の拘束フラグ、予定の空白時間帯 | **Google Calendar API v3**（OAuth 2.0認可、スコープ: `calendar.events.readonly`）。`freeBusy:query` で時間枠の「Busy/Free」のみ取得 | **予定のタイトルや同席者などの生データは即時破棄**。「不在」「拘束中」「空き」の3ステータスのみ保持 | 外出中・拘束中の住民を支援打診候補から事前除外。突発支援（3分）にピンポイントで空いている住民を抽出 |
-| **平日在宅傾向・生活リズム** | 平日の日中在宅傾向（テレワーク層か否か）、通常生活時間帯（就寝時間帯の配慮） | Google Calendarの勤務場所（`WorkingLocation` イベント `eventTypes=workingLocation`）および過去の在宅実績から抽象化 | 趣味や性格の推定（Preference Profile）は作らず、時間帯傾向のみ保持 | 昼間の災害時、在宅勤務傾向の高い住民を優先的にスクリーニング |
+| 入力 | 取得方法 | プライバシー制約 | 在館コンテキストへの反映 |
+| :--- | :--- | :--- | :--- |
+| **不在・拘束スケジュール** | **Google Calendar API v3**（OAuth 2.0、スコープ: `calendar.events.readonly`）。`freeBusy:query` で「Busy/Free」のみ取得。勤務場所（`eventTypes=workingLocation`）も参照 | **予定のタイトルや同席者などの生データは即時破棄**。在宅勤務傾向などの長期傾向も保持しない | 終日外出・出張・オフィス勤務の時間帯は `OUTSIDE_BUILDING`、在宅勤務は `IN_BUILDING`。地震時の「外出予定ありの未応答（Likely Away）」の判定に使う |
 
 #### 3.3.2 端末在宅シグナル（クライアントサイド自動取得）
 
-住民のスマートフォンから、住民の操作なしでバックグラウンド取得可能な在宅・活動シグナル。いずれも**SSIDの文字列やGPS座標などの位置特定データは端末外に送信しない**。Cloud Runへは`presence: true/false` の1ビット値のみPOSTする。
+住民のスマートフォンから、住民の操作なしでバックグラウンド取得可能な在宅・活動シグナル。いずれも**SSIDの文字列やGPS座標などの位置特定データは端末外に送信しない**。Cloud Runへは1ビット値のみPOSTする。
 
 | シグナル | iOS実装 | Android実装 | OS制約と対応策 | 出力・判定 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -118,33 +130,48 @@ flowchart TD
 
 > **プライバシー保護の設計原則**: 上記4つのシグナルは、すべて「端末上で判定→ `true/false` の1ビットのみサーバーへ送信」する設計である。GPS座標、SSID文字列、歩行軌跡などの生データは端末から外に出さない。住民にはアプリ初回セットアップ時にOS権限を要求し、各権限の用途を明示的に説明する（Privacy Manifest / `NSMotionUsageDescription` / Play Console審査対応）。
 
+> **ERへの収容範囲**: 在館コンテキストに反映されるのは「自宅Wi-Fi接続状態」と「敷地内ジオフェンス」（在館/不在）のみ。「夜間充電状態（就寝判定）」と「直近歩行活動（活動中判定）」は在館ではなく打診可否の判断材料であり、ERに保持先が無い（[§7.4](#74-er未収容の項目未決)）。
+
 > **MVPでの段階的導入**: Wi-Fi在宅判定とジオフェンスは位置情報権限への心理的抵抗が高いため、MVPでは**Google Calendar連携のみを必須**とし、端末シグナルは**オプトイン（任意有効化）**とする。MVPデモではダミーデータで代替可能。
 
 ---
 
-### 3.4 Cat 4: 有事動的シグナル（Emergency Signals: Real-time）
+### 3.4 Cat 4: 緊急時動的状態（E-008〜E-010）
 
-災害やアクシデントが発生したその瞬間に動くデータ。
+災害が発生したその瞬間から動くデータ。緊急事象は**建物単位**でのみ発生する（住民個人のセルフ緊急モードは設けない）。
 
-| データ項目 | 具体的データ内容 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
+| ID | エンティティ | 主要属性 | 取得元・取得方法 | Agentの活用方法 |
 | :--- | :--- | :--- | :--- | :--- |
-| **緊急モード発動状態** | 全館緊急モードフラグ、個人緊急モードフラグ、発動理由（停電、地震、帰宅困難等） | 管理者Webコンソール、または住民アプリからのAPIトリガー（Cloud Run → Firestore） | 全館モードは全住民Agentへ配信。個人モードは本人Resident AgentとBuilding Agentのみ | システム全体を「平時モード（理解）」から「協調モード（協議・計画作成）」へ切り替え |
-| **即時安否応答** | 「無事である」「被害あり」のステータス | 地震直後のFCMプッシュ通知に対する住民の1タップ応答 | 住民の自発的アクション | 「無事」と回答した住民のみを、周囲の安否確認協力者（一次トリアージ）として選定 |
-| **端末のリアルタイム到達性** | プッシュ通知配信成功フラグ、オンライン接続状態 | **Firebase Cloud Messaging (FCM HTTP v1 API)** トークンステータス | 端末の通信疎通状態のみ | 通信途絶している世帯を「安否未確認・要直接訪問」として管理人のダッシュボードに抽出 |
+| E-008 | **Emergency（緊急事象）** | emergency_id, building_id, emergency_type, status, triggered_by, triggered_at, closed_at | 管理人Webコンソールからの発令（API-01） | システム全体を「平時モード」から「協調モード」へ切り替え。closed_at で終了 |
+| E-009 | **ResidentEmergencyCurrentState（現在状態）** | (emergency_id, resident_id)（複合PK）, current_node_id, safety_status, observed_at | 安否確認への住民の1タップ応答、タスク実行に伴う位置更新 | safety_status は `SAFE` / `NEED_HELP` / `UNKNOWN`。「SAFE」の住民を隣室確認の担当候補に、「UNKNOWN」を未応答として抽出 |
+| E-010 | **ResidentEmergencyStateEvent（状態履歴）** | event_id, emergency_id, resident_id, current_node_id, safety_status, occurred_at, source | E-009 を更新するたびに追記 | 安否・位置の変化の時系列。事後の説明責任 |
+
+> 端末到達性（FCMトークンの有効性・配信成否）はERに保持先が無い（[§7.4](#74-er未収容の項目未決)）。
 
 ---
 
-### 3.5 Cat 5: 協議・合意・実行データ（Coordination & Audit Trail）
+### 3.5 Cat 5: Issue / Task / 協調・実行データ（E-011〜E-013, E-016）
 
-Multi-Agentが協議し、人間が承認して行動に移すためのデータ。
+管理人の指示を住民ごとのタスクに分解し、本人の評価・承認・実行の経緯を記録するデータ。**Taskは現在状態だけを持ち、実行可否の評価・本人の承認/辞退・開始・完了・失敗はすべてTaskEventとして追記する。**
 
-| データ項目 | 具体的データ内容 | 取得元・取得方法 | プライバシー制約 | Agentの活用方法 |
-| :--- | :--- | :--- | :--- | :--- |
-| **緊急Need（救援要請）** | 「水が足りない」「階段を降りられない」「子どもが締め出された」等 | 有事発生時に住民がスマホから入力（テキストまたは音声） | **Privacy Gateway通過義務**。個人特定情報・感情・病歴を排除し抽象化 | Building Agentが課題を構造化し、タスク分解して協議を開始 |
-| **即時Capability（提供能力）** | 「水4Lなら出せる」「10分なら階段を運べる」等の動的リソース | Agentからの照会に対する住民のリアルタイム回答 | その場限りの動的情報（平時からの私物リストは作らない） | 物資提供者・階段運搬中継者・見守り担当者のマッチング |
-| **協力計画（Coordination Plan）** | 実行タスク（誰が何時どこで何をするか）、所要時間目安、受け渡し場所 | **Vertex AI (Gemini 3.1 Pro)** による構造化出力（JSON Schema準拠） | 実行確定前は部屋番号などの識別情報をマスキング | 住民全員に「極小タスク（所要時間・負担内容）」として提示し、承認を求める |
-| **Human Approval（人間承認）** | 「手伝える（承認）」「今は無理（スキップ）」の判定結果 | 住民のスマホ画面でのボタンタップ | 決定論的検証（1人でも未承認なら実世界アクションは不成立） | 承認された瞬間にのみ、受け渡し場所の詳細（部屋番号等）を開示 |
-| **監査ログ（Audit Trail）** | 協議に参加したAgent、参照した抽象文脈、開示した情報、承認日時 | **Cloud Firestore / Cloud Logging** に追記専用（Append-only）で記録 | 住民本人が事後に自分のデータ利用・開示経緯を確認可能 | 事後説明責任（Explainability）の担保 |
+| ID | エンティティ | 主要属性 | 説明 |
+| :--- | :--- | :--- | :--- |
+| E-011 | **Issue（管理人Issue）** | issue_id, emergency_id, issue_type, instruction, route_constraint（nullable）, status, created_by_admin_id, created_at | 管理人が自然言語で出す目的・避難方針。instruction は Building Agent への制約として使う（例:「西側非常階段から避難」→ route_constraint） |
+| E-012 | **Task（住民タスク）** | task_id, issue_id, parent_task_id（nullable）, resident_id, target_resident_id（nullable）, start_node_id（nullable）, destination_node_id（nullable）, task_type, estimated_seconds, status, created_at | 住民1人に割り当てる極小タスク。resident_id が担当者、target_resident_id が援助対象。**援助Taskは parent_task_id で元のTaskを自己参照**する（例: Eの避難Taskに対するFの同行Task） |
+| E-013 | **TaskEvent（タスクイベント）** | event_id, task_id, actor_resident_id（nullable）, event_type, result（nullable）, reason_code（nullable）, actor_type, occurred_at, expires_at（nullable） | event_type は `EVALUATED` / `APPROVED` / `DECLINED` / `STARTED` / `COMPLETED` / `FAILED`。result は `CAN_EXECUTE` / `REQUIRES_ASSISTANCE` / `CANNOT_EXECUTE` / `UNKNOWN` / `NOT_APPLICABLE`。expires_at は打診の応答期限 |
+| E-016 | **AuditEvent（監査イベント）** | audit_event_id, emergency_id, actor_type, actor_id, action, target_type, target_id, data_used[], data_disclosed[], occurred_at | 誰が・何を利用し・何を開示したか。追記専用。住民本人が事後に確認できる |
+
+**旧設計（Need / Capability / Coordination Plan / Human Approval）との対応:**
+
+| 旧概念 | ERでの表現 |
+| :--- | :--- |
+| 緊急Need（困りごと） | 本人のTaskに対する TaskEvent（`EVALUATED`, result=`REQUIRES_ASSISTANCE`, reason_code） |
+| 即時Capability（提供能力） | TaskEvent（`EVALUATED`, result=`CAN_EXECUTE`） |
+| 協力計画（Coordination Plan） | 1つのIssueに属するTaskの集合と、parent_task_id による援助Taskの木構造 |
+| Human Approval | TaskEvent（`APPROVED` / `DECLINED`）。expires_at までに応答が無ければ辞退扱い |
+| 監査ログ（Audit Trail） | AuditEvent（E-016）と TaskEvent・状態履歴（E-010）の追記ログ |
+
+> 物資の品目・数量（例: 水4L）の保持先はERに無い（[§7.4](#74-er未収容の項目未決)）。
 
 ---
 
@@ -156,10 +183,10 @@ Multi-Agentが協議し、人間が承認して行動に移すためのデータ
 [Raw Data] 生データ（Calendar予定名、氏名、部屋番号、契約情報）
    │
    ▼ ※自室Resident Agent内のみで処理（外部非公開）
-[Lifestyle Memory] 平時生活文脈（テレワーク傾向、生活時間帯、階段不可）
+[住民の事実データ] 世帯プロファイル E-006（階段支援が必要な人数など）＋ 在館コンテキスト E-007（IN_BUILDING 等）
    │
-   ▼ ※有事発生、自室Agent内で評価
-[Emergency Context] 有事動的文脈（カレンダー空き時間、水4L希望、階段不可）
+   ▼ ※有事発生、自室Agent内でタスクを評価
+[Emergency Context] 有事動的文脈（タスク評価結果 E-013: REQUIRES_ASSISTANCE / 水4L希望 / 階段不可）
    │
    ▼ ※Privacy Gatewayによるマスキング・検査
 [Shared Context] Agent間共有文脈（[14F / 水4L / 階段不可] などの抽象トークン）
@@ -174,31 +201,28 @@ Multi-Agentが協議し、人間が承認して行動に移すためのデータ
 
 ### 5.1 Agent一覧
 
-| Agent | 役割 | 実行方式（MVP） |
-| :--- | :--- | :--- |
-| **Resident Agent** | 各住民の生活文脈を保持し、Need/Capabilityの判断・応答を行う。住民のプライバシー代理人として機能 | 共通Agent Runtime（Cloud Run）へ`resident_id`を渡してContext切替。論理上は住民ごとに独立したAgentとして振る舞う |
-| **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画を策定するCoordinator | Cloud Run上の単一インスタンス |
-| **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | Sensitive Data Protection (旧Cloud DLP) + 決定論的ルールエンジン |
-| **Policy Engine** | 児童保護・未承認アクション遮断などの安全ルールを決定論的に強制 | Cloud Run上のガードレールサービス |
+| ID | Agent | 役割 | 実行方式（MVP） |
+| :--- | :--- | :--- | :--- |
+| AG-01 | **Resident Agent** | 各住民の世帯プロファイル・在館コンテキストを参照し、割り当てられたTaskを評価（E-013 `EVALUATED`）して応答する。住民のプライバシー代理人として機能 | 共通Agent Runtime（Cloud Run）へ`resident_id`を渡してContext切替。論理上は住民ごとに独立したAgentとして振る舞う |
+| AG-02 | **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画（Issue配下のTask・援助Task）を策定するCoordinator | Cloud Run上の単一インスタンス |
+| AG-03 | **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | Sensitive Data Protection (旧Cloud DLP) + 決定論的ルールエンジン |
+| AG-04 | **Policy Engine** | 児童保護・未承認アクション遮断などの安全ルールを決定論的に強制 | Cloud Run上のガードレールサービス |
 
 ### 5.2 平常時と緊急時の動作モード
 
 #### 平常時 — 理解する期間
 
-許可されたGoogle Calendar連携や端末シグナルから、自動取得できる情報をもとに生活文脈を抽象化して保持する。ユーザーへ日常的な手入力を要求しない。
+許可されたGoogle Calendar連携や端末シグナルから、在館コンテキスト（E-007）だけを更新する。ユーザーへ日常的な手入力を要求しない。
 
 - 住民間の支援仲介は原則行わない。
-- 生データをそのままLifestyle Memoryにせず、緊急時の判断に必要な抽象情報へ変換する。
+- 生データは保持せず、`IN_BUILDING / OUTSIDE_BUILDING / UNKNOWN` と観測時刻・有効期限・根拠だけに変換する。生活リズム・在宅傾向は蓄積しない。
 - 具体的なCalendar内容・移動履歴等を他Agentへ直接共有しない。
 
 #### 緊急モード — 協調する期間
 
-緊急モードの開始経路は2つ:
+緊急モードは、管理人が建物全体に対して発令する（緊急事象 E-008 を作成）。住民個人のセルフ緊急モードは設けない（災害以外を対象外としたため。FUCHIUE_REVIEW 指摘3）。
 
-1. 管理人が建物全体を緊急モードにする。
-2. 各住民が自分自身を緊急モードにする（セルフ緊急モード）。
-
-緊急モード中のみ、緊急時許可情報を利用し、Resident Agent間の照会・複数ラウンド協議・協力計画作成を行う。終了後は通常状態へ戻す。
+緊急モード中のみ、緊急時許可情報を利用し、Resident Agent間の照会・複数ラウンド協議・協力計画作成を行う。終了時は E-008 の closed_at を記録し、通常状態へ戻す。
 
 ### 5.3 Multi-Agent協議フロー
 
@@ -251,14 +275,14 @@ sequenceDiagram
 6. Building Agentが協力計画をLLM主体で生成する。
 7. 必要に応じてReject / Counterを受け、再調整する。
 8. 実世界のアクションを行う対象者へHuman Approvalを求める。
-9. 承認済みPlanのみCommitし、経緯をAudit Logへ保存する。
+9. 承認済みのTaskのみCommitし、経緯をTaskEvent（E-013）と監査イベント（E-016）へ保存する。
 
 ### 5.4 協力計画で考慮する情報
 
 - 緊急度
 - 支援内容との適合性
 - 距離・移動負荷（空間距離グラフベース）
-- 現在対応可能か（カレンダー空き / 端末在宅シグナル）
+- 現在対応可能か（在館コンテキスト E-007、現在状態 E-009）
 - 所要時間
 - 支援負担の偏り（Load Fairness）
 - 情報開示量の少なさ
@@ -267,6 +291,8 @@ sequenceDiagram
 > 協力計画の生成自体はLLMに広く任せるが、情報アクセス権、公開可否、Human Approvalの有無はコード/Policy側で強制する。「LLMには知能を与えるが、権限は与えない」を原則とする。
 
 ### 5.5 Human Approval
+
+Human Approval は TaskEvent（E-013）の `APPROVED` / `DECLINED` として記録する。Policy Engine（AG-04）は、`APPROVED` が無いTaskの実行と、承認前の部屋番号（E-002 room_number）の開示を遮断する。
 
 原則: 「考える・相談する・候補を作るのはAgent、実際に動くのは人間が承認してから」。
 
@@ -288,11 +314,48 @@ sequenceDiagram
 
 管理人は全問い合わせを確認できる。ただし価値の中心は「個人事情をすべて見る」ことではなく、目的や優先事項を指示すると、Agent群が住民の個人情報を必要以上に見せずに協力案へ落とし込むことである。
 
+管理人の指示は Issue（E-011）として登録する。instruction は Building Agent のプロンプトへ制約条件として渡し、避難経路などの確定事項は route_constraint として保持する。
+
+### 5.7 タスクのライフサイクル（Task / TaskEvent）
+
+Taskの状態はTaskEventの追記で進める。Task.status は最新のTaskEventから導出する現在値として持つ。
+
+```mermaid
+stateDiagram-v2
+  [*] --> 作成済み: Building AgentがTaskを作成
+  作成済み --> 評価済み: EVALUATED（Resident Agentが実行可否を評価）
+  評価済み --> 援助要: result = REQUIRES_ASSISTANCE
+  援助要 --> [*]: 援助Task（parent_task_id）を別途作成
+  評価済み --> 承認待ち: result = CAN_EXECUTE → 本人へ打診（expires_at を設定）
+  承認待ち --> 承認済み: APPROVED
+  承認待ち --> 辞退: DECLINED（または expires_at 超過）
+  辞退 --> [*]: 次候補へ再打診 / 管理人へエスカレーション
+  承認済み --> 実行中: STARTED
+  実行中 --> 完了: COMPLETED
+  実行中 --> 失敗: FAILED
+  完了 --> [*]
+  失敗 --> [*]: 管理人へエスカレーション
+```
+
+- `APPROVED` を経ずに `STARTED` へ進むことはできない（Policy Engine が強制）。
+- 部屋番号などの開示は `APPROVED` の時点で行い、開示内容を AuditEvent（E-016）の data_disclosed[] に記録する。
+- 応答期限（expires_at）の具体値、再打診の上限回数、エスカレーション条件、Task.status の値の一覧は未決（[§7.4](#74-er未収容の項目未決)、各フロー図の TBD）。
+- FUCHIUE_REVIEW_RESPONSE.txt 指摘10 の状態遷移案（`REQUESTED` / `ACCEPTED` / `TIMEOUT_REJECTED` など）は、本節の TaskEvent モデルに置き換える。
+
 ---
 
 ## 6. デモシナリオ詳細設計
 
-### 6.1 シナリオ1: 大規模停電 × EV停止 — 物資の階段バケツリレー（基幹デモ）
+各シナリオをERで表すと次のとおり。issue_type / task_type の値はER未定義のため、下表の英字名は例（[§7.4](#74-er未収容の項目未決)）。
+
+| ID | Issue（E-011） | 本人のTask（E-012） | 援助Task（parent_task_id で本人Taskを参照） | 業務フロー図 |
+| :--- | :--- | :--- | :--- | :--- |
+| SC-1 | 停電・EV停止時の物資支援 | 困りごとの確認（Aが `REQUIRES_ASSISTANCE`） | 水の提供（B）、区間運搬（C: 1F→8F踊り場、D: 8F→14F）。start/destination_node_id で区間を表す | 緊急時の物資支援フロー |
+| SC-2 | 西側非常階段からの避難（route_constraint） | 避難（Eが `REQUIRES_ASSISTANCE`、F/Gが `CAN_EXECUTE`） | 同行（F → target_resident_id = E） | 火災時の避難同行フロー |
+| SC-3 | 全館安否確認 | 安否応答（E-009 safety_status を更新。Hは `UNKNOWN`） | 隣室確認（I → target_resident_id = H）。1住戸につき担当1名 | 地震直後の安否確認分散フロー |
+| SC-4 | 1F・2F → 6F以上への垂直避難（route_constraint） | 上階への避難（Lが `REQUIRES_ASSISTANCE`） | 同行（M → target_resident_id = L）。destination_node_id = 6F共用部 | 洪水時の垂直避難同行フロー |
+
+### 6.1 SC-1: 大規模停電 × EV停止 — 物資の階段バケツリレー（基幹デモ）
 
 #### A. 状況・課題
 落雷によりマンション全体が停電し、エレベーターが全基停止。商用電源途絶により**棟内の全戸Wi-Fiは一斉オフライン**となる。
@@ -300,7 +363,7 @@ sequenceDiagram
 1階から14階への運搬を1人に頼むと、階段280段（約15分）の重労働となり承諾率がゼロになるため、空間距離グラフに基づき複数人でのリレー分割が必要。
 
 #### B. 活用データ設計
-| 住民 | Cat 1/2: 空間・属性 | Cat 3: 生活文脈 | Cat 4: 有事シグナル | 判定 |
+| 住民 | Cat 1/2: 空間・属性 | Cat 3: 在館コンテキストの根拠 | Cat 4: 有事シグナル | 判定 |
 | :--- | :--- | :--- | :--- | :--- |
 | **住民A (14F)** | 78歳単身、階段不可、14階最奥 | 終日外出予定なし | 停電発生、4G接続、Need発信 | **Need発生**: 水がない。階段が降りられない |
 | **住民B (1F)** | 乳幼児同居、移動不可 | 終日在宅 | 4G接続、Capability回答 | **Resource**: 未開封水4Lなら玄関前に置ける |
@@ -354,7 +417,7 @@ sequenceDiagram
 
 ---
 
-### 6.2 シナリオ2: 火災発生 × 避難同行 — 要支援者と避難可能住民の即時マッチング
+### 6.2 SC-2: 火災発生 × 避難同行 — 要支援者と避難可能住民の即時マッチング
 
 #### A. 状況・課題
 マンション6階の一室で火災が発生。火災報知器が作動し、管理人が防災設備および現場確認に基づいて**西側非常階段からの全館避難**を指示する。
@@ -372,7 +435,7 @@ Building Agentは、管理人が確定した避難方針のもと、「**今こ�
 | **中央管理の限界** | 管理人が一人ずつ電話・確認・割当する時間がない |
 
 #### B. 活用データ設計
-| 住民 | Cat 1/2: 空間・属性 | Cat 3: 生活文脈 | Cat 4: 有事シグナル | 判定 |
+| 住民 | Cat 1/2: 空間・属性 | Cat 3: 在館コンテキストの根拠 | Cat 4: 有事シグナル | 判定 |
 | :--- | :--- | :--- | :--- | :--- |
 | **住民E (8F)** | 高齢単身、階段移動不安、8F東側住戸 | 終日外出予定なし | FCM到達可能、「同行支援が必要」と回答 | **Need**: 単独では迅速な階段避難が難しい |
 | **住民F (8F)** | 一般成人、階段良好、E宅→西側階段の動線上 | 在宅、直近拘束なし | FCM到達可能、「自力避難可能」と回答 | **Availability: HIGH**: 同一階・同一方向・追加約30秒 |
@@ -426,7 +489,7 @@ sequenceDiagram
 
 ---
 
-### 6.3 シナリオ3: 地震直後 × 初動5分トリアージ — 未応答住戸確認の分散化
+### 6.3 SC-3: 地震直後 × 初動5分トリアージ — 未応答住戸確認の分散化
 
 #### A. 状況・課題
 震度5強の地震が発生。家具転倒・ドア枠歪み・室内負傷などが複数住戸で同時に起きる。
@@ -442,7 +505,7 @@ sequenceDiagram
 | **中央管理の限界** | 管理人が150戸を逐次確認すると数時間かかり、初期救助対象の特定が遅れる |
 
 #### B. 活用データ設計
-| 住民 | Cat 1/2: 空間・属性 | Cat 3: 生活文脈 | Cat 4: 有事シグナル | 判定 |
+| 住民 | Cat 1/2: 空間・属性 | Cat 3: 在館コンテキストの根拠 | Cat 4: 有事シグナル | 判定 |
 | :--- | :--- | :--- | :--- | :--- |
 | **住民H (302号室)** | 高齢単身、自力脱出に不安、3F中央 | 外出予定なし | 安否通知に**未応答**、FCM到達あり | **Priority Check**: 在宅可能性あり × 未応答 × 要配慮 |
 | **住民I (301号室)** | 一般成人、Hの隣室 | 在宅、直近拘束なし | 「無事」と回答、FCM到達可能 | **Availability: HIGH**: 隣室確認が約20秒 |
@@ -493,7 +556,7 @@ sequenceDiagram
 
 ---
 
-### 6.4 シナリオ4: 洪水・内水氾濫 × 垂直避難 — 低層階要支援者と上方向避難者の即時マッチング
+### 6.4 SC-4: 洪水・内水氾濫 × 垂直避難 — 低層階要支援者と上方向避難者の即時マッチング
 
 #### A. 状況・課題
 記録的豪雨によりマンション周辺道路の冠水が急速に進行。行政情報および現場状況をもとに、管理人が1階・2階住民へ**上層階への垂直避難**を指示する。
@@ -511,7 +574,7 @@ sequenceDiagram
 | **中央管理の限界** | 管理人が低層階全世帯へ個別連絡し同行者を探す間に避難可能時間が失われる |
 
 #### B. 活用データ設計
-| 住民 | Cat 1/2: 空間・属性 | Cat 3: 生活文脈 | Cat 4: 有事シグナル | 判定 |
+| 住民 | Cat 1/2: 空間・属性 | Cat 3: 在館コンテキストの根拠 | Cat 4: 有事シグナル | 判定 |
 | :--- | :--- | :--- | :--- | :--- |
 | **住民L (1F)** | 高齢単身、階段移動に不安、1F東側 | 在宅 | FCM到達、「同行支援が必要」と回答 | **Need**: 上層階への垂直避難に同行希望 |
 | **住民M (2F)** | 一般成人、階段良好、L宅→指定階段の近接動線 | 在宅、直近拘束なし | 「自力避難可能」、FCM到達 | **Availability: HIGH**: 同方向移動・追加約1分 |
@@ -563,43 +626,72 @@ sequenceDiagram
 
 ---
 
-## 7. Firestore データモデル（論理設計）
+## 7. データモデル（ER図準拠）
 
-### 7.1 Cat 1〜5とテーブル（コレクション）の対応関係
+### 7.1 エンティティ一覧
 
-> **【最重要】Cat 1〜4はそれぞれ別テーブル（コレクション）ではありません。**  
-> Cat 1〜4は「情報の性質・プライバシー保護レベル」を表す論理カテゴリ区分です。データベース構造を複雑にしないため、Firestoreのベストプラクティス（同一ドキュメントへのEmbedded Map集約）に基づき、**実質3つの基本コレクション**だけで極めてシンプルに構成されています。
+ER図（L2）を正とする。詳細属性は [§3](#3-カテゴリー別データ詳細仕様) を参照。E-014・E-015 はER図上で欠番。
 
-| データ分類（論理カテゴリ） | 保持する情報 | 格納先Firestoreコレクション | 理由（なぜ分けないのか） |
+| ID | エンティティ | Cat | 主キー | 主な関係 |
+| :--- | :--- | :--- | :--- | :--- |
+| E-001 | Building 建物 | 1 | building_id | Unit・Node・Edge・Emergency を 1..N で持つ |
+| E-002 | Unit 住戸 | 1 | unit_id | Building に属す。entrance_node_id → Node。Resident を 1..N、HouseholdProfile を 1..1 で持つ |
+| E-003 | Node 移動ノード | 1 | node_id | Building に属す。Edge の from / to |
+| E-004 | Edge 移動経路 | 1 | edge_id | from_node_id / to_node_id → Node |
+| E-005 | Resident 住民 | 2 | resident_id | Unit に属す。PresenceContext を 1..1 で持つ |
+| E-006 | HouseholdProfile 世帯プロファイル | 2 | unit_id（PK/FK） | Unit と 1対1 |
+| E-007 | PresenceContext 在館コンテキスト | 3 | resident_id（PK/FK） | Resident と 1対1 |
+| E-008 | Emergency 緊急事象 | 4 | emergency_id | Building に属す。現在状態・状態履歴・Issue・AuditEvent を 1..N で持つ |
+| E-009 | ResidentEmergencyCurrentState 現在状態 | 4 | (emergency_id, resident_id) | current_node_id → Node |
+| E-010 | ResidentEmergencyStateEvent 状態履歴 | 4 | event_id | emergency_id・resident_id・current_node_id を参照 |
+| E-011 | Issue 管理人Issue | 5 | issue_id | Emergency に属す。Task を 1..N で持つ |
+| E-012 | Task 住民タスク | 5 | task_id | Issue に属す。resident_id（担当）/ target_resident_id（援助対象）/ start・destination_node_id / parent_task_id（自己参照） |
+| E-013 | TaskEvent タスクイベント | 5 | event_id | Task に属す。actor_resident_id → Resident |
+| E-016 | AuditEvent 監査イベント | 5 | audit_event_id | Emergency に属す |
+
+### 7.2 設計ルール
+
+- **UnitとNodeは分離する**。住戸は entrance_node_id で空間グラフに接続する。
+- **Taskは現在状態のみ保持**し、実行可否の評価・本人承認/辞退・開始・完了・失敗は TaskEvent へ追記する（[§5.7](#57-タスクのライフサイクルtask--taskevent)）。
+- **援助Taskは parent_task_id による自己参照**で表す（1対1に限定されない協力計画は、この木構造で表現する）。
+- **現在状態（E-009）と履歴（E-010）を分ける**。現在状態は上書き、履歴は追記のみ。
+- **生活文脈は保持しない**。Cat 3 は在館状態の鮮度（observed_at / expires_at）と根拠（source_type）だけを管理する。
+
+### 7.3 Firestore物理設計（L3・未決）
+
+ERは論理設計（L2）であり、Firestoreのコレクション分割・サブコレクション化・インデックス・セキュリティルールは対象外。L3として別途定義する（[PLAN.md §6](PLAN.md)）。L3で満たすべき制約は以下。
+
+- 他住民の HouseholdProfile（E-006）・PresenceContext（E-007）を、Resident Agent・クライアントから直接読めないこと（SPEC PRV-04）。
+- TaskEvent（E-013）・状態履歴（E-010）・AuditEvent（E-016）は追記専用であること。
+- 緊急時に150戸分の現在状態（E-009）と在館コンテキスト（E-007）を少ないクエリで取得できること。
+
+### 7.4 ER未収容の項目（未決）
+
+設計書・シナリオで使っているが、ER図に保持先が無い、または値が定義されていない項目。ERを拡張するか、MVPでは扱わないかを決める必要がある。
+
+| # | 項目 | 使っている箇所 | 状態 |
 | :--- | :--- | :--- | :--- |
-| **Cat 1: 建物・空間** | マンション階数、部屋配置、階段グラフ | `/buildings/{buildingId}` | 建物全体で共通の静的マスタ情報 |
-| **Cat 2: 世帯・属性** | 部屋番号、高齢単身/乳児、移動制約 | `/residents/{residentId}` | **住民1人につき1ドキュメント**に集約。<br>有事に「1回のDB取得」で属性・在宅・安否が判定できないと遅延するため、Cat 2・3・4を1ドキュメント内のマップとして保持する。 |
-| **Cat 3: 生活文脈** | Google Calendar不在判定、直近空き時間 | `/residents/{residentId}` | ↑同上 |
-| **Cat 4: 有時シグナル** | FCM接続状態、即時安否（無事/要支援） | `/residents/{residentId}` | ↑同上（有事発災時にフラグを更新） |
-| **Cat 5: 協議・合意** | 協力タスク、Human Approval、監査ログ | `/active_plans/{planId}` | 災害発生時に動的に生成され、完了後にアーカイブされるタスク単位のコレクション |
+| 1 | 物資の品目・数量（例: 水4L） | SC-1 | ERに保持先なし |
+| 2 | 端末到達性（FCMトークン・配信成否） | §3.4、SC-3 | ERに保持先なし |
+| 3 | 夜間充電状態・直近歩行活動（打診可否の判定材料） | §3.3.2 | ERに保持先なし（在館ではないため E-007 に入らない） |
+| 4 | Agent間の協議メッセージ（複数ラウンドの会話内容） | §5.3、SPEC REQ-04 | ERに保持先なし（要約を AuditEvent に残すかを含め未決） |
+| 5 | 値の一覧: node_type / movement_type / source_type / emergency_type / issue_type / task_type / reason_code / actor_type / Emergency.status / Issue.status / Task.status | 全般 | ER未定義 |
+| 6 | 打診の応答期限（expires_at）の長さ、再打診の上限回数、エスカレーション条件 | §5.7、各フロー図 TBD | 未合意 |
+| 7 | 在館コンテキストの有効期限（expires_at）の長さ | §3.3 | 未定義 |
 
-### 7.2 コレクション構成（実質3階層）
+---
 
-```
-/buildings/{buildingId}                          ← Cat 1（建物空間マスタ）
-  ├── spatial_graph          # 空間グラフ（階段所要時間、踊り場位置、非常階段動線）
-  └── equipment_registry     # 防災設備台帳（非常階段、消火器、管理人室）
+## 8. API一覧
 
-/residents/{residentId}                          ← Cat 1(自室位置) + Cat 2 + Cat 3 + Cat 4（住民台帳: 1人1ドキュメント）
-  ├── private/
-  │   ├── lifestyle_memory   # Cat 2+3: 世帯属性・身体制約 ＋ 在宅傾向・カレンダー空き（Embedded Map）
-  │   └── raw_calendar       # Cat 3: 生Calendar一時バッファ（予定名・時刻を抽象化後に即時破棄）
-  └── public/
-      └── abstract_state     # Cat 4: 他Agent・Building Agentが参照する最小抽象トークン（availability, 安否, 到達性）
+機能（[PLAN.md §2](PLAN.md) の FN-xx）から参照するためにIDを振る。現時点で設計書に登場するAPIのみ記載し、追加するときは本表に追記する。
 
-/active_plans/{planId}                           ← Cat 5（災害時アクティブタスク）
-  ├── coordination_plan      # Building Agentが策定した協力タスク（区間、推定所要時間）
-  ├── approvals/             # 住民のHuman Approval状態（承認/辞退/未応答）
-  └── audit_trail/           # 協議履歴・開示情報・タイムスタンプ（追記専用ログ）
-```
+| ID | メソッド・パス | 目的 | 呼び出し元 | 主に更新・参照するエンティティ |
+| :--- | :--- | :--- | :--- | :--- |
+| API-01 | `POST /emergency/trigger` | 緊急モード発令（管理人の指示を含む） | 管理人Webコンソール | E-008 作成、E-011 作成 |
+| API-02 | `POST /emergency/confirm-presence` | 在館・安否の1タップ応答 | 住民アプリ | E-007（source_type = 本人応答）、E-009 更新、E-010 追記 |
+| API-03 | `GET /issues/{issueId}` | Issueと配下のTask・進行状況の取得（旧 `GET /plans/{planId}`） | 管理人Webコンソール・住民アプリ | E-011、E-012、E-013 |
 
-- **なぜテーブルをCatごとに分けないのか？**:
-  RDBMSのようにテーブルを4つに正規化（分離）すると、発災時に150世帯のマッチングを行う際、数百回のJOINや複数クエリが飛び交い、遅延やタイムアウトを引き起こします。Firestoreではドキュメント指向を活かし、**「1住民＝1ドキュメント」**に属性（Cat 2）・スケジュール状態（Cat 3）・安否（Cat 4）をまとめることで、**1回の読み込みで即座に判定が完了**し、コードも極限までシンプルに保てます。
+> 打診への回答（承認/辞退）、タスクの開始・完了・失敗の報告、監査ログの閲覧のAPIは未定義。実装時に本表へ API-04 以降として追加する。
 
 ---
 
@@ -608,3 +700,4 @@ sequenceDiagram
 - **課題・ユーザー・要件** → [SPEC.md](SPEC.md)
 - **システム構成** → [ARCHITECTURE.md](ARCHITECTURE.md)
 - **タスク分解・マイルストーン** → [PLAN.md](PLAN.md)
+- **ID一覧・対応表** → [TRACEABILITY.md](TRACEABILITY.md)

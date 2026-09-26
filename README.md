@@ -37,7 +37,7 @@ docs/PLAN.md          タスクに分解する
 
 1. このリポジトリを clone する。
 2. Claude Code / Antigravity（Gemini CLI）/ GitHub Copilot などのAIコーディングエージェントを起動する。どのツールも `AGENTS.md` を読み込む前提（`CLAUDE.md` / `GEMINI.md` / `.github/copilot-instructions.md` は各ツール向けのポインタ。下記「エージェント向け設定ファイル」参照）。
-3. `docs/PLAN.md` で担当タスクと MVP の範囲を確認し、関連する docs を読んでから実装する。
+3. `docs/PLAN.md` で担当機能（FN-xx）と MVP の範囲を確認し、`docs/TRACEABILITY.md` の対応表で関連する docs を読んでから実装する。
 4. `backend/` `frontend/` `infra/` を実装する。各ファイルの `TODO` コメントが実装対象の目印。
 5. Getting Started（下記）でローカル起動して動作確認する。
 
@@ -60,13 +60,6 @@ docs/PLAN.md          タスクに分解する
 ```
 .
 ├── AGENTS.md / CLAUDE.md / GEMINI.md  # AIエージェント向け指示（上表参照）
-├── PLAN.md                 # MVP仕様書 v0.2（概要・スコープ・要件の旧版的まとめ）
-├── PLAN_review.md          # PLAN.md レビュー（審査基準ごとの指摘・補強案）
-├── DEMO_SCENARIOS.md       # デモシナリオ詳細設計（データアーキテクチャ＋4シナリオ）
-├── DATA_SPECIFICATION.md   # データ洗い出し・取得・活用定義
-├── SYSTEM_ARCHITECTURE.md  # システムアーキテクチャ設計書（最新版 v1.1）
-├── DESIGN_SPECIFICATION.md # フロントエンドデザイン仕様（Studio Architecture / UX）
-├── DESIGN_VENTRILOC.md     # 座敷わらし（Ventriloquist）コンセプトメモ
 ├── .agents/skills/         # draw.io 図作成スキル（実体）
 ├── .claude/skills/         # ↑へのシンボリックリンク（Claude Code 用）
 ├── rules/                  # 領域ごとの実装規約（backend / frontend / infra）
@@ -75,7 +68,8 @@ docs/PLAN.md          タスクに分解する
 │   ├── SPEC.md             # 課題・ユーザー・要件
 │   ├── DESIGN.md           # API・データモデル・エージェント設計
 │   ├── ARCHITECTURE.md     # システム構成
-│   ├── PLAN.md             # マイルストーン・タスク分解
+│   ├── PLAN.md             # マイルストーン・タスク分解（機能ID FN-xx）
+│   ├── TRACEABILITY.md     # ID一覧と、機能 ↔ 要件・設計・データ・API の対応表
 │   ├── FUCHIUE_REVIEW.txt  # レビュー指摘・未決事項
 │   ├── FUCHIUE_REVIEW_RESPONSE.txt  # 上記への回答・対策方針
 │   └── diagrams/           # draw.io の図（構成図・ER図・業務フロー）
@@ -98,7 +92,7 @@ docs/PLAN.md          タスクに分解する
 └── sandbox/                # 使い捨てコード（gitignore対象）
 ```
 
-> **ルート直下の設計書ファイルについて**: `docs/` 配下の v1.0 ドキュメントが正規の仕様書。ルート直下の `*.md` / `*.txt` は検討過程・補足仕様として作成されたもの。矛盾がある場合は `docs/*.md` を優先する。
+> **正とするもの**: 仕様は `docs/*.md`。データモデル（エンティティ・属性・関係）は `docs/diagrams/` の ER図を正とし、`docs/DESIGN.md` §7 はそれに合わせる。
 
 ## Getting Started
 

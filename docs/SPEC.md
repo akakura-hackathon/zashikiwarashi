@@ -56,10 +56,12 @@ Zashikiwarashiは、住民それぞれの暮らしを理解する**Resident Agen
 
 ### 2.3 想定デモシナリオ（災害特化4種）
 
-1. **大規模停電 × EV停止** — 物資の階段バケツリレー（基幹デモ / 物資支援）
-2. **火災発生 × 避難同行** — 要支援者と避難可能住民の即時マッチング（水平避難 / 避難誘導）
-3. **地震直後 × 初動5分トリアージ** — 未応答住戸確認の分散化（発災直後 / 安否確認分散）
-4. **洪水・内水氾濫 × 垂直避難** — 低層階要支援者と上方向避難者の即時マッチング（水害 / 垂直避難）
+| ID | シナリオ | 詳細 |
+| :--- | :--- | :--- |
+| SC-1 | **大規模停電 × EV停止** — 物資の階段バケツリレー（基幹デモ / 物資支援） | [DESIGN.md §6.1](DESIGN.md) |
+| SC-2 | **火災発生 × 避難同行** — 要支援者と避難可能住民の即時マッチング（水平避難 / 避難誘導） | [DESIGN.md §6.2](DESIGN.md) |
+| SC-3 | **地震直後 × 初動5分トリアージ** — 未応答住戸確認の分散化（発災直後 / 安否確認分散） | [DESIGN.md §6.3](DESIGN.md) |
+| SC-4 | **洪水・内水氾濫 × 垂直避難** — 低層階要支援者と上方向避難者の即時マッチング（水害 / 垂直避難） | [DESIGN.md §6.4](DESIGN.md) |
 
 ---
 
@@ -83,14 +85,16 @@ Zashikiwarashiは、住民それぞれの暮らしを理解する**Resident Agen
 - 氏名、電話番号、生の移動履歴等をAgent間で無制限に共有すること。
 - 本番運用レベルの本人確認、法務、責任分界の完全実装。
 
-### 3.3 学習方針（軸の固定）
+### 3.3 保持する住民情報の範囲（軸の固定）
 
-Agentが学習・更新する対象は、緊急時の状況判断に必要な「生活文脈」に限定する。ユーザーの好みを広く推定するPreference ProfileはMVPでは作らない。
+システムが住民について保持するのは、緊急時の判断に必要な事実ベースの情報に限定する（データ定義は [DESIGN.md §3](DESIGN.md)、ER図 E-005〜E-007）。生活リズムや在宅傾向を蓄積する「Lifestyle Memory」は作らない。ユーザーの好みを広く推定するPreference Profileも作らない。
 
-- **対象**: 在宅傾向、生活時間帯、世帯構成、移動・支援に関する事実ベースの生活文脈。
-- **非対象**: 性格、価値観、協力度、日常的な好みの推定。
+- **対象**:
+  - 世帯構成・移動制約の人数（世帯プロファイル E-006。入居時に1回だけ登録）
+  - 現在の在館状態（在館コンテキスト E-007）。`IN_BUILDING / OUTSIDE_BUILDING / UNKNOWN` と、その観測時刻・有効期限・根拠（source_type）だけを保持する
+- **非対象**: 性格、価値観、協力度、日常的な好み、生活リズム・在宅傾向の長期蓄積。
 
-承認・拒否などの操作履歴は監査履歴として保持できるが、人物評価には変換しない。生活文脈はユーザーが確認でき、誤りがあれば訂正可能にする。
+承認・拒否などの操作履歴は監査履歴（タスクイベント E-013・監査イベント E-016）として保持できるが、人物評価には変換しない。在館コンテキストは有効期限（expires_at）で失効する一時情報のため、MVPではユーザーによる訂正機能を設けない。
 
 ---
 
@@ -98,15 +102,17 @@ Agentが学習・更新する対象は、緊急時の状況判断に必要な「
 
 ### 4.1 基本原則
 
-- **Privacy by Default**: 明示されていない情報は利用・共有しない。
-- **Least Disclosure**: 同じ目的を達成できるなら、より粗い情報粒度を選ぶ。
-- **Need-to-Know Context**: LLMへ必要な情報だけ渡し、Memory Storeを丸ごとPromptへ入れない。
-- **Agent Isolation**: Resident Agentは他住民のRaw Data / Memoryへ直接アクセスしない。相手のAgentへ質問する。
-- **Outbound Privacy Gate**: すべてのAgent外向き通信をPrivacy Gatewayへ通す。
-- **Human-in-the-Loop**: 実世界アクションと高識別情報の開示は本人承認必須。
-- **Auditability**: 誰が、いつ、何を利用・公開・承認したか記録する。
+| ID | 原則 | 内容 |
+| :--- | :--- | :--- |
+| PRV-01 | **Privacy by Default** | 明示されていない情報は利用・共有しない。 |
+| PRV-02 | **Least Disclosure** | 同じ目的を達成できるなら、より粗い情報粒度を選ぶ。 |
+| PRV-03 | **Need-to-Know Context** | LLMへ必要な情報だけ渡し、住民データを丸ごとPromptへ入れない。 |
+| PRV-04 | **Agent Isolation** | Resident Agentは他住民のRaw Data・世帯プロファイル・在館コンテキストへ直接アクセスしない。相手のAgentへ質問する。 |
+| PRV-05 | **Outbound Privacy Gate** | すべてのAgent外向き通信をPrivacy Gatewayへ通す。 |
+| PRV-06 | **Human-in-the-Loop** | 実世界アクションと高識別情報の開示は本人承認必須。 |
+| PRV-07 | **Auditability** | 誰が、いつ、何を利用・公開・承認したか記録する（監査イベント E-016）。 |
 
-### 4.2 Progressive Disclosure
+### 4.2 Progressive Disclosure（PRV-08）
 
 情報は目的に必要な最小粒度でのみ公開する。システム側が「最大でもここまで」という公開上限を定め、その範囲内で本人が通常時・緊急時の許可を設定する。
 
@@ -119,10 +125,10 @@ Agentが学習・更新する対象は、緊急時の状況判断に必要な「
 ### 4.3 データの段階的抽象化
 
 ```
-Raw Data → Lifestyle Memory → Emergency Context → Shared Context → Execution Token
+Raw Data → 住民の事実データ（E-006 / E-007） → Emergency Context → Shared Context → Execution Token
 ```
 
-他Agentが他住民のMemoryを直接読むことは禁止し、必要な質問を相手のResident Agentへ行う。
+他Agentが他住民の世帯プロファイル・在館コンテキストを直接読むことは禁止し、必要な質問を相手のResident Agentへ行う。
 
 ### 4.4 ハッカソンMVPでのセキュリティ境界
 
@@ -132,28 +138,36 @@ Cloud KMS、VPC Service Controls、Security Command Center等は本番拡張候�
 
 ## 5. 非機能要件
 
-- **Explainability**: 支援候補に選ばれた理由と、使用・開示した情報を説明できる。
-- **Load Fairness**: 同一住民へ支援依頼が集中しないよう複数候補を考慮する。
-- **Fail Safe**: LLM失敗時や会話収束しない場合は管理人/本人へ手動判断を返す。
-- **Conversation Bound**: Agent間会話はMVPでは最大3〜5ラウンド程度を目安とし、収束しなければBuilding Agentが再計画する。
-- **Availability**: ハッカソンでは高可用性よりデモの再現性・監査可能性を優先する。
+| ID | 要件 | 内容 |
+| :--- | :--- | :--- |
+| NFR-01 | **Explainability** | 支援候補に選ばれた理由と、使用・開示した情報を説明できる。 |
+| NFR-02 | **Load Fairness** | 同一住民へ支援依頼が集中しないよう複数候補を考慮する。 |
+| NFR-03 | **Fail Safe** | LLM失敗時や会話収束しない場合は管理人/本人へ手動判断を返す。 |
+| NFR-04 | **Conversation Bound** | Agent間会話はMVPでは最大3〜5ラウンド程度を目安とし、収束しなければBuilding Agentが再計画する。 |
+| NFR-05 | **Availability** | ハッカソンでは高可用性よりデモの再現性・監査可能性を優先する。 |
 
 ---
 
 ## 6. 受け入れ基準（MVP Done）
 
-- [ ] 管理人が建物全体を緊急モードにできる。
-- [ ] 住民が自分だけ緊急モードにできる。
-- [ ] 住民と部屋番号が紐付いた認証済みユーザーとして操作できる。
-- [ ] 管理人が自然言語で目的を指示できる。
-- [ ] 3名以上のResident Agentが異なるNeed/Capabilityを持って複数ラウンド協議できる。
-- [ ] Building Agentが1対1に限定されない協力計画を生成できる。
-- [ ] すべての外向きAgentメッセージがPrivacy Gatewayを通る。
-- [ ] 本人未承認の実世界アクションがCommitされない。
-- [ ] 管理人が全問い合わせと進行状況を確認できる。
-- [ ] 住民が後から協議要約・利用情報・公開情報・承認履歴を確認できる。
-- [ ] 最大公開ラインを超える個人情報がAgent間に表示されない。
-- [ ] ユーザー選択から嗜好・人格プロフィールを生成しない。
+ID は機能（[PLAN.md §2](PLAN.md) の FN-xx）と対応づける。対応表は [TRACEABILITY.md](TRACEABILITY.md)。
+
+| ID | 受け入れ基準 | 関連エンティティ |
+| :--- | :--- | :--- |
+| REQ-01 | [ ] 管理人が建物全体を緊急モードにできる。 | E-008 Emergency |
+| REQ-02 | [ ] 住民が、住戸（部屋番号）に紐付いた認証済みユーザーとして操作できる。 | E-002 Unit、E-005 Resident |
+| REQ-03 | [ ] 管理人が自然言語で目的・避難方針を指示できる。 | E-011 Issue（instruction / route_constraint） |
+| REQ-04 | [ ] 3名以上のResident Agentが、各自のタスクの実行可否（Need/Capability）を異なる結果で評価し、複数ラウンド協議できる。 | E-013 TaskEvent（EVALUATED） |
+| REQ-05 | [ ] Building Agentが1対1に限定されない協力計画（援助Taskの組み合わせ）を生成できる。 | E-012 Task（parent_task_id） |
+| REQ-06 | [ ] すべての外向きAgentメッセージがPrivacy Gatewayを通る。 | ― |
+| REQ-07 | [ ] 本人未承認の実世界アクションがCommitされない。 | E-013 TaskEvent（APPROVED） |
+| REQ-08 | [ ] 住民がタスクの開始・完了・失敗を報告でき、管理人が進行状況を確認できる。 | E-012 Task、E-013 TaskEvent |
+| REQ-09 | [ ] 管理人が全問い合わせと住民の安否・進行状況を確認できる。 | E-009 / E-010、E-011〜E-013 |
+| REQ-10 | [ ] 住民が後から協議要約・利用情報・公開情報・承認履歴を確認できる。 | E-016 AuditEvent |
+| REQ-11 | [ ] 最大公開ラインを超える個人情報がAgent間に表示されない。 | ― |
+| REQ-12 | [ ] ユーザー選択から嗜好・人格プロフィールを生成しない。 | ― |
+
+> 「住民が自分だけ緊急モードにできる」は、災害以外を対象外としたため削除した（FUCHIUE_REVIEW 指摘3）。緊急事象 E-008 は建物単位でのみ発生する。
 
 ---
 
@@ -162,3 +176,4 @@ Cloud KMS、VPC Service Controls、Security Command Center等は本番拡張候�
 - **データモデル・エージェント設計** → [DESIGN.md](DESIGN.md)
 - **システム構成** → [ARCHITECTURE.md](ARCHITECTURE.md)
 - **タスク分解・マイルストーン** → [PLAN.md](PLAN.md)
+- **ID一覧・対応表** → [TRACEABILITY.md](TRACEABILITY.md)

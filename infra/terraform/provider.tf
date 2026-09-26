@@ -1,18 +1,18 @@
 terraform {
-  required_version = ">= 1.7"
+  required_version = ">= 1.6"
 
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.0"
+      version = "~> 8.4"
     }
   }
 
-  # 複数人で apply するようになったら有効化する（.agents/rules/infra.md 参照）
-  # backend "gcs" {
-  #   bucket = ""
-  #   prefix = "terraform/state"
-  # }
+  # state 用のバケットは初回構築で手動作成する（infra/gcloud/bootstrap.sh、docs/ARCHITECTURE.md §6.1）
+  backend "gcs" {
+    bucket = "zashikiwarashi-tfstate"
+    prefix = "terraform/state"
+  }
 }
 
 provider "google" {

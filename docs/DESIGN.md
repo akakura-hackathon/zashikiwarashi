@@ -188,7 +188,7 @@ flowchart TD
    ▼ ※有事発生、自室Agent内でタスクを評価
 [Emergency Context] 有事動的文脈（タスク評価結果 E-013: REQUIRES_ASSISTANCE / 水4L希望 / 階段不可）
    │
-   ▼ ※Privacy Gatewayによるマスキング・検査
+   ▼ ※Privacy Gateway：Resident Agent のコードで抽象トークン化し、Agent Gateway 上の Model Armor（SDP フィルタ）で漏れを検査
 [Shared Context] Agent間共有文脈（[14F / 水4L / 階段不可] などの抽象トークン）
    │
    ▼ ※Building Agentによる計画生成 & 本人によるHuman Approval
@@ -203,10 +203,13 @@ flowchart TD
 
 | ID | Agent | 役割 | 実行方式（MVP） |
 | :--- | :--- | :--- | :--- |
-| AG-01 | **Resident Agent** | 各住民の世帯プロファイル・在館コンテキストを参照し、割り当てられたTaskを評価（E-013 `EVALUATED`）して応答する。住民のプライバシー代理人として機能 | 共通Agent Runtime（Cloud Run）へ`resident_id`を渡してContext切替。論理上は住民ごとに独立したAgentとして振る舞う |
-| AG-02 | **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画（Issue配下のTask・援助Task）を策定するCoordinator | Cloud Run上の単一インスタンス |
-| AG-03 | **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | Sensitive Data Protection (旧Cloud DLP) + 決定論的ルールエンジン |
-| AG-04 | **Policy Engine** | 児童保護・未承認アクション遮断などの安全ルールを決定論的に強制 | Cloud Run上のガードレールサービス |
+| AG-01 | **Resident Agent** | 各住民の世帯プロファイル・在館コンテキストを参照し、割り当てられたTaskを評価（E-013 `EVALUATED`）して応答する。住民のプライバシー代理人として、逆提案・開示の最小化・本人との対話を自分で判断する（§5.8） | Agent Runtime上の単一デプロイで全住民を扱い、セッションを `user_id=resident_id` で分けてContext切替。論理上は住民ごとに独立したAgentとして振る舞う。Agent Identity を持ち、Firestore へは直接アクセスせず、自分の住民のデータもツールサービス経由で読む。呼び出し・外向き通信はすべて Agent Gateway を通る |
+| AG-02 | **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画（Issue配下のTask・援助Task）を策定するCoordinator | Agent Runtime上の単一インスタンス。Agent Identity を持ち、外への呼び出しはすべて Agent Gateway を通る |
+| AG-03 | **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | 抽象化は Resident Agent に内蔵するコード（抽象トークンだけを返す）。漏れの検出は Agent Gateway 上の Model Armor の SDP フィルタ（Sensitive Data Protection の検査テンプレート）が行い、検出したら遮断する（ARCHITECTURE.md §3.4.3 G2） |
+| AG-04 | **Policy Engine** | 児童保護・未承認アクション遮断などの安全ルールを決定論的に強制 | ツールサービス（Cloud Run、MCP サーバー）と API の書き込み経路に内蔵するコード |
+| AG-05 | **Agent Gateway** | Agent への入力と、Agent から他の Agent・ツールへの呼び出しをすべて通す関所。Agent Identity ごとに呼べる宛先・ツールを制限し、Model Armor で入出力を検査する | Agent Gateway（Ingress / Egress）＋ Agent Registry ＋ Agent Identity ＋ Model Armor。構成は ARCHITECTURE.md §3.4 |
+
+> Agent 単位の権限（どの Agent が何を呼べるか）は AG-05、データ単位のルール（承認・開示・Child Safety）は AG-04 が強制する。どちらも LLM の判断に依存しない（§1 原則4）。
 
 ### 5.2 平常時と緊急時の動作モード
 
@@ -269,11 +272,11 @@ sequenceDiagram
 
 1. 管理人または住民から目的・困りごとが発生。
 2. Building Agentが課題を整理し、関連Resident Agentを選定。
-3. 各Resident Agentが自分のContextだけを参照してNeed / Capabilityを返す。
-4. Resident Agent同士が必要に応じて数ラウンド直接会話し、条件を確認する。
+3. 各Resident Agentが自分のContextだけを参照してNeed / Capabilityを返す。答える粒度は最小限に絞り（§5.8 R2）、判断に足りない情報は本人に聞き返す（§5.8 R3）。
+4. （拡張候補 R6）Resident Agent同士が必要に応じて数ラウンド直接会話し、条件を確認する。
 5. すべてのAgent外向きメッセージをPrivacy Gatewayで検査・抽象化する。
 6. Building Agentが協力計画をLLM主体で生成する。
-7. 必要に応じてReject / Counterを受け、再調整する。
+7. Resident Agent から逆提案（Counter。§5.8 R1）や辞退を受けたら、Building Agent が再計画する。この往復が REQ-04 の「複数ラウンド協議」にあたる（上限は NFR-04）。
 8. 実世界のアクションを行う対象者へHuman Approvalを求める。
 9. 承認済みのTaskのみCommitし、経緯をTaskEvent（E-013）と監査イベント（E-016）へ保存する。
 
@@ -293,6 +296,8 @@ sequenceDiagram
 ### 5.5 Human Approval
 
 Human Approval は TaskEvent（E-013）の `APPROVED` / `DECLINED` として記録する。Policy Engine（AG-04）は、`APPROVED` が無いTaskの実行と、承認前の部屋番号（E-002 room_number）の開示を遮断する。
+
+`APPROVED` / `DECLINED` を書き込めるのは住民本人の操作（API Ingestion）だけで、Agent には書き込むツールを渡さない（IAP ポリシーでも禁止する。ARCHITECTURE.md §3.4.3 G4）。
 
 原則: 「考える・相談する・候補を作るのはAgent、実際に動くのは人間が承認してから」。
 
@@ -326,6 +331,8 @@ stateDiagram-v2
   作成済み --> 評価済み: EVALUATED（Resident Agentが実行可否を評価）
   評価済み --> 援助要: result = REQUIRES_ASSISTANCE
   援助要 --> [*]: 援助Task（parent_task_id）を別途作成
+  評価済み --> 逆提案: result = COUNTER（案。条件付きなら可）
+  逆提案 --> [*]: Building Agent が条件を踏まえて再計画し、Taskを作り直す
   評価済み --> 承認待ち: result = CAN_EXECUTE → 本人へ打診（expires_at を設定）
   承認待ち --> 承認済み: APPROVED
   承認待ち --> 辞退: DECLINED（または expires_at 超過）
@@ -341,6 +348,22 @@ stateDiagram-v2
 - 部屋番号などの開示は `APPROVED` の時点で行い、開示内容を AuditEvent（E-016）の data_disclosed[] に記録する。
 - 応答期限（expires_at）の具体値、再打診の上限回数、エスカレーション条件、Task.status の値の一覧は未決（[§7.4](#74-er未収容の項目未決)、各フロー図の TBD）。
 - FUCHIUE_REVIEW_RESPONSE.txt 指摘10 の状態遷移案（`REQUESTED` / `ACCEPTED` / `TIMEOUT_REJECTED` など）は、本節の TaskEvent モデルに置き換える。
+- `result = COUNTER` と、逆提案の条件（例: 「8Fまでなら可」）の保持先は案（[§7.4](#74-er未収容の項目未決) #8）。
+
+### 5.8 Resident Agent の判断（住民の代理人としての役割）
+
+Resident Agent は、Building Agent の問い合わせにデータを返すだけの中継ではなく、住民の代理人として次の判断を自分で行う（FN-03）。判断の材料は、その住民の世帯プロファイル（E-006）・在館コンテキスト（E-007）と、今回の緊急事象の中での本人の回答だけ。緊急事象をまたいで記憶せず、人物評価もしない（原則2）。
+
+| # | 役割 | Resident Agent が判断すること | SC-1 での例 | MVP |
+| :--- | :--- | :--- | :--- | :--- |
+| R1 | **逆提案（交渉役）** | 打診されたTaskを「はい／いいえ」で返さず、本人の制約から実行可能な代案を出す | 住民Cの Agent が「14Fまでは無理、8Fまでなら可」と返し、Building Agent がリレーの中継点を組み直す | 実装する |
+| R2 | **開示の番人** | Building Agent から情報を求められたとき、目的を満たす最小の粒度で答える（PRV-02）。必要以上の問い合わせには答えない | 承認前に「何号室か」を聞かれても「中層階」とだけ答える | 実装する |
+| R3 | **本人との対話の代行** | 本人に聞くべきか・何を聞くかを決め、自由文の回答を構造化した Need / Capability に変換する。足りない情報は聞き返す | 住民Aが「水がない、足が悪い」と入力すると、Agent が「何人分ですか？」と聞き返し、`[14F / 水4L / 階段不可]` を組み立てる | 実装する |
+| R6 | **Resident Agent 同士の直接調整** | 身元を明かさずに、受け渡しのタイミングなどを Agent 同士で合わせる。通信は Agent Gateway を通す | 住民Cが8F踊り場に置いたら、住民Dの Agent に知らせる | 拡張候補（余力があれば実装。EXT-06） |
+
+- R2 の「最大でもここまで」という上限は、Privacy Gateway（AG-03）と Policy Engine（AG-04）がコードで決める。Resident Agent はその範囲内で、より粗い粒度を選ぶ。
+- R3 で受け付ける住民の自由文は、Resident Agent に渡す前に Agent Gateway（Ingress）上の Model Armor で検査する（ARCHITECTURE.md §3.4.3 G1・G2）。
+- R1 の逆提案は Human Approval ではない。代案で Task が作り直されたら、改めて本人の承認を得る（§5.5）。
 
 ---
 
@@ -674,10 +697,11 @@ ERは論理設計（L2）であり、Firestoreのコレクション分割・サ�
 | 1 | 物資の品目・数量（例: 水4L） | SC-1 | ERに保持先なし |
 | 2 | 端末到達性（FCMトークン・配信成否） | §3.4、SC-3 | ERに保持先なし |
 | 3 | 夜間充電状態・直近歩行活動（打診可否の判定材料） | §3.3.2 | ERに保持先なし（在館ではないため E-007 に入らない） |
-| 4 | Agent間の協議メッセージ（複数ラウンドの会話内容） | §5.3、SPEC REQ-04 | ERに保持先なし（要約を AuditEvent に残すかを含め未決） |
+| 4 | Agent間の協議メッセージ（複数ラウンドの会話内容）、Resident Agent と本人との対話（聞き返しと回答。§5.8 R3） | §5.3、§5.8、SPEC REQ-04 | ERに保持先なし（要約を AuditEvent に残すかを含め未決） |
 | 5 | 値の一覧: node_type / movement_type / source_type / emergency_type / issue_type / task_type / reason_code / actor_type / Emergency.status / Issue.status / Task.status | 全般 | ER未定義 |
 | 6 | 打診の応答期限（expires_at）の長さ、再打診の上限回数、エスカレーション条件 | §5.7、各フロー図 TBD | 未合意 |
 | 7 | 在館コンテキストの有効期限（expires_at）の長さ | §3.3 | 未定義 |
+| 8 | 逆提案（§5.8 R1）: TaskEvent `EVALUATED` の result 値 `COUNTER` と、条件（例: 「8Fまでなら可」）の保持先 | §5.7、§5.8 | 案・要確認（ERに保持先なし） |
 
 ---
 

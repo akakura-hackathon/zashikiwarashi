@@ -32,13 +32,15 @@
 | :--- | :--- | :--- | :--- |
 | FN-01 | 管理人Webコンソール（緊急モード発令・自然言語の指示） | Cloud Run + Next.js/React | REQ-01, REQ-03 |
 | FN-02 | 認証とロール分離（住民は住戸に紐付け） | Firebase Auth カスタムクレーム | REQ-02 |
-| FN-03 | Resident Agent × 3名以上のContext分離実行とタスク評価 | Cloud Run + Firestore | REQ-04 |
-| FN-04 | Building Agentによる空間グラフベースの協力計画（援助Task）生成 | Vertex AI (Gemini 3.1 Pro) + Firestore空間グラフ | REQ-05 |
-| FN-05 | Privacy Gatewayによるメッセージ検査・抽象化 | Sensitive Data Protection (旧Cloud DLP) | REQ-06, REQ-11 |
+| FN-03 | Resident Agent × 3名以上のContext分離実行とタスク評価。逆提案・開示の最小化・本人との対話（DESIGN.md §5.8 R1〜R3） | Agent Runtime + Gemini（データはツールサービス経由） | REQ-04, REQ-15 |
+| FN-04 | Building Agentによる空間グラフベースの協力計画（援助Task）生成 | Agent Runtime + Vertex AI (Gemini 3.1 Pro) + Firestore空間グラフ | REQ-05 |
+| FN-05 | Privacy Gatewayによるメッセージ検査・抽象化 | Resident Agent の抽象化コード + Model Armor の SDP フィルタ（Sensitive Data Protection の検査テンプレート） | REQ-06, REQ-11 |
 | FN-06 | FCMプッシュ通知による打診 → Human Approval | FCM HTTP v1 + Cloud Run | REQ-07 |
 | FN-07 | Progressive Disclosureの画面遷移デモ | Flutter / Web Mock | REQ-07, REQ-11 |
 | FN-08 | タスクの開始・完了・失敗の報告と進捗ダッシュボード | Cloud Run + Next.js | REQ-08, REQ-09 |
 | FN-09 | 監査ログの事後閲覧 | Firestore（AuditEvent）/ Cloud Logging | REQ-10 |
+| FN-10 | Agent ガバナンス（Agent への入力・Agent 間通信の統制。制御ポイント G1〜G4・G6） | Agent Gateway + Agent Registry + Agent Identity + IAP ポリシー + Model Armor | REQ-13 |
+| FN-11 | Agent Observability と監査ログ（制御ポイント O1・O2・G7） | Cloud Trace（ADK の OpenTelemetry）+ Cloud Logging + 監査ログバケット | REQ-14 |
 
 > REQ-12（嗜好・人格プロフィールを生成しない）は特定の機能ではなく、全機能の制約として守る。
 
@@ -51,6 +53,9 @@
 | EXT-03 | 電力スマートメーターAPI実連携 | ARCHITECTURE.md §2.3 | 電力データ管理協会との契約が必要。MVPではダミーデータで代替 |
 | EXT-04 | インターホン盤Webhook連携 | ARCHITECTURE.md §2.4 | 設備アクセスが必要。MVPではダミーデータで代替 |
 | EXT-05 | Cloud KMS / VPC Service Controls | SPEC.md §4.4 | 本番拡張候補 |
+| EXT-06 | Resident Agent 同士の直接調整（A2A） | DESIGN.md §5.8 R6 | FN-03・FN-10 の完了後、余力があれば MVP で実装する |
+| EXT-07 | Agent の評価ゲートとアラート（G8 Gen AI Evaluation・O4 Cloud Monitoring）、Policy Engine の ext_authz 化（G5） | ARCHITECTURE.md §3.4.3 | FN-10・FN-11 の完了後、余力があれば MVP で実装する |
+| EXT-08 | BigQuery Agent Analytics（O3）・Online Monitors（O5） | ARCHITECTURE.md §3.4.3 | 本番運用で効く機能。図と提出資料に書くだけ |
 
 > 旧 E5「住民がセルフ緊急モードにする」は、災害以外を対象外としたため廃止した（FUCHIUE_REVIEW 指摘3）。
 
@@ -75,15 +80,17 @@ gantt
   ダミー住民データ投入            :p1_4, 2026-09-24, 2d
 
   section Phase 2: Agent実装（Week 2）
-  Resident Agent Service          :p2_1, 2026-09-27, 4d
+  Resident Agent                  :p2_1, 2026-09-27, 4d
   Building Agent Coordinator      :p2_2, 2026-09-27, 4d
-  Privacy Gateway (DLP連携)       :p2_3, 2026-09-29, 3d
+  Privacy Gateway (抽象化+SDP)    :p2_3, 2026-09-29, 3d
   Policy Engine (Child Safety)    :p2_4, 2026-10-01, 2d
+  Agent Gateway + Model Armor     :p2_5, 2026-09-27, 4d
 
   section Phase 3: Vertex AI連携（Week 3）
   Gemini 3.1 Pro 協力計画生成     :p3_1, 2026-10-03, 3d
   Gemini 3.8 Flash メッセージ抽象化:p3_2, 2026-10-03, 3d
   FCM通知 + Human Approval        :p3_3, 2026-10-05, 2d
+  Cloud Trace (Agent Observability):p3_4, 2026-10-05, 1d
 
   section Phase 4: フロント & デモ（Week 4）
   管理人Webコンソール             :p4_1, 2026-10-07, 3d
@@ -124,21 +131,33 @@ gantt
 
 ### Phase 2: Agent実装（9/27 - 10/2）
 
-- [ ] Resident Agent Service（FN-03）
-  - `resident_id` によるContext分離
+- [ ] Resident Agent（FN-03）
+  - `resident_id` によるContext分離（Agent Runtime のセッションを `user_id=resident_id` で分ける）
   - 世帯プロファイル・在館コンテキストの読み取り、Taskの評価（TaskEvent `EVALUATED`）
   - Emergency Context生成
+  - R1 逆提案: 本人の制約から代案（例: 「8Fまでなら可」）を返す（DESIGN.md §5.8）
+  - R2 開示の番人: 問い合わせに最小の粒度で答える
+  - R3 本人との対話: 自由文の回答を Need / Capability に構造化し、足りない情報を聞き返す
 - [ ] Building Agent Coordinator（FN-04）
   - 緊急モード受信 → Issue から本人Taskを作成 → 関連Resident Agent選定
+  - Resident Agent の逆提案・辞退を受けて再計画する（上限ラウンドは NFR-04）
   - 空間グラフ参照 → 援助Task（parent_task_id）への分割ロジック
   - 協力計画の生成指示（Vertex AI連携は Phase 3）
 - [ ] Privacy Gateway（FN-05）
-  - Sensitive Data Protectionとの連携
-  - 日本語の住所・電話番号・人名・居室番号のマスキングルール設定
-  - Agent外向きメッセージの通過検査
+  - Resident Agent の回答を抽象トークン（例: `[14F / 水4L / 階段不可]`）だけで組み立てるコード
+  - Sensitive Data Protection の検査テンプレート（カスタム infoType：居室番号・氏名、日本語の住所・電話番号）を作り、Model Armor の SDP フィルタから参照する（G2）
+  - 部屋番号・氏名を含む回答が Agent Gateway で遮断されることを確認するテスト
 - [ ] Policy Engine（FN-06, FN-07）
   - Child Safetyルール（私室連れ込み禁止、防犯カメラ付きラウンジ限定）
   - TaskEvent `APPROVED` が無いTaskの実行・部屋番号開示の遮断
+- [ ] Agent ガバナンス（FN-10。構成は ARCHITECTURE.md §3.4）
+  - リージョンは us-central1（ARCHITECTURE.md §3.4.1）
+  - Building Agent と Resident Agent を Agent Runtime にデプロイし、それぞれに Agent Identity を付与する
+  - Agent Gateway（Standalone モード）の Ingress（G1: API → Agent）と Egress（G3: Agent → Resident Agent（A2A）/ ツールサービス（MCP）/ Gemini API）を作り、両 Agent をデプロイ時に紐づける
+  - ツールサービス（MCP）と Gemini API のエンドポイントを Agent Registry に登録する（G6）。Gemini API を Egress 経由にできるかを最初に確認する（ARCHITECTURE.md §3.4.5 の TBD ①）
+  - IAP ポリシーで Agent Identity ごとに呼べるツールを制限する（G4。Resident Agent は自分の住民のデータの読み取りと評価結果の記録のみ。承認の書き込みと部屋番号の開示はどの Agent も不可）
+  - Model Armor テンプレート（プロンプトインジェクション・ジェイルブレイク・SDP フィルタ）を作り、Gateway に付ける（G2）
+  - デモ用に、プロンプトインジェクションを含む入力が遮断されることを確認するテストを用意する
 
 ### Phase 3: Vertex AI連携（10/3 - 10/6）
 
@@ -153,6 +172,10 @@ gantt
   - 高優先度データメッセージの送信
   - 1タップ応答の受信 → TaskEvent `APPROVED` / `DECLINED` を追記
   - 承認/辞退・応答期限切れのフロー完成
+- [ ] Agent Observability と監査ログ（FN-11）
+  - Agent Runtime・Cloud Run の両方で ADK のトレースを Cloud Trace に出し、plan_id で Agent をまたいで追えるようにする（O1）
+  - プロンプトと応答の本文を記録しない設定にする（`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`）
+  - Agent Gateway・IAP・Model Armor の判定ログを監査 sink でログバケットへ送る（O2・G7。ハッカソン中は保持ロックをかけない）
 
 ### Phase 4: フロントエンド & デモ（10/7 - 10/11）
 
@@ -163,6 +186,7 @@ gantt
 - [ ] 住民アプリ（デモ用）（FN-06, FN-07, FN-08）
   - ロック画面 → FCMプッシュ通知 → 打診画面 → 承認後手順 → 開始・完了報告画面
   - Progressive Disclosure（承認後に初めて部屋番号が開示）
+  - 困りごと・回答の自由文入力と、Resident Agent からの聞き返しの表示（FN-03 R3）
   - Studio Architecture（既存Webモック）のデザインを流用
 - [ ] 監査ログ閲覧画面（FN-09）
   - 住民が事後に自分のデータ利用・開示経緯を確認
@@ -186,9 +210,12 @@ gantt
 | リスク | 影響 | 対策 |
 | :--- | :--- | :--- |
 | Vertex AI Gemini 3.1 Proの構造化出力が安定しない | 協力計画の品質が不安定 | JSON Schemaでの厳格指定 + 出力検証ループ。最悪の場合はハードコードされたデモデータで代替 |
-| Sensitive Data Protectionの日本語マスキング精度 | 居室番号（3桁数字）の誤検知 | カスタムinfoTypeの定義。テスト期間を十分に確保 |
+| Model Armor（SDP フィルタ）の日本語の検出精度 | 居室番号（3桁数字）の誤検知・見逃し | カスタムinfoTypeの定義。Agent 間は抽象トークンだけを渡す作りにして、検出は二重の安全網にとどめる。テスト期間を十分に確保 |
+| Gemini API を Egress の Agent Gateway 経由にできない（Standalone モード） | G3「外向き通信はすべて Gateway を通る」が崩れる | 最初に確認する。できない場合は直接呼び出し＋Model Armor の floor 設定で補い、docs と図を見直す |
 | FCMプッシュ通知のデモ環境での安定性 | デモ中に通知が届かない | ローカル環境ではWebSocket fallbackも用意 |
 | 1人チームでの開発リソース不足 | 全Phase完了が困難 | Phase 1-3を最優先。Phase 4は最低限のデモ用UIに絞り、Studio Architecture（既存Webモック）を活用 |
+| Agent Gateway・Agent Runtime の構築に時間がかかる（新しいサービスで手順の情報が少ない） | FN-10 が遅れ、Agent の実装も止まる | Agent 本体はローカル（`adk web`）で Gateway なしでも動くように作り、Gateway は後から前段に挟む |
+| Terraform の google provider が未対応のリソースがある | IaC で再現できない | 未対応分は Terraform 化せず、gcloud コマンドを `infra/gcloud/` にスクリプトとして残す（`rules/infra.md`） |
 
 ---
 
@@ -198,10 +225,12 @@ gantt
 - ER図に保持先が無い項目の扱い（DESIGN.md §7.4：物資の品目・数量、端末到達性、協議メッセージ、各種の値の一覧）
 - Google Calendar APIの実連携対象とOAuthスコープの最終決定
 - 在館コンテキストの判定ロジックと有効期限（expires_at）の具体値
-- Privacy Gatewayの公開粒度ルールとSensitive Data ProtectionのinfoType設定
+- Privacy Gatewayの公開粒度ルールと、SDP 検査テンプレートの infoType 設定
 - Agent間会話の最大ラウンド数・終了条件の具体値
 - Building Agentが会話へ介入する条件
 - 高リスク事象を管理人/外部機関へエスカレーションするルール
+- IAP ポリシーで Agent Identity ごとに許可するツールの一覧
+- Model Armor の各フィルタの検出しきい値
 
 ---
 

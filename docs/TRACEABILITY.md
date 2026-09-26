@@ -31,18 +31,23 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | FN-01 管理人コンソール（発令・指示） | REQ-01, REQ-03 | ― | §3.4, §5.2, §5.6 | E-008, E-011 | API-01 | AG-02 | SC-1〜4 |
 | FN-02 認証とロール分離 | REQ-02 | PRV-04 | §3.2（ARCHITECTURE §3.1） | E-002, E-005 | ― | ― | 全シナリオ |
-| FN-03 Resident Agent（Context分離・タスク評価） | REQ-04 | PRV-03, PRV-04, NFR-04 | §3.2, §3.3, §5.1, §5.3 | E-005〜E-007, E-013 | ― | AG-01 | SC-1〜4 |
+| FN-03 Resident Agent（Context分離・タスク評価・逆提案・開示の最小化・本人との対話） | REQ-04, REQ-15 | PRV-02, PRV-03, PRV-04, NFR-04 | §3.2, §3.3, §5.1, §5.3, §5.8 | E-005〜E-007, E-013 | ― | AG-01 | SC-1〜4 |
 | FN-04 Building Agent（援助Taskの計画生成） | REQ-05 | NFR-01, NFR-02, NFR-03, NFR-04 | §3.1, §5.3, §5.4, §6 | E-001〜E-004, E-011, E-012 | API-03 | AG-02 | SC-1〜4 |
 | FN-05 Privacy Gateway | REQ-06, REQ-11 | PRV-02, PRV-05 | §4, §5.1 | ― | ― | AG-03 | SC-1〜4 |
 | FN-06 打診とHuman Approval | REQ-07 | PRV-06 | §5.5, §5.7 | E-012, E-013 | 未定義（API-04 以降） | AG-02, AG-04 | SC-1〜4 |
 | FN-07 Progressive Disclosure の画面遷移 | REQ-07, REQ-11 | PRV-06, PRV-08 | §4, §5.5 | E-002, E-013, E-016 | 未定義 | AG-04 | SC-1〜4 |
 | FN-08 タスク進捗の報告とダッシュボード | REQ-08, REQ-09 | NFR-03 | §3.4, §5.7 | E-009, E-010, E-012, E-013 | API-02, API-03 | ― | SC-1〜4 |
 | FN-09 監査ログの事後閲覧 | REQ-10 | PRV-07, NFR-01 | §3.5 | E-016 | 未定義 | ― | 全シナリオ |
+| FN-10 Agent ガバナンス（G1〜G4・G6） | REQ-13 | PRV-04, PRV-05 | §5.1（ARCHITECTURE §3.4） | ― | ― | AG-05 | SC-1〜4 |
+| FN-11 Agent Observability と監査ログ（O1・O2・G7） | REQ-14 | PRV-03, PRV-07, NFR-01 | ARCHITECTURE §3.5 | ― | ― | AG-01, AG-02 | SC-1〜4 |
 | EXT-01 Google Calendar 実連携 | ― | PRV-01 | §3.3.1 | E-007 | ― | ― | SC-1, SC-3 |
 | EXT-02 端末在宅シグナル | ― | PRV-01 | §3.3.2 | E-007 | ― | ― | SC-1 |
 | EXT-03 電力スマートメーター実連携 | ― | PRV-01 | ARCHITECTURE §2.3 | E-007 | ― | ― | SC-1 |
 | EXT-04 インターホン盤連携 | ― | PRV-01 | ARCHITECTURE §2.4 | E-007 | ― | ― | ― |
 | EXT-05 Cloud KMS / VPC SC | ― | ― | SPEC §4.4 | ― | ― | ― | ― |
+| EXT-06 Resident Agent 同士の直接調整 | ― | PRV-04, PRV-05 | §5.8 | ― | ― | AG-01, AG-05 | SC-1 |
+| EXT-07 評価ゲート・アラート・ext_authz | ― | NFR-03 | ARCHITECTURE §3.4.3（G5・G8・O4） | ― | ― | AG-04, AG-05 | SC-1〜4 |
+| EXT-08 BigQuery Agent Analytics・Online Monitors | ― | PRV-03 | ARCHITECTURE §3.4.3（O3・O5） | ― | ― | ― | ― |
 
 - REQ-12（嗜好・人格プロフィールを生成しない）は全機能の制約。特定の機能には割り当てない。
 - NFR-05（デモの再現性優先）は全機能の制約。
@@ -56,7 +61,7 @@
 | REQ-01 管理人が全館を緊急モードにできる | FN-01 |
 | REQ-02 住戸に紐付いた認証済みユーザーとして操作できる | FN-02 |
 | REQ-03 管理人が自然言語で目的・避難方針を指示できる | FN-01 |
-| REQ-04 3名以上のResident Agentがタスクを評価し協議できる | FN-03 |
+| REQ-04 3名以上のResident Agentがタスクを評価し、逆提案を含めて協議できる | FN-03, FN-04 |
 | REQ-05 1対1に限定されない協力計画を生成できる | FN-04 |
 | REQ-06 外向きAgentメッセージがPrivacy Gatewayを通る | FN-05 |
 | REQ-07 本人未承認の実世界アクションがCommitされない | FN-06, FN-07 |
@@ -65,6 +70,9 @@
 | REQ-10 住民が後から利用・開示・承認の履歴を確認できる | FN-09 |
 | REQ-11 最大公開ラインを超える個人情報が表示されない | FN-05, FN-07 |
 | REQ-12 嗜好・人格プロフィールを生成しない | 全機能の制約 |
+| REQ-13 Agent への入力・Agent 間通信が Agent Gateway を通り、検査と権限制御を受ける | FN-10 |
+| REQ-14 Agent の動作を Cloud Trace で追跡できる | FN-11 |
+| REQ-15 住民の自由文を Resident Agent が聞き返しつつ構造化する | FN-03 |
 
 ---
 

@@ -134,6 +134,8 @@ Raw Data → 住民の事実データ（E-006 / E-007） → Emergency Context �
 
 Cloud KMS、VPC Service Controls、Security Command Center等は本番拡張候補とし、ハッカソンMVPでは必須実装に含めない。保存/通信の標準暗号化はGCP側の基本機能を利用し、特に高機密なRaw Dataは論理的に分離する。
 
+AI Agent の実行基盤としてのガバナンス（Agent Gateway・Model Armor・Agent Identity）と、Agent の動作の追跡（Cloud Trace）は MVP で実装する（REQ-13、REQ-14。構成は [ARCHITECTURE.md §3.4](ARCHITECTURE.md)）。
+
 ---
 
 ## 5. 非機能要件
@@ -157,7 +159,7 @@ ID は機能（[PLAN.md §2](PLAN.md) の FN-xx）と対応づける。対応表
 | REQ-01 | [ ] 管理人が建物全体を緊急モードにできる。 | E-008 Emergency |
 | REQ-02 | [ ] 住民が、住戸（部屋番号）に紐付いた認証済みユーザーとして操作できる。 | E-002 Unit、E-005 Resident |
 | REQ-03 | [ ] 管理人が自然言語で目的・避難方針を指示できる。 | E-011 Issue（instruction / route_constraint） |
-| REQ-04 | [ ] 3名以上のResident Agentが、各自のタスクの実行可否（Need/Capability）を異なる結果で評価し、複数ラウンド協議できる。 | E-013 TaskEvent（EVALUATED） |
+| REQ-04 | [ ] 3名以上のResident Agentが、各自のタスクの実行可否（Need/Capability）を異なる結果で評価し、逆提案（条件付きの可）を含めて Building Agent と複数ラウンド協議できる。 | E-013 TaskEvent（EVALUATED） |
 | REQ-05 | [ ] Building Agentが1対1に限定されない協力計画（援助Taskの組み合わせ）を生成できる。 | E-012 Task（parent_task_id） |
 | REQ-06 | [ ] すべての外向きAgentメッセージがPrivacy Gatewayを通る。 | ― |
 | REQ-07 | [ ] 本人未承認の実世界アクションがCommitされない。 | E-013 TaskEvent（APPROVED） |
@@ -166,6 +168,9 @@ ID は機能（[PLAN.md §2](PLAN.md) の FN-xx）と対応づける。対応表
 | REQ-10 | [ ] 住民が後から協議要約・利用情報・公開情報・承認履歴を確認できる。 | E-016 AuditEvent |
 | REQ-11 | [ ] 最大公開ラインを超える個人情報がAgent間に表示されない。 | ― |
 | REQ-12 | [ ] ユーザー選択から嗜好・人格プロフィールを生成しない。 | ― |
+| REQ-13 | [ ] Agent への入力と、Agent から他の Agent・ツールへの呼び出しが Agent Gateway を通り、Model Armor の検査と Agent ごとの権限制御を受ける。プロンプトインジェクションを含む入力が遮断される。 | ― |
+| REQ-14 | [ ] Agent の動作（LLM 呼び出し・ツール呼び出し・所要時間）を Cloud Trace で追跡できる。プロンプトと応答の本文は記録しない。 | ― |
+| REQ-15 | [ ] 住民が緊急時に自由文で困りごと・回答を入力でき、Resident Agent が不足を聞き返したうえで、構造化した Need / Capability に変換する。 | E-013 TaskEvent（EVALUATED） |
 
 > 「住民が自分だけ緊急モードにできる」は、災害以外を対象外としたため削除した（FUCHIUE_REVIEW 指摘3）。緊急事象 E-008 は建物単位でのみ発生する。
 

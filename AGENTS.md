@@ -79,7 +79,7 @@ Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation�
 ### 使い方の原則
 - スキルは実装の参考。**Domain Principles と `docs/` の設計が常に優先**。スキルが示す構成・権限設計が docs と食い違う場合は、スキルに合わせず、ユーザーに確認する（Workflow §2〜3）。
 - 導入するのは MVP 範囲内のものだけ。`docs/PLAN.md` §2 で拡張予定とされたものを、スキルに従って本実装しない。
-- GCP は単一環境（Terraform 管理）。`gcloud` などで手作業のリソース変更をせず、`infra/terraform` に反映する。
+- GCP は単一環境（Terraform 管理）。`gcloud` などで手作業のリソース変更をせず、`infra/terraform` に反映する。ただし Terraform の provider が未対応のリソース（Agent Gateway 周りの alpha / beta 機能など）は Terraform 化せず、gcloud コマンドを `infra/gcloud/` にスクリプトとして残す（`rules/infra.md`）。
 
 ### このプロジェクトで使うスキル
 | 領域 | スキル |

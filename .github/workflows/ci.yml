@@ -1,7 +1,19 @@
+# PR ごとのチェック（docs/ARCHITECTURE.md §6.2、PLAN §4 ステップ 2）
+# - backend: ruff check / pytest
+# - frontend: lint / typecheck / build
+# - terraform: fmt -check / validate / plan（tf-plan サービスアカウント。結果を PR にコメント）
+# 注意: pull_request_target は使わない（PR のコードが main の権限で動くため。infra/terraform/README.md）
 name: CI
 
 on:
   pull_request:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   backend:
@@ -11,7 +23,14 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      # TODO: setup uv, `uv run ruff check .`, `uv run pytest`
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest
 
   frontend:
     runs-on: ubuntu-latest
@@ -20,4 +39,89 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      # TODO: setup node, `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation
+      pull-requests: write # plan の結果を PR にコメントする
+    defaults:
+      run:
+        working-directory: infra/terraform
+    env:
+      # GitHub Variables（infra/terraform/README.md「apply 後の作業」）が未登録なら plan は飛ばす
+      HAS_GCP_VARS: ${{ vars.GCP_WIF_PROVIDER != '' && vars.GCP_TF_PLAN_SA != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+      - name: terraform validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: GCP に認証（tf-plan）
+        if: env.HAS_GCP_VARS == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_TF_PLAN_SA }}
+
+      - name: terraform plan
+        id: plan
+        if: env.HAS_GCP_VARS == 'true'
+        run: |
+          terraform init -input=false -reconfigure
+          set +e
+          # tf-plan は state を読むだけなのでロックを取らない
+          terraform plan -input=false -no-color -lock=false -detailed-exitcode > plan.txt 2>&1
+          code=$?
+          set -e
+          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
+          cat plan.txt
+          # 0: 差分なし / 2: 差分あり / 1: エラー
+          if [ "$code" -eq 1 ]; then exit 1; fi
+
+      - name: plan の結果を PR にコメント
+        if: always() && env.HAS_GCP_VARS == 'true' && steps.plan.outputs.exitcode != ''
+        uses: actions/github-script@v7
+        env:
+          PLAN_EXITCODE: ${{ steps.plan.outputs.exitcode }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- terraform-plan -->';
+            let plan = fs.readFileSync('infra/terraform/plan.txt', 'utf8');
+            const max = 60000;
+            if (plan.length > max) plan = plan.slice(-max) + '\n…（先頭を省略）';
+            const code = process.env.PLAN_EXITCODE;
+            const summary = code === '0' ? '差分なし' : code === '2' ? '差分あり' : 'エラー';
+            const body = `${marker}\n### Terraform plan: ${summary}\n\n<details><summary>plan の出力</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n</details>\n\n_commit ${context.sha.slice(0, 7)}_`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: plan を飛ばしたことを表示
+        if: env.HAS_GCP_VARS != 'true'
+        run: echo "::notice::GitHub Variables（GCP_WIF_PROVIDER / GCP_TF_PLAN_SA）が未登録のため terraform plan を飛ばしました"

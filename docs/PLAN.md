@@ -105,19 +105,21 @@ gantt
 - [x] Firestore の物理設計（DESIGN §7.3）、SC-3 で使う値の一覧（§7.4 #5・案）、API-04〜08（§8）
 - [x] Terraform と GitHub Actions の運用（ARCHITECTURE §6、`rules/infra.md`）
 
-### ステップ 1: Terraform の初回構築（9/27 - 9/28）
+### ステップ 1: Terraform の初回構築（9/27 - 9/28）✅
 
 GitHub Actions が GCP に認証するための土台だけは、Actions が動く前に人が作る（ARCHITECTURE §6.1）。
 
-- [ ] Terraform の state 用 GCS バケットを作り、`provider.tf` の GCS backend を有効化する
-- [ ] 必要な API の有効化（`google_project_service`）
-- [ ] Workload Identity Pool / Provider（GitHub リポジトリ `akakura-hackathon/zashikiwarashi` に限定）
-- [ ] サービスアカウント: Terraform の plan 用（閲覧のみ）・apply 用（必要最小限のロール）・デプロイ用
-- [ ] オーナー権限を持つ人がローカルで1回 `terraform apply` し、`terraform output` を GitHub の Variables に登録する
+- [x] Terraform の state 用 GCS バケットを作り、`provider.tf` の GCS backend を有効化する
+- [x] 必要な API の有効化（`google_project_service`）
+- [x] Workload Identity Pool / Provider（GitHub リポジトリ `akakura-hackathon/zashikiwarashi` に限定）
+- [x] サービスアカウント: Terraform の plan 用（閲覧のみ）・apply 用（必要最小限のロール）・デプロイ用
+- [x] オーナー権限を持つ人がローカルで1回 `terraform apply` する（9/26 実施。#9）
+- [x] `terraform output` を GitHub の Variables に登録する（9/26 実施）
 
-### ステップ 2: CI（9/29）
+### ステップ 2: CI（9/29）✅
 
-- [ ] `ci.yml`: backend（`ruff check`・`pytest`）、frontend（`lint`・`typecheck`・`build`）、Terraform（`fmt -check`・`validate`・`plan`）。plan の結果を PR にコメントする
+- [x] `ci.yml`: backend（`ruff check`・`pytest`）、frontend（`lint`・`typecheck`・`build`）、Terraform（`fmt -check`・`validate`・`plan`）。plan の結果を PR にコメントする
+- [x] 依存関係のロックファイル（`backend/uv.lock`・`frontend/package-lock.json`）を追加する
 
 ### ステップ 3: 基盤とデプロイ（9/29 - 10/1）（FN-02 ほか）
 

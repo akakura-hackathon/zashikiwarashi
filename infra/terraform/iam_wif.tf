@@ -131,9 +131,12 @@ resource "google_storage_bucket_iam_member" "tfstate_plan" {
   member = google_service_account.tf_plan.member
 }
 
+# apply は state の読み書きに加え、このバケットに付けた IAM（上の tfstate_plan とこのリソース自身）を
+# Terraform で管理するため、バケットの IAM ポリシーを読み書きできる必要がある。
+# objectAdmin には storage.buckets.getIamPolicy / setIamPolicy が無いため、このバケットに限って storage.admin を付ける。
 resource "google_storage_bucket_iam_member" "tfstate_apply" {
   bucket = var.tfstate_bucket
-  role   = "roles/storage.objectAdmin"
+  role   = "roles/storage.admin"
   member = google_service_account.tf_apply.member
 }
 

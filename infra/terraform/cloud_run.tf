@@ -1,5 +1,5 @@
 # ステップ 3a: Artifact Registry と Cloud Run（docs/ARCHITECTURE.md §3.4.1・§6.2）
-# - api:   API Ingestion。公開（認証はアプリ側で Firebase の ID トークンを検証する。FN-02）
+# - api:   API Ingestion。非公開（画面からの呼び出し方はステップ 3b で決める）
 # - tools: ツールサービス（MCP）。非公開。ステップ 7 で Agent Gateway 経由で呼ばれるようにする
 # 2 つのサービスは同じ backend イメージを使う。イメージの更新は deploy.yml が行い、Terraform は変更を無視する。
 
@@ -131,10 +131,12 @@ resource "google_cloud_run_v2_service" "service" {
   depends_on = [google_project_service.platform]
 }
 
-# api は公開する（Firebase の ID トークンの検証はアプリで行う）。tools は公開しない
-resource "google_cloud_run_v2_service_iam_member" "api_public" {
+# api・tools とも非公開（allUsers に呼び出しを許可しない）。呼び出せるのは run.invoker を持つ ID だけ。
+# 画面（frontend）から api を呼ぶ方法はステップ 3b で決める（IAP で許可した Google アカウントに限定する、など）。
+# deploy.yml の動作確認（/health）のため、deployer にだけ api の呼び出しを許可する。
+resource "google_cloud_run_v2_service_iam_member" "api_deployer_invoker" {
   name     = google_cloud_run_v2_service.service["api"].name
   location = var.region
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = google_service_account.deployer.member
 }

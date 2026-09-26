@@ -126,12 +126,13 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 2 つの PR に分ける。
 
 **3a: Artifact Registry・Cloud Run・デプロイ**
-- [ ] Terraform: Artifact Registry、実行用サービスアカウント（API・ツールサービス）、Cloud Run（API は公開、ツールサービスは非公開。初回はプレースホルダーのイメージ）、tf-apply・deployer のロール追加
-- [ ] `deploy.yml`: main へのマージで `terraform apply` → backend のイメージをビルドして Artifact Registry へ → Cloud Run（api・tools）を更新 → api の `/health` で動作確認
+- [ ] Terraform: Artifact Registry、実行用サービスアカウント（API・ツールサービス）、Cloud Run（API・ツールサービスとも非公開。初回はプレースホルダーのイメージ）、tf-apply・deployer のロール追加
+- [ ] `deploy.yml`: main へのマージで `terraform apply` → backend のイメージをビルドして Artifact Registry へ → Cloud Run（api・tools）を更新 → api の `/health` で動作確認（deployer の ID トークンを付けて呼ぶ）
 - [ ] CI でも backend のイメージをビルドする（push はしない）
 
 **3b: Firebase・Firestore・frontend**
 - [ ] Terraform（google-beta を併用）: Firestore（`(default)`・us-central1）とセキュリティルール・インデックス（DESIGN §7.3）、Firebase（プロジェクト・Web アプリ・Hosting）、Authentication の Google ログイン（OAuth クライアントの作成は Console で手動1回）
+- [ ] 画面（frontend）から非公開の api を呼ぶ方法を決める（IAP で許可した Google アカウントに限定する、など）。誰でも触れる状態にはしない
 - [ ] `deploy.yml`: Firestore のルール・インデックスと frontend（静的エクスポート）を Firebase にデプロイ
 - [ ] カスタムクレーム（`role`・`building_id`・`resident_id`・`unit_id`）を付けるスクリプト（FN-02）
 - [ ] 完了の目安: 本番の URL で API の `/health` と空の画面が開き、Google ログインできる

@@ -329,7 +329,7 @@ export function CockpitPanel({
           <span>🏢 棟内150戸の安否集約 (API-03)</span>
           {emergencyId && (
             <span className="font-mono-num" style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
-              Emg: {emergencyId.slice(0, 6)}
+              Emg: {emergencyId.slice(0, 6)} / Issue: {issueId ? issueId.slice(0, 6) : "-"}
             </span>
           )}
         </div>

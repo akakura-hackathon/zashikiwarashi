@@ -30,7 +30,6 @@ import {
   SecondaryButton,
   TextButton,
   ChoiceButton,
-  LongPressButton,
 } from "./ui/Buttons";
 import {
   CheckRow,
@@ -42,10 +41,8 @@ import {
   Timeline,
   PrivacyNote,
   TabBar,
-  type TimelineItem,
 } from "./ui/NavigationAndInfo";
 import { LockNotification } from "./ui/LockNotification";
-import { FloorMap } from "./ui/FloorMap";
 
 type PhoneStageProps = {
   activePersona: Persona;
@@ -63,7 +60,7 @@ export function PhoneStage({
   tasks,
   issueDetail,
   onActionComplete,
-  isLoading,
+  isLoading: _isLoading,
   user,
 }: PhoneStageProps) {
   // Navigation Tabs: home (P_R1), history (P_R2), settings (P_R3)

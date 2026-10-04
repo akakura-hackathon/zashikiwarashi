@@ -82,7 +82,7 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
           <button
             key={item.id}
             type="button"
-            onClick={() => setFilter(item.id as any)}
+            onClick={() => setFilter(item.id as "all" | "attention" | "unassigned")}
             style={{
               padding: "4px 10px",
               borderRadius: 6,

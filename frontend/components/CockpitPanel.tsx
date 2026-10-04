@@ -6,6 +6,7 @@ import {
   type Persona,
   DEMO_PERSONAS,
   type PriorityAlertTarget,
+  type EmergencyType,
   testGuardrail,
 } from "@/lib/api-client";
 
@@ -15,6 +16,8 @@ import { FloorMap } from "./ui/FloorMap";
 type CockpitPanelProps = {
   activePersona: Persona;
   onSelectPersona: (persona: Persona) => void;
+  selectedEmergencyType: EmergencyType;
+  onSelectEmergencyType: (type: EmergencyType) => void;
   emergencyId: string | null;
   issueId: string | null;
   issueDetail: IssueDetailResponse | null;
@@ -32,6 +35,8 @@ type CockpitPanelProps = {
 export function CockpitPanel({
   activePersona,
   onSelectPersona,
+  selectedEmergencyType,
+  onSelectEmergencyType,
   emergencyId,
   issueId,
   issueDetail,
@@ -47,7 +52,7 @@ export function CockpitPanel({
 }: CockpitPanelProps) {
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
-  const unknownCount = summary["UNKNOWN"] ?? (emergencyId ? 149 : 0);
+  const unknownCount = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
   const needHelpCount = summary["NEED_HELP"] ?? 0;
   const outsideCount = summary["OUTSIDE_BUILDING"] ?? 0;
 
@@ -130,6 +135,37 @@ export function CockpitPanel({
           </span>
         </div>
 
+        {/* 災害種別 選択タブ */}
+        {!emergencyId && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "8px" }}>
+            {[
+              { type: "EARTHQUAKE" as const, label: "🚨 地震" },
+              { type: "POWER_OUTAGE" as const, label: "⚡ 停電" },
+              { type: "FIRE" as const, label: "🔥 火災" },
+              { type: "FLOOD" as const, label: "🌊 洪水" },
+            ].map((d) => (
+              <button
+                key={d.type}
+                type="button"
+                onClick={() => onSelectEmergencyType(d.type)}
+                style={{
+                  padding: "6px 2px",
+                  borderRadius: "6px",
+                  border: selectedEmergencyType === d.type ? "1.5px solid var(--color-ink)" : "1px solid var(--cockpit-border)",
+                  backgroundColor: selectedEmergencyType === d.type ? "var(--color-ink)" : "#FFFFFF",
+                  color: selectedEmergencyType === d.type ? "#FFFFFF" : "var(--color-ink)",
+                  fontSize: "0.72rem",
+                  fontWeight: selectedEmergencyType === d.type ? 700 : 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {!emergencyId ? (
             <button
@@ -151,7 +187,10 @@ export function CockpitPanel({
                 gap: 6,
               }}
             >
-              🚨 震度5強 地震発生・緊急モード発令 (API-01)
+              {selectedEmergencyType === "POWER_OUTAGE" && "⚡ 落雷・全館停電発生・発令 (API-01)"}
+              {selectedEmergencyType === "EARTHQUAKE" && "🚨 震度5強 地震発生・発令 (API-01)"}
+              {selectedEmergencyType === "FIRE" && "🔥 火災警報鳴動・発令 (API-01)"}
+              {selectedEmergencyType === "FLOOD" && "🌊 浸水警戒・洪水発令 (API-01)"}
             </button>
           ) : (
             <div style={{ display: "flex", gap: "8px" }}>
@@ -323,10 +362,10 @@ export function CockpitPanel({
         </div>
       </div>
 
-      {/* 4. 棟内150戸の安否集約 & C24 FloorMap */}
+      {/* 4. 棟内50戸の安否集約 & C24 FloorMap */}
       <div className="cockpit-section">
         <div className="section-title">
-          <span>🏢 棟内150戸の安否集約 (API-03)</span>
+          <span>🏢 棟内50戸の安否集約 (API-03)</span>
           {emergencyId && (
             <span className="font-mono-num" style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
               Emg: {emergencyId.slice(0, 6)} / Issue: {issueId ? issueId.slice(0, 6) : "-"}

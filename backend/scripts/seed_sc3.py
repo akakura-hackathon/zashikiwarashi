@@ -19,7 +19,7 @@ async def main() -> None:
     repo = get_repository()
     print(f"[*] Seeding SC-3 dataset using repository: {type(repo).__name__}...")
     await seed_sc3_data(repo, building_id="bld-01")
-    print("[+] Successfully seeded SC-3 dataset: 1 Building, 150 Units, Residents H/I/J/K.")
+    print("[+] Successfully seeded SC-3 dataset: 1 Building, 50 Units, Residents H/I/J/K.")
 
 
 if __name__ == "__main__":

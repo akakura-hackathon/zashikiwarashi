@@ -5,7 +5,7 @@ Covers SPEC.md §2.3 and DESIGN.md §6.3:
 2. Residents respond:
    - Resident I (301) responds SAFE (API-02).
    - Resident H (302) is unconfirmed (UNKNOWN).
-   - Resident K (1204) is outside (UNKNOWN, calendar busy).
+   - Resident K (504) is outside (UNKNOWN, calendar busy).
 3. Admin triggers triage (API-08):
    - Resident K is filtered out (Likely Away).
    - Resident I on 3F is matched to Resident H (302) for neighbor check (1:1, no duplicates).
@@ -67,7 +67,7 @@ def test_sc3_full_earthquake_scenario():
     assert res_pres_i.json()["safety_status"] == "SAFE"
 
     # 住民 H（302号室・高齢単身）は未応答（UNKNOWN のまま）
-    # 住民 K（1204号室）は未応答（UNKNOWN、カレンダー外出中）
+    # 住民 K（504号室）は未応答（UNKNOWN、カレンダー外出中）
 
     # ----------------------------------------------------
     # Step 3: 管理人によるトリアージ開始 (API-08)
@@ -187,6 +187,6 @@ def test_sc3_full_earthquake_scenario():
     assert target_302["priority_level"] == "CRITICAL"
     assert target_302["neighbor_check_result"] == "TARGET_NO_RESPONSE"
 
-    # 外出予定の住民 K（1204号室）はトリアージ対象外であり、不要なタスクやアラートになっていない
-    target_1204 = next((t for t in priority_targets if t["room_number"] == "1204"), None)
-    assert target_1204 is None
+    # 外出予定の住民 K（504号室）はトリアージ対象外であり、不要なタスクやアラートになっていない
+    target_504 = next((t for t in priority_targets if t["room_number"] == "504"), None)
+    assert target_504 is None

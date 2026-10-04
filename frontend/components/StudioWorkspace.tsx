@@ -16,6 +16,7 @@ import {
   type Persona,
   type IssueDetailResponse,
   type Task,
+  type EmergencyType,
   DEMO_PERSONAS,
   triggerEmergency,
   startTriage,
@@ -27,6 +28,7 @@ import { getFirebaseApp } from "@/lib/firebase";
 export function StudioWorkspace() {
   const [user, setUser] = useState<User | null>(null);
   const [activePersona, setActivePersonaState] = useState<Persona>(DEMO_PERSONAS[1]); // デフォルト: 住民I
+  const [selectedEmergencyType, setSelectedEmergencyType] = useState<EmergencyType>("EARTHQUAKE");
   const [emergencyId, setEmergencyId] = useState<string | null>(null);
   const [issueId, setIssueId] = useState<string | null>(null);
   const [issueDetail, setIssueDetail] = useState<IssueDetailResponse | null>(null);
@@ -109,7 +111,7 @@ export function StudioWorkspace() {
     }
   }, [issueId, refreshIssueDetail]);
 
-  // 1. 地震発生・緊急モード発令 (API-01)
+  // 1. 災害発生・緊急モード発令 (API-01)
   const handleTriggerEmergency = async () => {
     if (!user) {
       // ユーザーが未ログインの場合、Google ログインを要求
@@ -120,17 +122,31 @@ export function StudioWorkspace() {
       return;
     }
 
+    const defaultInstructions: Record<EmergencyType, string> = {
+      EARTHQUAKE: "震度5強の地震が発生しました。エレベーター全基停止。各戸の安否確認を開始します。",
+      POWER_OUTAGE: "落雷による全館停電が発生しました。エレベーター全基停止。各戸の安否と支援ニーズを確認します。",
+      FIRE: "棟内火災警報が鳴動しました。非常階段での初期避難・安全確認を開始します。",
+      FLOOD: "外水氾濫による浸水警戒が発令されました。上層階への垂直避難・安否確認を開始します。",
+    };
+
+    const disasterLabels: Record<EmergencyType, string> = {
+      EARTHQUAKE: "震度5強 地震発生",
+      POWER_OUTAGE: "落雷 全館停電発生",
+      FIRE: "棟内火災警報鳴動",
+      FLOOD: "外水氾濫 浸水警戒",
+    };
+
     setIsLoading(true);
     try {
       const res = await triggerEmergency(user, {
         building_id: "bld-01",
-        emergency_type: "EARTHQUAKE",
-        instruction: "震度5強の地震が発生しました。エレベーター全基停止。各戸の安否確認を開始します。",
+        emergency_type: selectedEmergencyType,
+        instruction: defaultInstructions[selectedEmergencyType],
       });
       setEmergencyId(res.emergency_id);
       setIssueId(res.issue_id);
-      addLog(`[API-01] 震度5強 地震発生！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
-      addLog("全150戸へ安否確認（Cat 4）の一斉配信を開始しました。");
+      addLog(`[API-01] ${disasterLabels[selectedEmergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
+      addLog("全50戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
       // 発令直後の初期状態を取得
       const detail = await getIssueDetail(user, res.issue_id, DEMO_PERSONAS[0]);
@@ -178,6 +194,8 @@ export function StudioWorkspace() {
       <CockpitPanel
         activePersona={activePersona}
         onSelectPersona={handleSelectPersona}
+        selectedEmergencyType={selectedEmergencyType}
+        onSelectEmergencyType={setSelectedEmergencyType}
         emergencyId={emergencyId}
         issueId={issueId}
         issueDetail={issueDetail}
@@ -196,6 +214,7 @@ export function StudioWorkspace() {
       <PhoneStage
         activePersona={activePersona}
         emergencyId={emergencyId}
+        emergencyType={selectedEmergencyType}
         tasks={tasks}
         issueDetail={issueDetail}
         onActionComplete={handleActionComplete}

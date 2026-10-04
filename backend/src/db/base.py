@@ -94,6 +94,11 @@ class BaseRepository(ABC):
     ) -> None: ...
 
     @abstractmethod
+    async def batch_set_current_states(
+        self, building_id: str, states: list[ResidentEmergencyCurrentState]
+    ) -> None: ...
+
+    @abstractmethod
     async def get_current_state(
         self, building_id: str, emergency_id: str, resident_id: str
     ) -> ResidentEmergencyCurrentState | None: ...

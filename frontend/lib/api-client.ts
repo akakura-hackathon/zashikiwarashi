@@ -147,8 +147,8 @@ export const DEMO_PERSONAS: Persona[] = [
   {
     userId: "resident-k",
     role: "resident",
-    name: "住民 K（1204号室）",
-    roomNumber: "1204",
+    name: "住民 K（504号室）",
+    roomNumber: "504",
     desc: "カレンダー外出中・Likely Away（低優先）",
   },
 ];

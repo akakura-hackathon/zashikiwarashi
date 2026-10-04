@@ -7,6 +7,7 @@ import {
   type TaskDetailResponse,
   type IssueDetailResponse,
   type AuditEvent,
+  type EmergencyType,
   confirmPresence,
   respondToTask,
   reportTask,
@@ -47,6 +48,7 @@ import { LockNotification } from "./ui/LockNotification";
 type PhoneStageProps = {
   activePersona: Persona;
   emergencyId: string | null;
+  emergencyType?: EmergencyType;
   tasks: Task[];
   issueDetail: IssueDetailResponse | null;
   onActionComplete: (logText: string) => Promise<void>;
@@ -57,6 +59,7 @@ type PhoneStageProps = {
 export function PhoneStage({
   activePersona,
   emergencyId,
+  emergencyType = "EARTHQUAKE",
   tasks,
   issueDetail,
   onActionComplete,
@@ -313,7 +316,16 @@ export function PhoneStage({
                   />
 
                   {/* C3: Emergency Banner */}
-                  <EmergencyBanner disasterType="地震" detail="震度5強" issuedAt="8:03" />
+                  {(() => {
+                    const disasterInfo: Record<EmergencyType, { typeName: string; detail: string }> = {
+                      EARTHQUAKE: { typeName: "地震", detail: "震度5強" },
+                      POWER_OUTAGE: { typeName: "停電", detail: "EV全基停止" },
+                      FIRE: { typeName: "火災", detail: "警報鳴動" },
+                      FLOOD: { typeName: "洪水", detail: "垂直避難警戒" },
+                    };
+                    const bannerInfo = disasterInfo[emergencyType || "EARTHQUAKE"];
+                    return <EmergencyBanner disasterType={bannerInfo.typeName} detail={bannerInfo.detail} issuedAt="8:03" />;
+                  })()}
 
                   {/* Screen Content Container with auto-flex bottom action */}
                   <div
@@ -496,8 +508,8 @@ export function PhoneStage({
                             {/* C17 ProgressBar */}
                             <ProgressBar
                               title="全館の安否回答状況"
-                              current={totalAnswered || 96}
-                              total={150}
+                              current={totalAnswered || 38}
+                              total={50}
                             />
                             <div
                               style={{

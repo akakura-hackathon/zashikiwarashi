@@ -33,12 +33,12 @@ async def test_privacy_gateway_pii_masking():
     assert "[3F_UNIT]" in sanitized1
     assert "302号室" not in sanitized1
 
-    text2 = "私の電話番号は 090-1234-5678 です。1204号室に住んでいます。"
+    text2 = "私の電話番号は 090-1234-5678 です。504号室に住んでいます。"
     sanitized2 = PrivacyGateway.sanitize_text(text2)
     assert "[PHONE_NUMBER]" in sanitized2
-    assert "[12F_UNIT]" in sanitized2
+    assert "[5F_UNIT]" in sanitized2
     assert "090-1234-5678" not in sanitized2
-    assert "1204" not in sanitized2
+    assert "504" not in sanitized2
 
 
 @pytest.mark.asyncio

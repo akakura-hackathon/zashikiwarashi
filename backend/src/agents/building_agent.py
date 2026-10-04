@@ -12,6 +12,10 @@ import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from src.agents.governance import (
+    AgentGovernanceEngine,
+    AgentIdentity,
+)
 from src.db.base import BaseRepository
 from src.models.domain import (
     ActorType,
@@ -27,11 +31,26 @@ logger = logging.getLogger(__name__)
 
 
 class BuildingAgent:
-    """全棟の調整を行う Building Agent Coordinator。"""
+    """全棟の調整を行う Building Agent Coordinator。
+    
+    専用の Agent Identity（G4）を持ち、IAP CEL ポリシーで権限が制限される。
+    """
 
     def __init__(self, repo: BaseRepository):
         self.repo = repo
         self.triage_service = TriageService(repo)
+        self.identity = AgentIdentity.BUILDING_AGENT
+
+    def invoke_tool(self, tool_name: str, payload: dict | None = None) -> None:
+        """G3/G4: Agent Gateway Egress & IAP 認可チェックを通過してツールを呼ぶ。"""
+        import json
+        payload_str = json.dumps(payload) if payload else None
+        AgentGovernanceEngine.validate_egress(
+            agent_identity=self.identity,
+            target_service="mcp-tools",
+            tool_name=tool_name,
+            payload_text=payload_str,
+        )
 
     async def execute_triage(
         self,

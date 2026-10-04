@@ -1,0 +1,14 @@
+# G1: Agent Gateway Ingress 設定（docs/ARCHITECTURE.md §3.4.3 G1）
+# API Ingestion（Cloud Run: api）からのリクエストを受け付け、Model Armor で検査して各 Agent へルーティング
+
+name: projects/zashikiwarashi/locations/us-central1/agentGateways/agw-ingress-c2a
+description: "Zashikiwarashi Ingress Agent Gateway (CLIENT_TO_AGENT)"
+protocols:
+  - HTTP
+  - MCP
+googleManaged:
+  governedAccessPath: CLIENT_TO_AGENT
+guardrails:
+  modelArmorTemplate: "projects/zashikiwarashi/locations/us-central1/templates/zashikiwarashi-guardrails"
+registries:
+  - "//agentregistry.googleapis.com/projects/zashikiwarashi/locations/us-central1"

@@ -189,6 +189,7 @@ export function StudioWorkspace() {
         user={user}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        onAddLog={addLog}
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}

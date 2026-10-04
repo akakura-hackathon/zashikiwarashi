@@ -1,0 +1,26 @@
+{
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "serviceAccount:building-agent-sa@zashikiwarashi.iam.gserviceaccount.com"
+      ],
+      "condition": {
+        "title": "building_agent_allowed_tools",
+        "description": "Building Agent can only call coordination, triage, and task dispatch tools. Room disclosure is forbidden.",
+        "expression": "request.auth.claims.email == 'building-agent-sa@zashikiwarashi.iam.gserviceaccount.com' && request.path.startsWith('/mcp/tools/') && (request.tool in ['generate_triage_candidate', 'dispatch_task', 'query_candidate_capability'])"
+      }
+    },
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "serviceAccount:resident-agent-sa@zashikiwarashi.iam.gserviceaccount.com"
+      ],
+      "condition": {
+        "title": "resident_agent_isolated_read_only",
+        "description": "Resident Agent can only read own resident data and record evaluation. Approval and Unit disclosure are strictly forbidden.",
+        "expression": "request.auth.claims.email == 'resident-agent-sa@zashikiwarashi.iam.gserviceaccount.com' && request.path.startsWith('/mcp/tools/') && (request.tool in ['read_own_profile', 'record_evaluation'])"
+      }
+    }
+  ]
+}

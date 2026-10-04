@@ -1,0 +1,32 @@
+# G6: Agent Registry 台帳定義（docs/ARCHITECTURE.md §3.4.3 G6）
+# Agent Gateway から到達可能な認可済みサービス一覧。未登録の宛先は拒否。
+
+apiVersion: agentregistry.googleapis.com/v1
+kind: Registry
+metadata:
+  name: zashikiwarashi-registry
+  location: us-central1
+spec:
+  services:
+    # 1. ツールサービス（Cloud Run / MCP）
+    - serviceId: "mcp-tools"
+      displayName: "Zashikiwarashi Tools Service (Cloud Run / MCP)"
+      endpointUri: "https://tools-4lrm3zlnoq-uc.a.run.app"
+      protocol: MCP
+      allowedTools:
+        - "read_own_profile"
+        - "record_evaluation"
+        - "generate_triage_candidate"
+        - "dispatch_task"
+
+    # 2. Gemini Enterprise / Vertex AI API エンドポイント
+    - serviceId: "vertex-ai-gemini"
+      displayName: "Vertex AI Gemini 3.1 Pro / 3.8 Flash Endpoint"
+      endpointUri: "https://us-central1-aiplatform.googleapis.com"
+      protocol: HTTP
+
+    # 3. Resident Agent 協調エンドポイント (A2A)
+    - serviceId: "resident-agent-a2a"
+      displayName: "Resident Agent Multi-Tenant Orchestrator"
+      endpointUri: "agent://resident-agent/v1"
+      protocol: MCP

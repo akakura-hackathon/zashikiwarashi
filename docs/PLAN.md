@@ -182,15 +182,16 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
   - Sensitive Data Protection / Model Armor 連携用の PII マスキング（部屋番号・氏名・電話番号・郵便番号のトークン化）
 - [x] 完了の目安: **Agent レイヤ（Building Agent, Resident Agent, Privacy Gateway）のユニットテスト（`tests/test_agents.py`）が全件パスする**
 
-### ステップ 7: Agent ガバナンス（10/6 - 10/8）（FN-10。構成は ARCHITECTURE.md §3.4）
+### ステップ 7: Agent ガバナンス（10/6 - 10/8）（FN-10。構成は ARCHITECTURE.md §3.4）✅
 
-- [ ] Building Agent と Resident Agent に Agent Identity を付与する
-- [ ] Agent Gateway（Standalone モード）の Ingress（G1: API → Agent）と Egress（G3: Agent → Resident Agent（A2A）/ ツールサービス（MCP）/ Gemini API）を作り、両 Agent をデプロイ時に紐づける
-- [ ] ツールサービス（MCP）と Gemini API のエンドポイントを Agent Registry に登録する（G6）
-- [ ] IAP ポリシーで Agent Identity ごとに呼べるツールを制限する（G4。Resident Agent は自分の住民のデータの読み取りと評価結果の記録のみ。承認の書き込みと部屋番号の開示はどの Agent も不可）
-- [ ] Model Armor テンプレート（プロンプトインジェクション・ジェイルブレイク・SDP フィルタ）を作り、Gateway に付ける（G2）
-- [ ] デモ用に、プロンプトインジェクションや部屋番号を含む入出力が遮断されることを確認するテストを用意する
-- [ ] Terraform で作れない部分は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する
+- [x] Building Agent と Resident Agent に Agent Identity を付与する（`AgentIdentity` / Terraform サービスアカウント定義）
+- [x] Agent Gateway（Standalone モード）の Ingress（G1: API → Agent）と Egress（G3: Agent → Resident Agent（A2A）/ ツールサービス（MCP）/ Gemini API）を作り、両 Agent をデプロイ時に紐づける（`agw-ingress.yaml`, `agw-egress.yaml`）
+- [x] ツールサービス（MCP）と Gemini API のエンドポイントを Agent Registry に登録する（G6）（`agent-registry.yaml`）
+- [x] IAP ポリシーで Agent Identity ごとに呼べるツールを制限する（G4。Resident Agent は自分の住民のデータの読み取りと評価結果の記録のみ。承認の書き込みと部屋番号の開示はどの Agent も不可）（`iap-policy.json`）
+- [x] Model Armor テンプレート（プロンプトインジェクション・ジェイルブレイク・SDP フィルタ）を作り、Gateway に付ける（G2）（`model-armor-template.yaml`）
+- [x] デモ用に、プロンプトインジェクションや部屋番号を含む入出力が遮断されることを確認するテストを用意する（`tests/test_agent_governance.py` 全件パス ＆ Cockpit 検証 UI）
+- [x] Terraform で作れない部分は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する（`infra/gcloud/setup_agent_governance.sh`）
+- [x] 完了の目安: **Agent ガバナンス（G1〜G6）のユニットテスト（`tests/test_agent_governance.py`）が全件パスし、画面から実機検証できる**
 
 ### ステップ 8: Agent Observability と監査ログ（10/8 - 10/9）（FN-11）
 

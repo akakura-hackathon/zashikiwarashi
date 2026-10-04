@@ -61,3 +61,23 @@ resource "google_project_service" "firebase" {
   service            = each.value
   disable_on_destroy = false
 }
+
+# ステップ 7: Agent ガバナンス（docs/ARCHITECTURE.md §3.4、PLAN §4 ステップ 7）
+locals {
+  governance_services = [
+    "aiplatform.googleapis.com",
+    "networkservices.googleapis.com",
+    "modelarmor.googleapis.com",
+    "dlp.googleapis.com",
+    "iap.googleapis.com",
+  ]
+}
+
+resource "google_project_service" "governance" {
+  for_each = toset(local.governance_services)
+
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+

@@ -1,0 +1,31 @@
+# G2: Model Armor 検査テンプレート（docs/ARCHITECTURE.md §3.4.2 / §3.4.3）
+# 入力: プロンプトインジェクション・ジェイルブレイク攻撃の遮断
+# 出力: Sensitive Data Protection (SDP) による PII 漏洩（部屋番号・氏名・電話番号）の遮断
+
+apiVersion: modelarmor.googleapis.com/v1
+kind: Template
+metadata:
+  name: zashikiwarashi-guardrails
+  location: us-central1
+spec:
+  # 1. プロンプトインジェクション・ジェイルブレイク検知
+  piAndJailbreakFilterSettings:
+    filterEnforcement: ENFORCE
+    confidenceLevel: MEDIUM
+
+  # 2. 不正なシステム指示上書き検知
+  maliciousUriFilterSettings:
+    filterEnforcement: ENFORCE
+
+  # 3. Sensitive Data Protection (SDP) フィルタ
+  # 個人情報（特に部屋番号・電話番号）の漏洩を即座にブロック
+  sdpFilterSettings:
+    filterEnforcement: ENFORCE
+    inspectionTemplate: "projects/zashikiwarashi/locations/us-central1/inspectTemplates/pii-filter-template"
+    matchTypes:
+      - PHONE_NUMBER
+      - EMAIL_ADDRESS
+      - PERSON_NAME
+      - JAPAN_POSTAL_CODE
+      # カスタム infoType: マンション部屋番号（例: 301, 302号室）
+      - CUSTOM_UNIT_NUMBER

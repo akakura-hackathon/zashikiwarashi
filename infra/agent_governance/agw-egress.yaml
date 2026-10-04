@@ -1,0 +1,14 @@
+# G3: Agent Gateway Egress 設定（docs/ARCHITECTURE.md §3.4.3 G3）
+# Agent からの外向き通信（A2A、MCP ツールサービス、Gemini API）をすべて統制（Outbound Privacy Gate）
+
+name: projects/zashikiwarashi/locations/us-central1/agentGateways/agw-egress-a2a
+description: "Zashikiwarashi Egress Agent Gateway (AGENT_TO_ANYWHERE)"
+protocols:
+  - HTTP
+  - MCP
+googleManaged:
+  governedAccessPath: AGENT_TO_ANYWHERE
+guardrails:
+  modelArmorTemplate: "projects/zashikiwarashi/locations/us-central1/templates/zashikiwarashi-guardrails"
+registries:
+  - "//agentregistry.googleapis.com/projects/zashikiwarashi/locations/us-central1"

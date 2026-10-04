@@ -12,6 +12,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from src.agents.governance import (
+    AgentGovernanceEngine,
+    AgentIdentity,
+)
 from src.db.base import BaseRepository
 from src.models.domain import (
     ActorType,
@@ -42,12 +46,26 @@ class ResidentAgent:
 
     本人の世帯プロファイルと在館コンテキストのみにアクセスし、
     他住民の生データやメモリには一切触れない（Domain Principle 6: Agent Isolation）。
+    専用の Agent Identity（G4）を持ち、IAP CEL ポリシーで権限が制限される。
     """
 
     def __init__(self, resident_id: str, repo: BaseRepository, building_id: str = "bld-01"):
         self.resident_id = resident_id
         self.repo = repo
         self.building_id = building_id
+        self.identity = AgentIdentity.RESIDENT_AGENT
+
+    def invoke_tool(self, tool_name: str, payload: dict[str, Any] | None = None) -> None:
+        """G3/G4: Agent Gateway Egress & IAP 認可チェックを通過してツールを呼ぶ。"""
+        import json
+        payload_str = json.dumps(payload) if payload else None
+        # IAP ポリシーおよび SDP フィルタの検査
+        AgentGovernanceEngine.validate_egress(
+            agent_identity=self.identity,
+            target_service="mcp-tools",
+            tool_name=tool_name,
+            payload_text=payload_str,
+        )
 
     async def evaluate_task(self, task: Task) -> TaskEvent:
         """R1: 打診されたタスクを本人の制約から評価し、TaskEvent EVALUATED を生成する。

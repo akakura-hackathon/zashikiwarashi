@@ -132,6 +132,17 @@ paths:
         address: ${backend_url}
         path_translation: APPEND_PATH_TO_ADDRESS
         deadline: 120.0
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: タスク一覧と安否集約の取得
+      responses:
+        "200":
+          description: OK
+  /governance/test-guardrail:
+    post:
+      operationId: testGuardrail
+      summary: FN-10 Agent ガバナンス・ガードレール検証
       responses:
         "200":
           description: OK

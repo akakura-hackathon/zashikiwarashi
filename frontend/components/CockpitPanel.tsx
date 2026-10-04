@@ -6,6 +6,7 @@ import {
   type Persona,
   DEMO_PERSONAS,
   type PriorityAlertTarget,
+  testGuardrail,
 } from "@/lib/api-client";
 
 import type { User } from "firebase/auth";
@@ -24,6 +25,7 @@ type CockpitPanelProps = {
   user: User | null;
   onLogin: () => Promise<void>;
   onLogout: () => Promise<void>;
+  onAddLog?: (text: string) => void;
 };
 
 export function CockpitPanel({
@@ -153,6 +155,64 @@ export function CockpitPanel({
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 2.5 Agent ガバナンス・ガードレール検証 (FN-10 / Step 7) */}
+      <div className="cockpit-section">
+        <div className="section-title">
+          <span>🛡️ Agent ガバナンス検証 (FN-10)</span>
+          <span style={{ fontSize: "0.68rem", color: "#38bdf8" }}>G1〜G6 統制</span>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "var(--cockpit-text-muted)", marginBottom: "8px" }}>
+          Model Armor（G2）と IAP CEL（G4）による決定論的防御を実機検証します。
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <button
+            className="btn-secondary"
+            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#38bdf8" }}
+            onClick={async () => {
+              if (onAddLog) onAddLog("🛡️ [G2 Model Armor] 敵対的プロンプトインジェクション攻撃を送信中...");
+              try {
+                const res = await testGuardrail(user, "PROMPT_INJECTION");
+                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+              } catch (e) {
+                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+              }
+            }}
+          >
+            🛡️ G2: プロンプトインジェクション遮断テスト
+          </button>
+          <button
+            className="btn-secondary"
+            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#f59e0b" }}
+            onClick={async () => {
+              if (onAddLog) onAddLog("🛡️ [G4 IAP CEL] Resident Agent による権限外ツール（部屋番号開示）呼び出しを試行中...");
+              try {
+                const res = await testGuardrail(user, "IAP_FORBIDDEN_TOOL");
+                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+              } catch (e) {
+                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+              }
+            }}
+          >
+            🛡️ G4: IAP 権限外ツール呼出物理拒否テスト
+          </button>
+          <button
+            className="btn-secondary"
+            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#ef4444" }}
+            onClick={async () => {
+              if (onAddLog) onAddLog("🛡️ [G2 SDP Filter] 外向き通信（Egress）への生部屋番号漏洩をシミュレーション中...");
+              try {
+                const res = await testGuardrail(user, "SDP_ROOM_LEAK");
+                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+              } catch (e) {
+                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+              }
+            }}
+          >
+            🛡️ G2/G3: Outbound SDP 部屋番号漏洩遮断テスト
+          </button>
         </div>
       </div>
 

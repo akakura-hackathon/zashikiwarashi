@@ -313,3 +313,21 @@ export function startTriage(
 export function getMe(user: User): Promise<Me> {
   return apiFetch<Me>(user, "/me");
 }
+
+// FN-10: Agent ガバナンス・ガードレール検証 (Model Armor G2 / IAP G4 / SDP)
+export function testGuardrail(
+  user: User | null,
+  testType: "PROMPT_INJECTION" | "IAP_FORBIDDEN_TOOL" | "SDP_ROOM_LEAK",
+): Promise<{
+  test_type: string;
+  status: "BLOCKED" | "ALLOWED";
+  guardrail_layer: string;
+  violation_code: string;
+  message: string;
+}> {
+  return apiFetch(user, "/governance/test-guardrail", {
+    method: "POST",
+    body: JSON.stringify({ test_type: testType }),
+  }, DEMO_PERSONAS[0]);
+}
+

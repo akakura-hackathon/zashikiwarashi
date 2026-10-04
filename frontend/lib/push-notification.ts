@@ -60,9 +60,11 @@ export async function requestPushPermission(vapidKey?: string): Promise<{
     const app = getFirebaseApp();
     const messaging = getMessaging(app);
 
+    const vapid = vapidKey || process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "BDk547zxwcrs5pb3EyfCgxosKzlFI3nlt6DjE-fW6hIodvxithKSM05YTDlDBfnHOTcsWp2_2SBDo71EZ6quTgw";
+
     const token = await getToken(messaging, {
       serviceWorkerRegistration: swReg,
-      vapidKey: vapidKey || process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      vapidKey: vapid,
     });
 
     console.log("[Push] FCM Device Token obtained:", token);

@@ -34,8 +34,8 @@
 | FN-03 Resident Agent（Context分離・タスク評価・逆提案・開示の最小化・本人との対話） | REQ-04, REQ-15 | PRV-02, PRV-03, PRV-04, NFR-04 | §3.2, §3.3, §5.1, §5.3, §5.8 | E-005〜E-007, E-013 | ― | AG-01 | SC-1〜4 |
 | FN-04 Building Agent（援助Taskの計画生成） | REQ-05 | NFR-01, NFR-02, NFR-03, NFR-04 | §3.1, §5.3, §5.4, §6 | E-001〜E-004, E-011, E-012 | API-03, API-08 | AG-02 | SC-1〜4 |
 | FN-05 Privacy Gateway | REQ-06, REQ-11 | PRV-02, PRV-05 | §4, §5.1 | ― | ― | AG-03 | SC-1〜4 |
-| FN-06 打診とHuman Approval | REQ-07 | PRV-06 | §5.5, §5.7 | E-012, E-013 | API-04 | AG-02, AG-04 | SC-1〜4 |
-| FN-07 Progressive Disclosure の画面遷移 | REQ-07, REQ-11 | PRV-06, PRV-08 | §4, §5.5 | E-002, E-013, E-016 | API-06 | AG-04 | SC-1〜4 |
+| FN-06 打診とHuman Approval | REQ-07 | PRV-06 | §5.5, §5.7, §9 | E-012, E-013 | API-04, API-10 | AG-02, AG-04 | SC-1〜4 |
+| FN-07 Progressive Disclosure の画面遷移 | REQ-07, REQ-11 | PRV-06, PRV-08 | §4, §5.5, §9 | E-002, E-013, E-016 | API-06 | AG-04 | SC-1〜4 |
 | FN-08 タスク進捗の報告とダッシュボード | REQ-08, REQ-09 | NFR-03 | §3.4, §5.7, §6.3 D | E-009, E-010, E-012, E-013 | API-02, API-03, API-05, API-08 | ― | SC-1〜4 |
 | FN-09 監査ログの事後閲覧 | REQ-10 | PRV-07, NFR-01 | §3.5 | E-016 | API-07 | ― | 全シナリオ |
 | FN-10 Agent ガバナンス（G1〜G4・G6） | REQ-13 | PRV-04, PRV-05 | §5.1（ARCHITECTURE §3.4） | ― | ― | AG-05 | SC-1〜4 |

@@ -157,7 +157,11 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
   - 緊急モード発令・自然言語の指示入力（Issue）
   - 150戸の状態（`current_states` を `onSnapshot` で表示）、トリアージ開始（API-08）
   - 優先アラート（本人未応答 × 隣室確認も応答なし × 要配慮世帯）
-- [ ] 住民アプリ（デモ用Web）（FN-06, FN-07, FN-08）
+- [x] 住民アプリ PWA / Web Push 基盤（FN-06, FN-07, FN-08, [DESIGN.md §9](DESIGN.md#9-フロントエンド-uiuxpwa-設計studio-architecture--web-push)）
+  - PWA（`manifest.json`, Service Worker `firebase-messaging-sw.js`）化
+  - Web Push（VAPID認証）＋ FCM HTTP v1 / APNs 連携による iOS 16.4+ スリープ・ロック画面通知（API-10）
+  - Studio Architecture（審査員検証卓と住民スマホ画面の分離）および OLED Black / Amber灯火デザインシステム
+- [ ] 住民アプリ シナリオ画面遷移（FN-06, FN-07, FN-08）
   - 安否回答（無事 / 被害あり、自由文も可）
   - 打診の承認 / 辞退 → 承認後に初めて部屋番号を表示（Progressive Disclosure） → 結果報告（応答あり / なし）
   - Resident Agent からの聞き返しの表示（FN-03 R3）

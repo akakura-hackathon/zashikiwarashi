@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* Zashikiwarashi Design Tokens (docs/FRONTEND_DESIGN.md) */
+  /* Zashikiwarashi Design Tokens (docs/DESIGN.md §9) */
   --cockpit-bg: #0b0f17;
   --cockpit-panel: #131b26;
   --cockpit-border: #1e293b;

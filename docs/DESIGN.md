@@ -785,7 +785,7 @@ SC-3 の実装に必要な値だけを先に決める。他のシナリオで必
 | Edge.movement_type | `WALK` / `STAIRS_UP` / `STAIRS_DOWN` |
 | ResidentEmergencyStateEvent.source | `SELF_REPORT` / `NEIGHBOR_CHECK` / `ADMIN` |
 
-- #2（端末到達性）: MVP は `onSnapshot` で画面を更新するため、FCM トークンは保持しない。FCM を入れる場合に改めて決める。
+- #2（端末到達性）: 住民アプリをPWA（iOS 16.4+ / Android）として提供し、VAPID認証を用いたFCM Web Pushトークンを取得してスリープ通知テスト（API-10）を実施可能。実機でのバックグラウンド通知受信を検証済み。
 - #6（応答期限）: SC-3 の隣室確認の打診は 60 秒（案）。再打診は同じ階の次に近い「無事」の住民へ1回まで、それでも決まらなければ管理人の優先表示に回す（案）。
 - #7（在館コンテキストの有効期限）: MVP はダミーデータのため、シードで十分長い値（例: 24 時間）を入れる。
 
@@ -805,10 +805,129 @@ SC-3 の実装に必要な値だけを先に決める。他のシナリオで必
 | API-06 | `GET /tasks/{taskId}` | 本人の Task の詳細。部屋番号などは `APPROVED` 後にだけ返す（Policy Engine が判定し、開示を E-016 に記録） | 住民アプリ | E-012、E-013、E-002、E-016 追記 |
 | API-07 | `GET /me/audit-events` | 本人に関わる監査イベントの閲覧（REQ-10） | 住民アプリ | E-016 |
 | API-08 | `POST /emergencies/{emergencyId}/triage` | 安否確認を締め切り、トリアージ（未応答住戸の分類と隣室確認 Task の作成）を開始する。Building Agent を Agent Gateway の Ingress 経由で呼ぶ（LLM 失敗時はルールベース） | 管理人Webコンソール | E-011 status 更新、E-012 作成、E-013 追記 |
+| API-10 | `POST /push/test-sleep` | スリープ画面プッシュ通知テスト（FCM HTTP v1 / APNs 経由、指定秒数後配信） | 住民アプリ | なし（FCMメッセージ送信） |
 
 - API-02 の本文は `{emergency_id, safety_status: SAFE | NEED_HELP, message?}`。message（自由文）がある場合は Agent Gateway の Ingress 経由で Resident Agent に渡す（§5.8 R3）。
 - 認証はすべて Firebase Auth の ID トークン（画面は `Authorization: Bearer` を付けて API Gateway を呼ぶ）。API Gateway がトークンを検証し、API は `X-Apigateway-Api-Userinfo` ヘッダーからユーザー情報を読む（ARCHITECTURE.md §3.1）。カスタムクレーム `role` が無いユーザーは拒否し、管理人用の API（API-01・API-08）は `role = admin` を必須にする。
 - API を追加するときは、この表と API Gateway の API 定義（`infra/api-gateway/openapi.yaml.tftpl`）の両方に追加する。
+
+---
+
+## 9. フロントエンド UI/UX・PWA 設計（Studio Architecture & Web Push）
+
+人間中心設計（HCD）および災害現場の心理・生活条理に基づき、フロントエンドの画面構成、デザインシステム、およびスリープ画面通知の仕組みを定義する。
+
+### 9.1 デザイン哲学（AI臭さの完全排除と生活条理の再現）
+
+1. **コンテキストの完全分離（Studio Architecture）**:
+   - 開発者・審査員用の操作卓（停電トグル、IoTインフラ設備状態、Multi-Agentリアルタイム通信ログ）を端末の外側（左側サイドバー）へ完全に隔離。
+   - 住民が手にするスマートフォン画面内に、デモ用ボタンや内部ログを1つ残らず混載させない。
+2. **人間の生活条理の再現（In-situ Experience）**:
+   - 「平時にWeb画面を開きっぱなしにする人間はいない」というリアリティに立ち返る。
+   - 停電発生時、暗闇の部屋で**「スマホのロック画面に1本のプッシュ通知が灯る」**リアルな動線から開始。
+3. **SOUL（座敷わらしの気配）の体現**:
+   - 安易な和風コスプレ（生成り和紙・明朝体・提灯絵文字・過剰ポエム）を完全排除。
+   - 停電時の暗がりで目に優しく、迷いを生まないオーガニックダークモード（OLED Black `#090d14`）。
+   - 足元をそっと照らす静かな灯火（茜色/Amber `#f97316`）をキーカラーに採用。
+4. **誠実で簡潔な言葉（Copywriting）**:
+   - 「少し手を貸せますか？（約4分）」「階段でお水を4フロア分運ぶ」「対面接触なし」。
+   - ボタンは「手伝える（約4分）」と「今は無理」。断っても評価やペナルティは一切ない安心感を保証。
+
+### 9.2 カラーパレット & トークン体系
+
+| トークン名 | カラーコード | 用途・役割 |
+| :--- | :--- | :--- |
+| **Cockpit BG** | `#0b0f17` | スタジオ検証卓の最背面（深いスレートネイビー） |
+| **Cockpit Panel** | `#131b26` | 検証卓の操作ブロック・パネル背景 |
+| **Cockpit Border** | `#1e293b` | 境界線・区切り線 |
+| **Phone Screen BG** | `#090d14` | スマホディスプレイ（暗闇の生活感・OLED Black） |
+| **Phone Card BG** | `#131924` | アプリ内カード・ステップ指示ブロック |
+| **Phone Card Border** | `#232d3f` | カード境界線 |
+| **Amber Fire** | `#f97316` | **座敷わらしの灯火・主ボタンプライマリ・注意喚起** |
+| **Green OK** | `#22c55e` | 正常・平常見守り・タスク完了チェック |
+| **Text Pure** | `#ffffff` | タイトル・大見出し・重要テキスト |
+| **Text Sub** | `#cbd5e1` / `#94a3b8` | 本文説明・注釈 |
+
+### 9.3 スマートフォン筐体 & 画面ステート設計
+
+- **筐体仕様**: iPhone 15/16 Pro 相当のチタニウム風ベゼル（角丸 `50px`、外枠チタン `#2e3440`、ダイナミックアイランド）。PC表示時は中央に端末を配し、モバイル実機アクセス時は100vw/100vhの全画面表示にアダプティブ適応する。
+- **画面遷移（ステートマシン）**:
+  1. `View A: ロック画面（日常・待機）`: 21:14 9月19日 土曜日。平時は静かに佇む。
+  2. `Push Notification: FCM着信`: 停電発生と同時にWi-Fiが4Gに切り替わり、画面上部にプッシュ通知が着信。
+  3. `View C: 打診画面（アプリ起動）`: 通知タップで即時起動。「少し手を貸せますか？（約4分）」の打診と2択ボタン。
+  4. `View D: 承認後手順（Progressive Disclosure）`: 「手伝える」承認後に初めて101号室が開示され、迷わない3ステップ案内。
+  5. `View E / F: 完了・辞退画面`: 感謝のメッセージとともに、次走者へバトンタッチして日常へ回帰。
+
+### 9.4 Web Push通知 & PWA（iOSスリープ通知対応）設計
+
+#### 9.4.1 iOSスリープ・ロック画面への通知要件（iOS 16.4+）
+
+WebアプリからiPhoneのスリープ・ロック画面にプッシュ通知を表示させるため、以下のWeb標準技術とApple要件に完全準拠する。
+
+1. **PWA（Progressive Web App）化の必須**:
+   - iOS Safariはセキュリティ上、ブラウザタブ経由でのスリープ画面通知を禁止している。
+   - ユーザーが **「共有ボタン → ホーム画面に追加」** を行い、ホーム画面アイコンから起動したPWAコンテキストでのみ、スリープ・ロック画面へのプッシュ通知（バナー／サウンド／バイブレーション）が発火する。
+2. **Web App Manifest (`manifest.json`)**:
+   - `display: "standalone"`, `start_url: "/"`, `theme_color: "#090d14"` を定義し、フルスクリーンのネイティブアプリ体験を提供する。
+3. **バックグラウンド Service Worker (`firebase-messaging-sw.js`)**:
+   - アプリ終了時・スリープ時にもバックグラウンドでプッシュイベントを受信し、システム通知トレイおよびロック画面に通知を提示する。
+4. **Firebase Cloud Messaging (FCM HTTP v1 API)**:
+   - ブラウザの Web Push API（VAPID認証）で取得したデバイス登録トークンをバックエンドへ登録。
+   - バックエンドから FCM HTTP v1 経由で APNs（Apple Push Notification service）へ配信する。
+
+#### 9.4.2 APNs / FCM 通知ペイロード設計（高優先度・緊急時）
+
+停電・災害時の緊急通知がスリープ中の画面を点灯させ、確実に目に入るように設定する。
+
+```json
+{
+  "message": {
+    "token": "<FCM_DEVICE_TOKEN>",
+    "notification": {
+      "title": "⚡ 停電が発生しました",
+      "body": "少し手を貸せますか？ 4分ほど階段でお水を運ぶお願いです。"
+    },
+    "webpush": {
+      "headers": {
+        "Urgency": "high"
+      },
+      "notification": {
+        "icon": "/icons/icon-192.png",
+        "badge": "/icons/badge-72.png",
+        "vibrate": [200, 100, 200],
+        "requireInteraction": true,
+        "tag": "zashiki-emergency"
+      }
+    },
+    "apns": {
+      "headers": {
+        "apns-priority": "10",
+        "apns-push-type": "alert"
+      },
+      "payload": {
+        "aps": {
+          "alert": {
+            "title": "⚡ 停電が発生しました",
+            "body": "少し手を貸せますか？ 4分ほど階段でお水を運ぶお願いです。"
+          },
+          "sound": "default",
+          "interruption-level": "time-sensitive"
+        }
+      }
+    }
+  }
+}
+```
+
+#### 9.4.3 スリープ通知テストの手順（実機検証）
+
+1. iPhone Safari でデプロイ先URL（`https://<project-id>.web.app`）を開く。
+2. Safari下部の **「共有（上矢印四角）」ボタン →「ホーム画面に追加」** をタップ。
+3. ホーム画面に生成された「座敷わらし」アイコンからアプリを起動。
+4. Google ログイン後、**「通知を有効にする」** をタップしてブラウザの通知許可ダイアログで「許可」。
+5. **「5秒後にテスト通知を送信」** ボタンをタップ。
+6. すぐに iPhone の電源ボタンを押して **スリープ（画面ロック状態）** にする。
+7. 5秒後、スリープ画面が点灯し、プッシュ通知がポップアップ表示されることを確認する。
 
 ---
 
@@ -818,3 +937,4 @@ SC-3 の実装に必要な値だけを先に決める。他のシナリオで必
 - **システム構成** → [ARCHITECTURE.md](ARCHITECTURE.md)
 - **タスク分解・マイルストーン** → [PLAN.md](PLAN.md)
 - **ID一覧・対応表** → [TRACEABILITY.md](TRACEABILITY.md)
+

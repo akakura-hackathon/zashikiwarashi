@@ -13,7 +13,7 @@ Cloud Run + Firebase Hosting に GitHub Actions（Workload Identity Federation�
 |---|---|
 | 何を解決するか・要件・受け入れ基準・プライバシー要件 | `docs/SPEC.md` |
 | データモデル・Agent 構成・承認フロー・デモシナリオ4種・API | `docs/DESIGN.md`（データモデルの正は ER図） |
-| フロントエンドUI/UX仕様・Studio Architecture | `docs/FRONTEND_DESIGN.md` |
+| フロントエンドUI/UX仕様・Studio Architecture・PWA | `docs/DESIGN.md` §9 |
 | GCP 構成・外部連携・停電時のフォールバック | `docs/ARCHITECTURE.md` |
 | MVP の範囲（実装する/しない）・スケジュール・タスク | `docs/PLAN.md` §2〜4 |
 | 機能（FN-xx）に関係する要件・設計・データ・API | `docs/TRACEABILITY.md` |

@@ -14,7 +14,7 @@ Agent の実行と通信は Agent Runtime・Agent Gateway・Model Armor で統�
 ```mermaid
 flowchart TD
   subgraph Clients [クライアント & 外部システム層（追加機器購入0円）]
-    App[住民スマートフォン<br>iOS / Android / Flutter<br>・FCM v1プッシュ受信<br>・Human Approval / 1タップ応答<br>・端末在宅シグナル送信]
+    App[住民スマートフォン<br>PWA: Next.js / iOS / Android<br>・FCM Web Push（スリープ画面通知）<br>・Human Approval / 1タップ応答<br>・端末在宅シグナル送信]
     AdminWeb[管理人Webコンソール<br>Next.js / React]
     CalendarAPI[Google Calendar API v3<br>OAuth 2.0認可コードフロー]
     PowerAPI[スマートメーターAPI<br>一般社団法人 電力データ管理協会]
@@ -203,8 +203,8 @@ flowchart TD
   - `emergency-alerts`（緊急モード発動用）
   - システム間を疎結合化し、データ消失を防止。
 - **Firebase Cloud Messaging (FCM HTTP v1 API)**:
-  - 4G/5G回線経由で高優先度データメッセージを配信。
-  - 有事の「安否1タップ応答ダイアログ」や「支援打診（Human Approval）画面」を即時プッシュ。
+  - 4G/5G回線経由で高優先度プッシュ通知・データメッセージを配信。
+  - Web Push API（VAPID認証）＋ Service Worker（`firebase-messaging-sw.js`）を通じて、iOS 16.4+（ホーム画面追加PWA）およびAndroidのスリープ・ロック画面を点灯させ即時通知。APNsヘッダー（`apns-priority: 10`, `interruption-level: time-sensitive`）により有事の打診（Human Approval）を即座に届ける。
 
 ### 3.3 データ永続化層
 
@@ -375,6 +375,7 @@ Actions が GCP に認証するための土台は、Actions が動く前に作�
 - **Terraform とデプロイの分担**: Cloud Run のサービス定義（サービスアカウント・環境変数・シークレットの参照）は Terraform、コンテナイメージの更新は `deploy.yml` が行う。二重管理にならないよう、Terraform 側はイメージの変更を無視する（`lifecycle.ignore_changes`）。
 - **Firestore のルールとインデックス**: リポジトリの `firestore.rules`・`firestore.indexes.json` を正とし、`deploy.yml` から Firebase CLI でデプロイする。ローカルの Firestore エミュレーターも同じファイルを使う。
 - **frontend**: Next.js を静的エクスポートして Firebase Hosting に置く。データは Firebase SDK（読み取りのみ）と API で取得する。API は API Gateway の URL を呼ぶ（§3.1）。
+  - PWA マニフェスト（`manifest.json`）および Service Worker（`firebase-messaging-sw.js`）を同梱し、GitHub Actions（`deploy.yml`）でのビルド時に VAPID Key（`NEXT_PUBLIC_FIREBASE_VAPID_KEY`）を埋め込む。
 - **API Gateway**: API 定義（`infra/api-gateway/openapi.yaml.tftpl`）から Terraform が API 設定を作る。API 設定は作成後に変更できないため、定義を変えるたびに新しい設定を作って差し替える。
 - **シークレット**: Secret Manager の「箱」は Terraform で作り、値は `gcloud secrets versions add` で手動登録する（`rules/infra.md`）。
 - **Terraform 化しないもの**: provider が未対応のリソース（Agent Gateway 周りの alpha / beta 機能など）は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する（§3.4.5）。

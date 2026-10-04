@@ -66,8 +66,7 @@ docs/PLAN.md          タスクに分解する
 ├── docs/                   # 企画・設計ドキュメント（構造化済み v1.0）
 │   ├── README.md           # docs と図の案内（まずここ）
 │   ├── SPEC.md             # 課題・ユーザー・要件
-│   ├── DESIGN.md           # API・データモデル・エージェント設計
-│   ├── FRONTEND_DESIGN.md  # フロントエンドデザイン仕様（Studio Architecture / UX）
+│   ├── DESIGN.md           # API・データモデル・エージェント設計・フロントエンドUI/UX・PWA仕様
 │   ├── ARCHITECTURE.md     # システム構成
 │   ├── PLAN.md             # マイルストーン・タスク分解（機能ID FN-xx）
 │   ├── TRACEABILITY.md     # ID一覧と、機能 ↔ 要件・設計・データ・API の対応表

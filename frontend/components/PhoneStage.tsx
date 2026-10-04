@@ -529,7 +529,7 @@ export function PhoneStage({
                         )}
 
                         {/* 2. タスク打診中：R04 / R05 確認のお願い */}
-                        {myTask && myTask.status === "ASSIGNED" && (
+                        {myTask && myTask.status === "OFFERED" && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <PageTitle
                               title="近くのお宅の確認をお願いできますか？"
@@ -580,7 +580,9 @@ export function PhoneStage({
                         )}
 
                         {/* 3. 承認後：R06 確認先・手順表示 */}
-                        {myTask && myTask.status === "ACCEPTED" && emergencySubScreen !== "reporting" && (
+                        {myTask &&
+                          (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") &&
+                          emergencySubScreen !== "reporting" && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <PageTitle
                               title="確認先のお部屋"
@@ -638,7 +640,9 @@ export function PhoneStage({
                         )}
 
                         {/* 4. 結果報告：R07 結果の報告 */}
-                        {myTask && myTask.status === "ACCEPTED" && emergencySubScreen === "reporting" && (
+                        {myTask &&
+                          (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") &&
+                          emergencySubScreen === "reporting" && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <PageTitle
                               title="応答はありましたか？"

@@ -45,21 +45,28 @@ async def get_current_user(
     if x_apigateway_api_userinfo:
         claims = _decode_gateway_userinfo(x_apigateway_api_userinfo)
         uid = claims.get("user_id") or claims.get("sub") or claims.get("uid")
-        role: Role | None = claims.get("role")
-
-        if not uid or not role:
+        if not uid:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden: Userinfo missing uid or role custom claim.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized: Userinfo missing uid.",
             )
+
+        # Custom claims or demo persona fallback
+        role_claim = claims.get("role")
+        role: Role = role_claim or ("admin" if x_user_role == "admin" else "resident")
+        resident_id = claims.get("resident_id") or x_user_id or uid
+        building_id = claims.get("building_id") or x_building_id or "bld-01"
+        unit_id = claims.get("unit_id") or (
+            f"unit-{resident_id[-3:]}" if resident_id.startswith("resident-") else None
+        )
 
         return CurrentUser(
             uid=uid,
             email=claims.get("email"),
             role=role,
-            building_id=claims.get("building_id", "bld-01"),
-            resident_id=claims.get("resident_id", uid),
-            unit_id=claims.get("unit_id"),
+            building_id=building_id,
+            resident_id=resident_id,
+            unit_id=unit_id,
         )
 
     # 2. Production Security Enforcement: Must not bypass API Gateway

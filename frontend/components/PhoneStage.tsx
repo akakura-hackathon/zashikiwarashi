@@ -18,12 +18,15 @@ import {
   type PushPermissionState,
 } from "@/lib/push-notification";
 
+import type { User } from "firebase/auth";
+
 type PhoneStageProps = {
   activePersona: Persona;
   emergencyId: string | null;
   tasks: Task[];
   onActionComplete: (logText: string) => Promise<void>;
   isLoading: boolean;
+  user: User | null;
 };
 
 export function PhoneStage({
@@ -32,6 +35,7 @@ export function PhoneStage({
   tasks,
   onActionComplete,
   isLoading,
+  user,
 }: PhoneStageProps) {
   const [activeTab, setActiveTab] = useState<"scenario" | "audit" | "push">("scenario");
   const [mySafetyAnswered, setMySafetyAnswered] = useState<boolean>(false);
@@ -55,12 +59,12 @@ export function PhoneStage({
       return;
     }
     try {
-      const detail = await getTaskDetail(null, myTask.task_id, activePersona);
+      const detail = await getTaskDetail(user, myTask.task_id, activePersona);
       setTaskDetail(detail);
     } catch (err) {
       console.error("Failed to fetch task detail:", err);
     }
-  }, [myTask, activePersona]);
+  }, [myTask, user, activePersona]);
 
   useEffect(() => {
     fetchTaskDetail();
@@ -69,12 +73,12 @@ export function PhoneStage({
   // 監査イベント取得
   const fetchAuditEvents = useCallback(async () => {
     try {
-      const res = await getMyAuditEvents(null, activePersona);
+      const res = await getMyAuditEvents(user, activePersona);
       setAuditEvents(res.audit_events);
     } catch (err) {
       console.error("Failed to fetch audit events:", err);
     }
-  }, [activePersona]);
+  }, [user, activePersona]);
 
   useEffect(() => {
     if (activeTab === "audit") {
@@ -94,7 +98,7 @@ export function PhoneStage({
     if (!emergencyId) return;
     try {
       await confirmPresence(
-        null,
+        user,
         {
           emergency_id: emergencyId,
           safety_status: safetyStatus,
@@ -115,7 +119,7 @@ export function PhoneStage({
   const handleRespondTask = async (response: "APPROVED" | "DECLINED") => {
     if (!myTask) return;
     try {
-      await respondToTask(null, myTask.task_id, response, undefined, activePersona);
+      await respondToTask(user, myTask.task_id, response, undefined, activePersona);
       await onActionComplete(
         `[API-04] ${activePersona.name} がタスク打診に回答しました (response=${response})`,
       );
@@ -129,7 +133,7 @@ export function PhoneStage({
   const handleReportTask = async (reasonCode: "TARGET_RESPONDED" | "TARGET_NO_RESPONSE") => {
     if (!myTask) return;
     try {
-      await reportTask(null, myTask.task_id, "COMPLETED", reasonCode, activePersona);
+      await reportTask(user, myTask.task_id, "COMPLETED", reasonCode, activePersona);
       await onActionComplete(
         `[API-05] ${activePersona.name} が現地確認結果を完了報告しました (reason=${reasonCode})`,
       );

@@ -1,6 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInAnonymously,
+  signOut,
+  GoogleAuthProvider,
+  type User,
+} from "firebase/auth";
 import { CockpitPanel } from "./CockpitPanel";
 import { PhoneStage } from "./PhoneStage";
 import {
@@ -13,8 +22,10 @@ import {
   getIssueDetail,
   setActivePersona as setGlobalActivePersona,
 } from "@/lib/api-client";
+import { getFirebaseApp } from "@/lib/firebase";
 
 export function StudioWorkspace() {
+  const [user, setUser] = useState<User | null>(null);
   const [activePersona, setActivePersonaState] = useState<Persona>(DEMO_PERSONAS[1]); // デフォルト: 住民I
   const [emergencyId, setEmergencyId] = useState<string | null>(null);
   const [issueId, setIssueId] = useState<string | null>(null);
@@ -33,6 +44,47 @@ export function StudioWorkspace() {
     setLogs((prev) => [{ time, text }, ...prev].slice(0, 30));
   }, []);
 
+  // Firebase Auth 初期化 & 匿名自動認証（API Gateway 通過用のトークン確保）
+  useEffect(() => {
+    const auth = getAuth(getFirebaseApp());
+    const unsubscribe = onAuthStateChanged(auth, async (current) => {
+      setUser(current);
+      if (current) {
+        addLog(`認証セッション確立: ${current.email || "匿名デモユーザー"}`);
+      } else {
+        // ユーザーが未認証の場合、匿名ログインを試みて本番 API Gateway 用のトークンを自動発行
+        try {
+          await signInAnonymously(auth);
+        } catch {
+          addLog("※ API Gateway 通過には Google ログインが必要です。");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [addLog]);
+
+  const handleLogin = async () => {
+    try {
+      const auth = getAuth(getFirebaseApp());
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      addLog("Google ログインに成功しました。");
+    } catch (err) {
+      alert(`Google ログインに失敗しました: ${String(err)}`);
+      addLog(`[ERROR] ログイン失敗: ${String(err)}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth(getFirebaseApp());
+      await signOut(auth);
+      setUser(null);
+      addLog("ログアウトしました。");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   const handleSelectPersona = (persona: Persona) => {
     setActivePersonaState(persona);
     setGlobalActivePersona(persona);
@@ -43,13 +95,13 @@ export function StudioWorkspace() {
   const refreshIssueDetail = useCallback(async () => {
     if (!issueId) return;
     try {
-      const detail = await getIssueDetail(null, issueId, activePersona);
+      const detail = await getIssueDetail(user, issueId, activePersona);
       setIssueDetail(detail);
       setTasks(detail.tasks);
     } catch (err) {
       console.error("Failed to fetch issue detail:", err);
     }
-  }, [issueId, activePersona]);
+  }, [issueId, user, activePersona]);
 
   useEffect(() => {
     if (issueId) {
@@ -59,10 +111,19 @@ export function StudioWorkspace() {
 
   // 1. 地震発生・緊急モード発令 (API-01)
   const handleTriggerEmergency = async () => {
+    if (!user) {
+      // ユーザーが未ログインの場合、Google ログインを要求
+      const doLogin = confirm("本番 API Gateway を通過するため Google ログインが必要です。ログインしますか？");
+      if (doLogin) {
+        await handleLogin();
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const res = await triggerEmergency(null, {
-        building_id: "bld-001",
+      const res = await triggerEmergency(user, {
+        building_id: "bld-01",
         emergency_type: "EARTHQUAKE",
         instruction: "震度5強の地震が発生しました。エレベーター全基停止。各戸の安否確認を開始します。",
       });
@@ -72,7 +133,7 @@ export function StudioWorkspace() {
       addLog("全150戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
       // 発令直後の初期状態を取得
-      const detail = await getIssueDetail(null, res.issue_id, DEMO_PERSONAS[0]);
+      const detail = await getIssueDetail(user, res.issue_id, DEMO_PERSONAS[0]);
       setIssueDetail(detail);
       setTasks(detail.tasks);
     } catch (err) {
@@ -89,7 +150,7 @@ export function StudioWorkspace() {
     setIsLoading(true);
     try {
       addLog("[API-08] 安否確認を締め切り、Building Agent によるルールベース/LLM トリアージを開始します...");
-      const res = await startTriage(null, emergencyId, issueId);
+      const res = await startTriage(user, emergencyId, issueId);
       addLog(
         `[API-08] トリアージ完了: 未応答住戸 ${res.unresponsive_count}件, カレンダー外出除外 ${res.likely_away_count}件, 隣室確認Task作成 ${res.created_tasks_count}件`,
       );
@@ -125,6 +186,9 @@ export function StudioWorkspace() {
         onRefresh={refreshIssueDetail}
         isLoading={isLoading}
         logs={logs}
+        user={user}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}
@@ -134,6 +198,7 @@ export function StudioWorkspace() {
         tasks={tasks}
         onActionComplete={handleActionComplete}
         isLoading={isLoading}
+        user={user}
       />
     </div>
   );

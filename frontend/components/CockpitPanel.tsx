@@ -8,6 +8,8 @@ import {
   type PriorityAlertTarget,
 } from "@/lib/api-client";
 
+import type { User } from "firebase/auth";
+
 type CockpitPanelProps = {
   activePersona: Persona;
   onSelectPersona: (persona: Persona) => void;
@@ -19,6 +21,9 @@ type CockpitPanelProps = {
   onRefresh: () => Promise<void>;
   isLoading: boolean;
   logs: Array<{ time: string; text: string }>;
+  user: User | null;
+  onLogin: () => Promise<void>;
+  onLogout: () => Promise<void>;
 };
 
 export function CockpitPanel({
@@ -32,6 +37,9 @@ export function CockpitPanel({
   onRefresh,
   isLoading,
   logs,
+  user,
+  onLogin,
+  onLogout,
 }: CockpitPanelProps) {
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
@@ -50,6 +58,61 @@ export function CockpitPanel({
         <p className="cockpit-desc">
           一般住民のスマホ体験と、建物全体Multi-Agent（トリアージ・Policy Engine）の動作をリアルタイム検証します。
         </p>
+
+        {/* Auth status & Login */}
+        <div style={{
+          background: "rgba(255, 255, 255, 0.04)",
+          border: "1px solid var(--cockpit-border)",
+          borderRadius: "8px",
+          padding: "8px 10px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: "6px"
+        }}>
+          {user ? (
+            <>
+              <div style={{ fontSize: "0.72rem", color: "var(--green-ok)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>●</span>
+                <span style={{ fontWeight: 600, color: "#ffffff" }}>{user.email || "認証済"}</span>
+              </div>
+              <button
+                onClick={onLogout}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--cockpit-text-muted)",
+                  fontSize: "0.68rem",
+                  cursor: "pointer",
+                  textDecoration: "underline"
+                }}
+              >
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: "0.72rem", color: "#f87171" }}>
+                ※ 本番API実行にはログインが必要です
+              </div>
+              <button
+                onClick={onLogin}
+                style={{
+                  background: "var(--amber-fire)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                Google ログイン
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 2. 災害シミュレーション制御 */}

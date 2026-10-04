@@ -1,0 +1,813 @@
+/* ==========================================================================
+   Zashikiwarashi Simulator Studio
+   - Left: Simulation Cockpit & Real-time Agent Log (outside the device)
+   - Center: Realistic High-Fidelity Smartphone Device (in-situ resident experience)
+   ========================================================================== */
+
+:root {
+  /* Studio Cockpit Palette */
+  --cockpit-bg: #0b0f17;
+  --cockpit-panel: #131b26;
+  --cockpit-border: #1e293b;
+  --cockpit-text-title: #f8fafc;
+  --cockpit-text-body: #94a3b8;
+  --cockpit-text-muted: #64748b;
+
+  /* Mobile OS & Device Tokens */
+  --phone-bezel: #1f242d;
+  --phone-titanium: #2e3440;
+  --phone-screen-bg: #090d14;
+  --phone-card-bg: #131924;
+  --phone-card-border: #232d3f;
+
+  /* Accent Colors */
+  --amber-fire: #f97316;
+  --amber-fire-glow: rgba(249, 115, 22, 0.3);
+  --green-ok: #22c55e;
+  --red-alert: #ef4444;
+  --text-pure: #ffffff;
+  --text-sub: #cbd5e1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  background-color: var(--cockpit-bg);
+  color: var(--cockpit-text-body);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Studio Workspace Layout (Split Cockpit vs Device Stage)
+   ========================================================================== */
+.studio-workspace {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* 1. Cockpit Sidebar */
+.studio-cockpit {
+  width: 380px;
+  background-color: var(--cockpit-panel);
+  border-right: 1px solid var(--cockpit-border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  gap: 20px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.cockpit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cockpit-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--amber-fire);
+}
+
+.cockpit-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cockpit-text-title);
+  letter-spacing: -0.02em;
+}
+
+.cockpit-desc {
+  font-size: 0.78rem;
+  color: var(--cockpit-text-muted);
+  line-height: 1.5;
+}
+
+.cockpit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cockpit-section.flex-grow {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cockpit-text-title);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Cockpit Buttons */
+.cockpit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cockpit-btn {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.cockpit-btn.danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.cockpit-btn.danger:hover {
+  background-color: rgba(239, 68, 68, 0.25);
+  border-color: #f87171;
+}
+
+.cockpit-btn.success {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.cockpit-btn.success:hover {
+  background-color: rgba(34, 197, 94, 0.25);
+  border-color: #4ade80;
+}
+
+.cockpit-btn.hidden {
+  display: none !important;
+}
+
+/* Cockpit Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.status-card {
+  background-color: #0b0f17;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 0.68rem;
+  color: var(--cockpit-text-muted);
+}
+
+.status-val {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-val.ok { color: var(--green-ok); }
+.status-val.alert { color: var(--red-alert); }
+.status-val.neutral { color: var(--cockpit-text-body); }
+
+/* Cockpit Log */
+.cockpit-log {
+  flex: 1;
+  background-color: #080b10;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  line-height: 1.55;
+  color: #94a3b8;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-entry {
+  word-break: break-all;
+}
+.log-t { color: #64748b; margin-right: 6px; }
+.log-s { color: #38bdf8; font-weight: 600; margin-right: 6px; }
+.log-m { color: #e2e8f0; }
+
+/* ==========================================================================
+   2. Device Stage & High-Fidelity Phone Frame
+   ========================================================================== */
+.studio-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 60% 40%, #172033 0%, #090d14 100%);
+  position: relative;
+}
+
+/* Smartphone Hardware Frame */
+.phone-frame {
+  width: 375px;
+  height: 760px;
+  background-color: var(--phone-bezel);
+  border-radius: 50px;
+  padding: 12px;
+  position: relative;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 2px var(--phone-titanium), 0 0 0 4px #12151b;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Phone Screen (Glass Display) */
+.phone-screen {
+  flex: 1;
+  background-color: var(--phone-screen-bg);
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* Status Bar */
+.phone-status-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-notch {
+  width: 90px;
+  height: 24px;
+  background-color: #000000;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+.notch-camera {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #1a2233;
+}
+
+.status-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+
+.net-mode {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+}
+
+.phone-home-bar {
+  width: 130px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Screen View Manager */
+.screen-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 44px;
+  padding-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.screen-view.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   View A: Phone Lock Screen
+   ========================================================================== */
+#view-lockscreen {
+  background: linear-gradient(180deg, #182234 0%, #0a0d14 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 60px 20px 30px;
+}
+
+.lock-clock {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lock-time {
+  font-size: 4.4rem;
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.lock-date {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+/* Push Notification on Lock Screen */
+.push-notification {
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+  animation: push-drop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes push-drop {
+  from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.push-notification:hover {
+  background: rgba(30, 41, 59, 0.95);
+  transform: translateY(-2px);
+}
+
+.push-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.push-app-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.push-app-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--amber-fire);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--amber-fire);
+}
+
+.push-app-name {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.push-time {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.push-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.push-body {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.push-hint {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  color: var(--amber-fire);
+  font-weight: 600;
+  text-align: right;
+}
+
+.lock-bottom {
+  text-align: center;
+}
+
+.lock-subtle-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+}
+.lock-subtle-hint:hover {
+  color: #94a3b8;
+}
+
+/* ==========================================================================
+   Mobile In-App Common Layout
+   ========================================================================== */
+.mobile-app-header {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--phone-card-border);
+  background-color: rgba(9, 13, 20, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.app-back-btn {
+  font-size: 0.78rem;
+  color: var(--amber-fire);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.app-header-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.app-header-room {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  background-color: var(--phone-card-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.alert-header {
+  border-bottom-color: rgba(249, 115, 22, 0.3);
+}
+
+.alert-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--amber-fire);
+  box-shadow: 0 0 8px var(--amber-fire);
+}
+
+.app-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app-scroll-content.centered {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ==========================================================================
+   View B: App Normal State (Quiet Guardian)
+   ========================================================================== */
+.guardian-pulse-box {
+  text-align: center;
+  padding: 20px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.guardian-fire {
+  width: 36px;
+  height: 36px;
+  background: radial-gradient(circle, #f97316 20%, transparent 70%);
+  border-radius: 50%;
+  animation: fire-pulse 3s infinite ease-in-out;
+  box-shadow: 0 0 20px var(--amber-fire-glow);
+}
+
+@keyframes fire-pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.guardian-status {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.guardian-sub {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+.mobile-card {
+  background-color: var(--phone-card-bg);
+  border: 1px solid var(--phone-card-border);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-caption {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.mobile-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.mobile-list-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.row-k { color: #94a3b8; }
+.row-v { color: #f1f5f9; font-weight: 500; }
+
+.privacy-banner {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.45;
+  padding: 0 8px;
+}
+
+/* ==========================================================================
+   View C: App Request State (In-situ Blackout Request)
+   ========================================================================== */
+.request-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.request-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background-color: rgba(249, 115, 22, 0.2);
+  color: var(--amber-fire);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.request-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.request-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.task-spec-card {
+  background-color: var(--phone-card-bg);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spec-label {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.spec-main {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.highlight-time {
+  color: var(--amber-fire);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.mobile-button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.mobile-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.mobile-btn.primary {
+  background-color: var(--amber-fire);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
+}
+.mobile-btn.primary:hover {
+  background-color: #ea580c;
+}
+
+.mobile-btn.secondary {
+  background-color: var(--phone-card-bg);
+  color: #94a3b8;
+  border-color: var(--phone-card-border);
+}
+.mobile-btn.secondary:hover {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+.mobile-note {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   View D: App Confirmed State (Progressive Disclosure)
+   ========================================================================== */
+.confirmed-banner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.confirmed-check {
+  width: 32px;
+  height: 32px;
+  background-color: rgba(34, 197, 94, 0.2);
+  color: var(--green-ok);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.confirmed-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.confirmed-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.step-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-card {
+  background-color: var(--phone-card-bg);
+  border: 1px solid var(--phone-card-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.step-index {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.2);
+  color: var(--green-ok);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.step-h {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.step-p {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.room-key {
+  color: #ffffff;
+  background-color: rgba(34, 197, 94, 0.25);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* Views E & F Common Centered */
+.status-icon-circle {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}

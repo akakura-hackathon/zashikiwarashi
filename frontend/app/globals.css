@@ -7,6 +7,9 @@
   --cockpit-bg: #0b0f17;
   --cockpit-panel: #131b26;
   --cockpit-border: #1e293b;
+  --cockpit-text-title: #f8fafc;
+  --cockpit-text-body: #94a3b8;
+  --cockpit-text-muted: #64748b;
 
   /* Mobile Hardware & OLED Black Display */
   --phone-bezel: #1f242d;
@@ -36,27 +39,209 @@ body {
   background-color: var(--cockpit-bg);
   color: var(--text-pure);
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  padding: 0;
   -webkit-font-smoothing: antialiased;
-  background: radial-gradient(circle at 50% 30%, #172033 0%, #090d14 100%);
-  padding: 16px;
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
-   Smartphone Device Container (Responsive)
+   Studio Architecture Layout (Split Cockpit vs Device Stage)
    ========================================================================== */
+.studio-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--cockpit-bg);
+}
+
+/* 1. Left Cockpit (Simulator Verification Sidebar) */
+.cockpit-sidebar {
+  width: 420px;
+  background-color: var(--cockpit-panel);
+  border-right: 1px solid var(--cockpit-border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  height: 100vh;
+}
+
+.cockpit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cockpit-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--amber-fire);
+}
+
+.cockpit-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--cockpit-text-title);
+  letter-spacing: -0.02em;
+}
+
+.cockpit-desc {
+  font-size: 0.76rem;
+  color: var(--cockpit-text-muted);
+  line-height: 1.45;
+}
+
+.cockpit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(11, 15, 23, 0.45);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Status Cards & Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.status-card {
+  background: var(--cockpit-panel);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 0.7rem;
+  color: var(--cockpit-text-muted);
+}
+
+.status-val {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.status-val.ok {
+  color: var(--green-ok);
+}
+
+.status-val.alert {
+  color: var(--red-alert);
+}
+
+.status-val.warn {
+  color: var(--amber-fire);
+}
+
+/* Priority Alert Box */
+.priority-alert-box {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.4); }
+  50% { border-color: rgba(239, 68, 68, 0.85); box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
+}
+
+.priority-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #f87171;
+}
+
+.priority-target-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+}
+
+/* Cockpit Log */
+.cockpit-log {
+  background: #070a0f;
+  border: 1px solid #1a2230;
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #a5b4fc;
+  height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-entry {
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 4px;
+}
+
+.log-time {
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+/* 2. Right Device Stage */
+.device-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #162033 0%, #090d14 100%);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Smartphone Bezel */
 .device-wrapper {
   width: 100%;
-  max-width: 390px;
-  height: 800px;
-  max-height: calc(100vh - 32px);
+  max-width: 410px;
+  height: 840px;
+  max-height: calc(100vh - 40px);
   background-color: var(--phone-bezel);
-  border-radius: 48px;
+  border-radius: 50px;
   padding: 12px;
   box-shadow: 
-    0 25px 60px -12px rgba(0, 0, 0, 0.8),
+    0 30px 80px -15px rgba(0, 0, 0, 0.9),
     0 0 0 2px var(--phone-titanium),
     0 0 0 4px #12151b;
   display: flex;
@@ -65,27 +250,10 @@ body {
   overflow: hidden;
 }
 
-/* On real small mobile screens, adapt to full screen without outer bezel */
-@media (max-width: 440px) {
-  body {
-    padding: 0;
-    background: var(--phone-screen-bg);
-  }
-  .device-wrapper {
-    max-width: 100%;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-    padding: 0;
-    box-shadow: none;
-    border: none;
-  }
-}
-
 .device-screen {
   flex: 1;
   background-color: var(--phone-screen-bg);
-  border-radius: 38px;
+  border-radius: 40px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -93,13 +261,7 @@ body {
   overflow-x: hidden;
 }
 
-@media (max-width: 440px) {
-  .device-screen {
-    border-radius: 0;
-  }
-}
-
-/* Top Status Notch / Dynamic Island */
+/* Notch & Status Bar */
 .device-notch-bar {
   height: 44px;
   display: flex;
@@ -111,7 +273,7 @@ body {
   font-weight: 600;
   position: sticky;
   top: 0;
-  background: rgba(9, 13, 20, 0.85);
+  background: rgba(9, 13, 20, 0.92);
   backdrop-filter: blur(12px);
   z-index: 50;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -135,162 +297,105 @@ body {
   margin-left: 40px;
 }
 
-/* App Header */
+/* App Header inside Device */
 .app-header {
-  padding: 24px 20px 16px;
-  text-align: center;
-  position: relative;
-}
-
-.app-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--amber-fire);
-  background: rgba(249, 115, 22, 0.12);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  padding: 4px 10px;
-  border-radius: 9999px;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-}
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--amber-fire);
-  box-shadow: 0 0 8px var(--amber-fire);
-  animation: pulse-glow 2s infinite ease-in-out;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
-.app-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-pure);
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-
-.app-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-/* Scroll Content */
-.app-content {
-  flex: 1;
-  padding: 0 18px 24px;
+  padding: 16px 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-/* Cards */
+.persona-switch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.persona-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.app-content {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+/* App Cards */
 .zashiki-card {
   background: var(--phone-card-bg);
   border: 1px solid var(--phone-card-border);
   border-radius: 20px;
-  padding: 18px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.zashiki-card.highlight {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.08) 0%, rgba(19, 25, 36, 0.95) 100%);
 }
 
 .card-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--text-sub);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
 }
 
-/* User Info Data List */
-.data-grid {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  row-gap: 10px;
-  column-gap: 8px;
-  font-size: 0.82rem;
-  align-items: center;
-}
-
-.data-label {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.data-value {
-  color: var(--text-pure);
-  font-weight: 600;
-  word-break: break-all;
-}
-
-.badge-role {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-.badge-role.admin {
-  background: rgba(249, 115, 22, 0.2);
-  color: var(--amber-fire);
-  border: 1px solid rgba(249, 115, 22, 0.4);
-}
-.badge-role.resident {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--green-ok);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-/* Alert Box */
-.alert-box {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 16px;
+/* Progressive Disclosure Box */
+.disclosure-box {
+  background: rgba(11, 15, 23, 0.7);
+  border: 1px dashed var(--phone-card-border);
+  border-radius: 14px;
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.alert-header {
-  display: flex;
+.disclosure-box.unlocked {
+  border-style: solid;
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.room-badge-locked {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #f87171;
-}
-
-.alert-body {
-  font-size: 0.75rem;
-  color: #cbd5e1;
-  line-height: 1.45;
-  word-break: break-all;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-}
-
-.alert-hint {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-top: 4px;
+  font-weight: 600;
 }
 
-/* Primary Button (Amber Fire) */
+.room-badge-unlocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.1rem;
+  color: var(--green-ok);
+  font-weight: 800;
+}
+
+/* Buttons */
 .btn-primary {
   width: 100%;
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
@@ -318,7 +423,6 @@ body {
   transform: translateY(1px);
 }
 
-/* Secondary / Danger Button */
 .btn-secondary {
   width: 100%;
   background: #19202e;
@@ -341,63 +445,76 @@ body {
   color: #ffffff;
 }
 
-/* Google Sign-in Button */
-.btn-google {
+.btn-danger {
   width: 100%;
-  background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 13px 18px;
-  font-size: 0.88rem;
-  font-weight: 600;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  gap: 6px;
 }
 
-.btn-google:hover {
-  background: #f9fafb;
-  transform: translateY(-1px);
+.btn-danger:hover {
+  background: #b91c1c;
 }
 
-/* Quiet Guardian Card */
-.guardian-box {
-  background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(19, 25, 36, 0.8) 100%);
-  border: 1px solid rgba(249, 115, 22, 0.2);
-  border-radius: 20px;
-  padding: 20px 16px;
-  text-align: center;
+/* Tabs */
+.app-tabs {
+  display: flex;
+  background: rgba(11, 15, 23, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 12px 14px;
+  gap: 6px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 4px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.guardian-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(249, 115, 22, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  box-shadow: 0 0 20px var(--amber-glow);
+.tab-btn.active {
+  color: var(--amber-fire);
+  background: rgba(249, 115, 22, 0.08);
 }
 
-.guardian-text {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-pure);
-}
-
-.guardian-sub {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  line-height: 1.45;
+/* Responsive Media Queries: Mobile Device Direct View */
+@media (max-width: 900px) {
+  .cockpit-sidebar {
+    display: none;
+  }
+  .device-stage {
+    padding: 0;
+    background: var(--phone-screen-bg);
+  }
+  .device-wrapper {
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    border: none;
+  }
+  .device-screen {
+    border-radius: 0;
+  }
 }

@@ -7,6 +7,7 @@ Implements:
 """
 
 import uuid
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from src.db.base import BaseRepository
@@ -22,6 +23,15 @@ from src.models.domain import (
     TaskType,
 )
 from src.models.schemas import PriorityAlertTarget
+
+
+@dataclass
+class TriageResult:
+    emergency_id: str
+    issue_id: str
+    created_tasks: list[Task] = field(default_factory=list)
+    unresponsive_count: int = 0
+    likely_away_count: int = 0
 
 
 class TriageService:
@@ -129,6 +139,29 @@ class TriageService:
                 tasks_created.append(new_task)
 
         return tasks_created
+
+    async def execute_sc3_triage_result(
+        self, building_id: str, emergency_id: str, issue_id: str
+    ) -> TriageResult:
+        """Triage unconfirmed units and return structured TriageResult."""
+        tasks = await self.execute_sc3_triage(building_id, emergency_id, issue_id)
+        current_states = await self.repo.list_current_states(building_id, emergency_id)
+        residents = await self.repo.list_residents(building_id)
+
+        unresponsive = sum(1 for s in current_states if s.safety_status == SafetyStatus.UNKNOWN)
+        likely_away = 0
+        for r in residents:
+            ctx = await self.repo.get_presence_context(building_id, r.resident_id)
+            if ctx and ctx.presence_state == PresenceState.OUTSIDE_BUILDING:
+                likely_away += 1
+
+        return TriageResult(
+            emergency_id=emergency_id,
+            issue_id=issue_id,
+            created_tasks=tasks,
+            unresponsive_count=unresponsive,
+            likely_away_count=likely_away,
+        )
 
     async def calculate_priority_alerts(
         self, building_id: str, emergency_id: str

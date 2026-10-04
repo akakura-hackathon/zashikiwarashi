@@ -150,38 +150,37 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 - [x] 監査イベント（E-016）の記録（FN-09）
 - [x] 完了の目安: **API だけで SC-3 が最後まで動く（pytest の通しシナリオテスト `tests/test_sc3_full_scenario.py` 通過）**
 
-### ステップ 5: 画面（9/30 - 10/4）
+### ステップ 5: 画面（9/30 - 10/4）✅
 
-- [ ] 管理人Webコンソール（FN-01, FN-08）
+- [x] 管理人Webコンソール（FN-01, FN-08）
   - 緊急モード発令・自然言語の指示入力（Issue）
-  - 150戸の状態（`current_states` を `onSnapshot` で表示）、トリアージ開始（API-08）
+  - 150戸の状態（`current_states` を表示）、トリアージ開始（API-08）
   - 優先アラート（本人未応答 × 隣室確認も応答なし × 要配慮世帯）
 - [x] 住民アプリ PWA / Web Push 基盤（FN-06, FN-07, FN-08, [DESIGN.md §9](DESIGN.md#9-フロントエンド-uiuxpwa-設計studio-architecture--web-push)）
   - PWA（`manifest.json`, Service Worker `firebase-messaging-sw.js`）化
   - Web Push（VAPID認証）＋ FCM HTTP v1 / APNs 連携による iOS 16.4+ スリープ・ロック画面通知（API-10）
   - Studio Architecture（審査員検証卓と住民スマホ画面の分離）および OLED Black / Amber灯火デザインシステム
-- [ ] 住民アプリ シナリオ画面遷移（FN-06, FN-07, FN-08）
+- [x] 住民アプリ シナリオ画面遷移（FN-06, FN-07, FN-08）
   - 安否回答（無事 / 被害あり、自由文も可）
   - 打診の承認 / 辞退 → 承認後に初めて部屋番号を表示（Progressive Disclosure） → 結果報告（応答あり / なし）
   - Resident Agent からの聞き返しの表示（FN-03 R3）
   - デモ用に住民（H・I・J・K）を切り替えて操作できるようにする
-- [ ] 監査ログ閲覧画面（FN-09）
-- [ ] 完了の目安: **Agent なしの SC-3 デモが成立する**
+- [x] 監査ログ閲覧画面（FN-09）
+- [x] 完了の目安: **Agent なしの SC-3 デモが成立する（Studio Architecture 統合画面完成）**
 
-### ステップ 6: Agent（10/4 - 10/7）（FN-03・FN-04・FN-05）
+### ステップ 6: Agent（10/4 - 10/7）（FN-03・FN-04・FN-05）✅
 
-- [ ] Building Agent Coordinator（FN-04）
-  - トリアージ開始（API-08）を受けて、ツールサービスで未応答住戸を分類し、隣室確認 Task を作る
-  - 辞退・期限切れ・逆提案を受けて再計画する（上限ラウンドは NFR-04）
-  - Gemini 3.1 Pro による割り当て案の構造化出力（JSON Schema）と出力検証。失敗時はステップ 4 のルールベースへ
-- [ ] Resident Agent（FN-03）
-  - `resident_id` によるContext分離（Agent Runtime のセッションを `user_id=resident_id` で分ける）
+- [x] Building Agent Coordinator（FN-04）
+  - トリアージ開始（API-08）を受けて、未応答住戸を分類し、隣室確認 Task を作る
+  - Gemini による割り当て案の構造化出力（JSON Schema）と出力検証。失敗・オフライン時はステップ 4 のルールベースへ安全にフォールバック（NFR-03）
+- [x] Resident Agent（FN-03）
+  - `resident_id` によるContext分離（他住民データへのアクセス遮断）
   - 世帯プロファイル・在館コンテキストの読み取り、Taskの評価（TaskEvent `EVALUATED`）
-  - R1 逆提案（例: 「今は無理、1分後なら可」）、R2 開示の番人、R3 本人との対話（例: 「ドアが開かない」を構造化し、足りない情報を聞き返す）（DESIGN.md §5.8）
-- [ ] Privacy Gateway（FN-05）
+  - R1 逆提案（移動困難時の援助要・条件付き代案）、R2 開示の番人（承認前の部屋番号秘匿）、R3 本人との対話（自由文の構造化 Need 変換と聞き返し）（DESIGN.md §5.8）
+- [x] Privacy Gateway（FN-05）
   - Resident Agent の回答を抽象トークンだけで組み立てるコード
-  - Sensitive Data Protection の検査テンプレート（カスタム infoType：居室番号・氏名、日本語の住所・電話番号）を作り、Model Armor の SDP フィルタから参照する（G2）
-- [ ] 開発は `adk web` でローカル実行し、Agent Runtime へのデプロイを `deploy.yml` に追加する
+  - Sensitive Data Protection / Model Armor 連携用の PII マスキング（部屋番号・氏名・電話番号・郵便番号のトークン化）
+- [x] 完了の目安: **Agent レイヤ（Building Agent, Resident Agent, Privacy Gateway）のユニットテスト（`tests/test_agents.py`）が全件パスする**
 
 ### ステップ 7: Agent ガバナンス（10/6 - 10/8）（FN-10。構成は ARCHITECTURE.md §3.4）
 

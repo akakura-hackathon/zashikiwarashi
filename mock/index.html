@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>座敷わらし — マンション互助シミュレーター</title>
+  <link rel="stylesheet" href="style.css?v=20260919">
+</head>
+<body>
+  <div class="studio-workspace">
+
+    <!-- ==============================================
+         1. 左側：シミュレーター操作卓（端末の外側に完全隔離）
+         ============================================== -->
+    <aside class="studio-cockpit">
+      <div class="cockpit-header">
+        <span class="cockpit-badge">SIMULATOR COCKPIT</span>
+        <h1 class="cockpit-title">座敷わらし検証卓</h1>
+        <p class="cockpit-desc">
+          一般住民（502号室・佐藤さん）の端末体験と、棟内インフラ・Multi-Agentの連携を検証します。
+        </p>
+      </div>
+
+      <!-- シナリオ制御 -->
+      <div class="cockpit-section">
+        <h2 class="section-title">災害シミュレーション</h2>
+        <div class="cockpit-actions">
+          <button class="cockpit-btn danger" id="btn-trigger-blackout" type="button">
+            ⚡ 棟内停電を発生させる
+          </button>
+          <button class="cockpit-btn success hidden" id="btn-restore-power" type="button">
+            🔌 商用電源を復旧する
+          </button>
+        </div>
+      </div>
+
+      <!-- 棟内物理インフラ状態 -->
+      <div class="cockpit-section">
+        <h2 class="section-title">棟内設備・IoT状態</h2>
+        <div class="status-grid">
+          <div class="status-card">
+            <span class="status-label">商用電力</span>
+            <span class="status-val ok" id="iot-power">給電中（通常）</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">EV全基</span>
+            <span class="status-val ok" id="iot-ev">通常運行中</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">全戸Wi-Fi</span>
+            <span class="status-val ok" id="iot-wifi">オンライン</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">14階 Need</span>
+            <span class="status-val neutral" id="iot-need">なし</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 裏側 Multi-Agent プロトコル通信ログ -->
+      <div class="cockpit-section flex-grow">
+        <h2 class="section-title">Multi-Agent リアルタイム通信ログ</h2>
+        <div class="cockpit-log" id="cockpit-log">
+          <!-- JSで追記 -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==============================================
+         2. 中央：実在するスマートフォン実機フレーム
+         ============================================== -->
+    <main class="studio-stage">
+      <div class="phone-frame" id="phone-frame">
+        <!-- 物理ボタン・筐体装飾 -->
+        <div class="phone-speaker"></div>
+
+        <!-- 画面内部 -->
+        <div class="phone-screen" id="phone-screen">
+
+          <!-- ステータスバー（iOS標準） -->
+          <div class="phone-status-bar">
+            <span class="status-time" id="clock-time">21:14</span>
+            <div class="status-notch">
+              <span class="notch-camera"></span>
+            </div>
+            <div class="status-icons">
+              <span class="net-mode" id="net-mode">Wi-Fi</span>
+              <span class="battery-icon">84%</span>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View A: スマホのロック画面（停電時に通知が灯る）
+               -------------------------------------------- -->
+          <div class="screen-view active" id="view-lockscreen">
+            <div class="lock-clock">
+              <span class="lock-time" id="lock-clock-time">21:14</span>
+              <span class="lock-date">9月19日 土曜日</span>
+            </div>
+
+            <!-- プッシュ通知バナー（停電時に着信） -->
+            <div class="push-notification hidden" id="push-notification">
+              <div class="push-header">
+                <div class="push-app-info">
+                  <span class="push-app-dot"></span>
+                  <span class="push-app-name">座敷わらし</span>
+                </div>
+                <span class="push-time">たった今</span>
+              </div>
+              <h3 class="push-title">停電が発生しました</h3>
+              <p class="push-body">
+                少し手を貸せますか？ 4分ほど階段でお水を運ぶお願いです。
+              </p>
+              <div class="push-hint">タップして確認</div>
+            </div>
+
+            <div class="lock-bottom">
+              <div class="lock-subtle-hint" id="lock-hint">
+                平時は見守り中（タップでアプリ確認）
+              </div>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View B: アプリ平常時（見守り・手入力ゼロ）
+               -------------------------------------------- -->
+          <div class="screen-view hidden" id="view-app-normal">
+            <header class="mobile-app-header">
+              <span class="app-back-btn" id="btn-lock-from-normal">‹ ロック画面</span>
+              <span class="app-header-title">座敷わらし</span>
+              <span class="app-header-room">502号室</span>
+            </header>
+
+            <div class="app-scroll-content">
+              <div class="guardian-pulse-box">
+                <div class="guardian-fire"></div>
+                <h2 class="guardian-status">静かに見守っています</h2>
+                <p class="guardian-sub">棟内は平常です。手入力は不要です。</p>
+              </div>
+
+              <div class="mobile-card">
+                <h3 class="card-caption">自動把握している状態</h3>
+                <div class="mobile-list-row">
+                  <span class="row-k">在宅状況</span>
+                  <span class="row-v" id="mobile-home-val">在宅（自宅Wi-Fi）</span>
+                </div>
+                <div class="mobile-list-row">
+                  <span class="row-k">現在の予定</span>
+                  <span class="row-v">手空き（予定なし）</span>
+                </div>
+                <div class="mobile-list-row">
+                  <span class="row-k">身体特性</span>
+                  <span class="row-v">階段歩行可能（中層階）</span>
+                </div>
+              </div>
+
+              <div class="privacy-banner">
+                <span>🔒 あなたの個人情報は暗号化され、誰にも開示されません。</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View C: アプリ有時打診（通知タップで開く画面）
+               -------------------------------------------- -->
+          <div class="screen-view hidden" id="view-app-request">
+            <header class="mobile-app-header alert-header">
+              <span class="alert-indicator-dot"></span>
+              <span class="app-header-title">停電に伴う互助の打診</span>
+              <span class="app-header-room">502号室</span>
+            </header>
+
+            <div class="app-scroll-content">
+              <div class="request-headline">
+                <span class="request-badge">約4分のお願い</span>
+                <h2 class="request-title">少し手を貸せますか？</h2>
+                <p class="request-desc">
+                  エレベーター停止のため、高層階へ生活用水を運ぶ階段バケツリレーを編成しています。
+                </p>
+              </div>
+
+              <div class="task-spec-card">
+                <div class="spec-item">
+                  <span class="spec-label">お願いする作業</span>
+                  <span class="spec-main">階段でお水を4フロア分運ぶ</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">想定所要時間</span>
+                  <span class="spec-main highlight-time">約 4 分</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">対面接触</span>
+                  <span class="spec-main">不要（指定の踊り場に置くだけ）</span>
+                </div>
+              </div>
+
+              <div class="mobile-button-stack">
+                <button class="mobile-btn primary" id="btn-accept-request" type="button">
+                  手伝える（約4分）
+                </button>
+                <button class="mobile-btn secondary" id="btn-decline-request" type="button">
+                  今は無理
+                </button>
+              </div>
+
+              <p class="mobile-note">
+                断っても評価やペナルティは一切ありません。ご安心ください。
+              </p>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View D: 承認後手順（Progressive Disclosure）
+               -------------------------------------------- -->
+          <div class="screen-view hidden" id="view-app-confirmed">
+            <header class="mobile-app-header">
+              <span class="app-header-title">運搬の手順</span>
+              <span class="app-header-room">502号室</span>
+            </header>
+
+            <div class="app-scroll-content">
+              <div class="confirmed-banner">
+                <span class="confirmed-check">✓</span>
+                <h2 class="confirmed-title">担当区間が確定しました</h2>
+                <p class="confirmed-desc">以下の手順で階段の指定箱まで運搬をお願いします。</p>
+              </div>
+
+              <div class="step-card-list">
+                <div class="step-card">
+                  <div class="step-index">1</div>
+                  <div class="step-text">
+                    <span class="step-h">1階で荷物をピックアップ</span>
+                    <p class="step-p">
+                      1階 <strong class="room-key">101号室</strong> 前に置かれた給水ポリタンク（10L×1個）を持ち上げてください。
+                    </p>
+                  </div>
+                </div>
+
+                <div class="step-card">
+                  <div class="step-index">2</div>
+                  <div class="step-text">
+                    <span class="step-h">階段で8階踊り場へ運ぶ</span>
+                    <p class="step-p">
+                      階段を上がり、<strong>8階踊り場</strong>の緑の指定箱の中にお水を置いてください。
+                    </p>
+                  </div>
+                </div>
+
+                <div class="step-card">
+                  <div class="step-index">3</div>
+                  <div class="step-text">
+                    <span class="step-h">あなたの担当は完了</span>
+                    <p class="step-p">
+                      8階から上は9階の住民が引き継ぎます。相手の方と対面する必要はありません。
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mobile-button-stack">
+                <button class="mobile-btn primary" id="btn-finish-delivery" type="button">
+                  荷物を置いて完了
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View E: 辞退完了画面（安全優先）
+               -------------------------------------------- -->
+          <div class="screen-view hidden" id="view-app-declined">
+            <div class="app-scroll-content centered">
+              <div class="status-icon-circle">🛡️</div>
+              <h2 class="guardian-status">安全を最優先にしてください</h2>
+              <p class="guardian-sub">
+                お返事ありがとうございました。別の方へバトンを繋ぎました。ご自身の安全を確保してお過ごしください。
+              </p>
+              <div class="mobile-button-stack">
+                <button class="mobile-btn secondary" id="btn-return-to-lock-1" type="button">
+                  待機画面へ戻る
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------
+               View F: 運搬完了画面（感謝と平常回帰）
+               -------------------------------------------- -->
+          <div class="screen-view hidden" id="view-app-success">
+            <div class="app-scroll-content centered">
+              <div class="status-icon-circle success">🤝</div>
+              <h2 class="guardian-status">ご協力ありがとうございました</h2>
+              <p class="guardian-sub">
+                8階踊り場から次の担当者へバトンが渡りました。あなたの約4分の行動が棟内をつなぎました。
+              </p>
+              <div class="mobile-button-stack">
+                <button class="mobile-btn secondary" id="btn-return-to-lock-2" type="button">
+                  見守り画面へ戻る
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ホームバー（iOS標準） -->
+          <div class="phone-home-bar"></div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script type="module" src="app.js?v=20260919"></script>
+</body>
+</html>

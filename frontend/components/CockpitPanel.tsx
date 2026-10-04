@@ -42,6 +42,7 @@ export function CockpitPanel({
   user,
   onLogin,
   onLogout,
+  onAddLog,
 }: CockpitPanelProps) {
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;

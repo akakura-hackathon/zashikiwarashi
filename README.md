@@ -67,6 +67,7 @@ docs/PLAN.md          タスクに分解する
 │   ├── README.md           # docs と図の案内（まずここ）
 │   ├── SPEC.md             # 課題・ユーザー・要件
 │   ├── DESIGN.md           # API・データモデル・エージェント設計
+│   ├── FRONTEND_DESIGN.md  # フロントエンドデザイン仕様（Studio Architecture / UX）
 │   ├── ARCHITECTURE.md     # システム構成
 │   ├── PLAN.md             # マイルストーン・タスク分解（機能ID FN-xx）
 │   ├── TRACEABILITY.md     # ID一覧と、機能 ↔ 要件・設計・データ・API の対応表
@@ -93,7 +94,6 @@ docs/PLAN.md          タスクに分解する
 ```
 
 > **正とするもの**: 仕様は `docs/*.md`。データモデル（エンティティ・属性・関係）は `docs/diagrams/` の ER図を正とし、`docs/DESIGN.md` §7 はそれに合わせる。
-
 ## Getting Started
 
 ```

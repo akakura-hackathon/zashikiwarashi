@@ -1,17 +1,403 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Zashikiwarashi Design Tokens (docs/FRONTEND_DESIGN.md) */
+  --cockpit-bg: #0b0f17;
+  --cockpit-panel: #131b26;
+  --cockpit-border: #1e293b;
+
+  /* Mobile Hardware & OLED Black Display */
+  --phone-bezel: #1f242d;
+  --phone-titanium: #2e3440;
+  --phone-screen-bg: #090d14;
+  --phone-card-bg: #131924;
+  --phone-card-border: #232d3f;
+
+  /* Key Accents */
+  --amber-fire: #f97316;
+  --amber-glow: rgba(249, 115, 22, 0.25);
+  --green-ok: #22c55e;
+  --red-alert: #ef4444;
+  --text-pure: #ffffff;
+  --text-sub: #cbd5e1;
+  --text-muted: #64748b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  background-color: var(--cockpit-bg);
+  color: var(--text-pure);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  background: radial-gradient(circle at 50% 30%, #172033 0%, #090d14 100%);
+  padding: 16px;
+}
+
+/* ==========================================================================
+   Smartphone Device Container (Responsive)
+   ========================================================================== */
+.device-wrapper {
+  width: 100%;
+  max-width: 390px;
+  height: 800px;
+  max-height: calc(100vh - 32px);
+  background-color: var(--phone-bezel);
+  border-radius: 48px;
+  padding: 12px;
+  box-shadow: 
+    0 25px 60px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 2px var(--phone-titanium),
+    0 0 0 4px #12151b;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* On real small mobile screens, adapt to full screen without outer bezel */
+@media (max-width: 440px) {
+  body {
+    padding: 0;
+    background: var(--phone-screen-bg);
+  }
+  .device-wrapper {
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    border: none;
+  }
+}
+
+.device-screen {
+  flex: 1;
+  background-color: var(--phone-screen-bg);
+  border-radius: 38px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 440px) {
+  .device-screen {
+    border-radius: 0;
+  }
+}
+
+/* Top Status Notch / Dynamic Island */
+.device-notch-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  color: var(--text-pure);
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: rgba(9, 13, 20, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.device-notch {
+  width: 96px;
+  height: 24px;
+  background-color: #000000;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notch-camera-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #1a1a1a;
+  border-radius: 50%;
+  margin-left: 40px;
+}
+
+/* App Header */
+.app-header {
+  padding: 24px 20px 16px;
+  text-align: center;
+  position: relative;
+}
+
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--amber-fire);
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--amber-fire);
+  box-shadow: 0 0 8px var(--amber-fire);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-pure);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.app-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Scroll Content */
+.app-content {
+  flex: 1;
+  padding: 0 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cards */
+.zashiki-card {
+  background: var(--phone-card-bg);
+  border: 1px solid var(--phone-card-border);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* User Info Data List */
+.data-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  row-gap: 10px;
+  column-gap: 8px;
+  font-size: 0.82rem;
+  align-items: center;
+}
+
+.data-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.data-value {
+  color: var(--text-pure);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.badge-role {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.badge-role.admin {
+  background: rgba(249, 115, 22, 0.2);
+  color: var(--amber-fire);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+.badge-role.resident {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--green-ok);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+/* Alert Box */
+.alert-box {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.alert-body {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  word-break: break-all;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.alert-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Primary Button (Amber Fire) */
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 18px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* Secondary / Danger Button */
+.btn-secondary {
+  width: 100%;
+  background: #19202e;
+  color: var(--text-sub);
+  border: 1px solid var(--phone-card-border);
+  border-radius: 14px;
+  padding: 11px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #232c3f;
+  color: #ffffff;
+}
+
+/* Google Sign-in Button */
+.btn-google {
+  width: 100%;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 13px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-google:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+}
+
+/* Quiet Guardian Card */
+.guardian-box {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(19, 25, 36, 0.8) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 20px;
+  padding: 20px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.guardian-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  box-shadow: 0 0 20px var(--amber-glow);
+}
+
+.guardian-text {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.guardian-sub {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.45;
 }

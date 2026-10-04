@@ -1,0 +1,24 @@
+{
+  "name": "座敷わらし — マンション互助",
+  "short_name": "座敷わらし",
+  "description": "マンション内の潜在的な助け合いを、緊急時だけ安全に利用可能にする Multi-Agent サービス",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d14",
+  "theme_color": "#090d14",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -603,7 +603,7 @@ export function PhoneStage({
                               </span>
                               <div style={{ marginTop: 4 }}>
                                 <span className="font-mono-num" style={{ fontSize: 36, fontWeight: 900, color: "var(--color-ink)" }}>
-                                  {taskDetail?.target_room || "302"}
+                                  {taskDetail?.target_room_number || "302"}
                                 </span>
                                 <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4 }}>号室</span>
                               </div>
@@ -869,7 +869,7 @@ export function PhoneStage({
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                             {auditEvents.map((evt) => (
                               <div
-                                key={evt.event_id}
+                                key={evt.audit_id}
                                 style={{
                                   backgroundColor: "#FFFFFF",
                                   border: "1px solid var(--color-line)",
@@ -882,7 +882,7 @@ export function PhoneStage({
                               >
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                                    {evt.action}
+                                    {evt.event_name}
                                   </span>
                                   <span className="font-mono-num" style={{ fontSize: 12, color: "var(--color-muted)" }}>
                                     {evt.created_at.slice(11, 16)}
@@ -891,9 +891,9 @@ export function PhoneStage({
                                 <div style={{ fontSize: 12.5, color: "var(--color-muted)" }}>
                                   主体: {evt.actor_type} ({evt.actor_id})
                                 </div>
-                                {evt.data_categories?.length > 0 && (
-                                  <div style={{ fontSize: 12, color: "var(--color-brand)", fontWeight: 600 }}>
-                                    利用カテゴリ: {evt.data_categories.join(", ")}
+                                {evt.description && (
+                                  <div style={{ fontSize: 12.5, color: "var(--color-ink)", lineHeight: 1.5 }}>
+                                    {evt.description}
                                   </div>
                                 )}
                               </div>

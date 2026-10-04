@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-client";
 
 import type { User } from "firebase/auth";
+import { FloorMap } from "./ui/FloorMap";
 
 type CockpitPanelProps = {
   activePersona: Persona;
@@ -56,38 +57,40 @@ export function CockpitPanel({
     <aside className="cockpit-sidebar">
       {/* 1. Header */}
       <div className="cockpit-header">
-        <span className="cockpit-badge">STUDIO COCKPIT ARCHITECTURE</span>
+        <span className="cockpit-badge">ZASHIKI STUDIO COCKPIT</span>
         <h1 className="cockpit-title">座敷わらし検証卓</h1>
         <p className="cockpit-desc">
-          一般住民のスマホ体験と、建物全体Multi-Agent（トリアージ・Policy Engine）の動作をリアルタイム検証します。
+          一般住民のスマホ画面（右）と、建物全体Multi-Agent（トリアージ・Policy Engine）の動作をリアルタイム検証します。
         </p>
 
         {/* Auth status & Login */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid var(--cockpit-border)",
-          borderRadius: "8px",
-          padding: "8px 10px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "6px"
-        }}>
+        <div
+          style={{
+            backgroundColor: "#FFFFFF",
+            border: "1px solid var(--cockpit-border)",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "6px",
+          }}
+        >
           {user ? (
             <>
-              <div style={{ fontSize: "0.72rem", color: "var(--green-ok)", display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ fontSize: "0.74rem", color: "var(--color-brand)", display: "flex", alignItems: "center", gap: "6px" }}>
                 <span>●</span>
-                <span style={{ fontWeight: 600, color: "#ffffff" }}>{user.email || "認証済"}</span>
+                <span style={{ fontWeight: 700, color: "var(--color-ink)" }}>{user.email || "認証済"}</span>
               </div>
               <button
                 onClick={onLogout}
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "var(--cockpit-text-muted)",
-                  fontSize: "0.68rem",
+                  color: "var(--color-muted)",
+                  fontSize: "0.7rem",
                   cursor: "pointer",
-                  textDecoration: "underline"
+                  textDecoration: "underline",
                 }}
               >
                 ログアウト
@@ -95,20 +98,20 @@ export function CockpitPanel({
             </>
           ) : (
             <>
-              <div style={{ fontSize: "0.72rem", color: "#f87171" }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--color-danger)" }}>
                 ※ 本番API実行にはログインが必要です
               </div>
               <button
                 onClick={onLogin}
                 style={{
-                  background: "var(--amber-fire)",
-                  color: "#ffffff",
+                  backgroundColor: "var(--color-ink)",
+                  color: "#FFFFFF",
                   border: "none",
                   borderRadius: "6px",
-                  padding: "4px 8px",
+                  padding: "5px 10px",
                   fontSize: "0.72rem",
                   fontWeight: 700,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Google ログイン
@@ -122,7 +125,7 @@ export function CockpitPanel({
       <div className="cockpit-section">
         <div className="section-title">
           <span>⚡ 災害シミュレーション</span>
-          <span style={{ fontSize: "0.7rem", color: emergencyId ? "#ef4444" : "#22c55e" }}>
+          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: emergencyId ? "var(--color-danger)" : "var(--color-brand)" }}>
             {emergencyId ? "● 発令中" : "○ 平常時"}
           </span>
         </div>
@@ -130,27 +133,59 @@ export function CockpitPanel({
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {!emergencyId ? (
             <button
-              className="btn-danger"
               onClick={onTriggerEmergency}
               disabled={isLoading}
+              style={{
+                width: "100%",
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: "var(--color-danger)",
+                color: "#FFFFFF",
+                border: "none",
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
             >
               🚨 震度5強 地震発生・緊急モード発令 (API-01)
             </button>
           ) : (
             <div style={{ display: "flex", gap: "8px" }}>
               <button
-                className="btn-primary"
-                style={{ flex: 2 }}
                 onClick={onStartTriage}
                 disabled={isLoading}
+                style={{
+                  flex: 2,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: "var(--color-ink)",
+                  color: "#FFFFFF",
+                  border: "none",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
               >
                 🎯 トリアージ開始 (API-08)
               </button>
               <button
-                className="btn-secondary"
-                style={{ flex: 1 }}
                 onClick={onRefresh}
                 disabled={isLoading}
+                style={{
+                  flex: 1,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: "#FFFFFF",
+                  color: "var(--color-ink)",
+                  border: "1.5px solid var(--color-ink)",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
               >
                 🔄 再同期
               </button>
@@ -163,15 +198,24 @@ export function CockpitPanel({
       <div className="cockpit-section">
         <div className="section-title">
           <span>🛡️ Agent ガバナンス検証 (FN-10)</span>
-          <span style={{ fontSize: "0.68rem", color: "#38bdf8" }}>G1〜G6 統制</span>
+          <span style={{ fontSize: "0.7rem", color: "var(--color-brand)", fontWeight: 700 }}>G1〜G6 統制</span>
         </div>
-        <div style={{ fontSize: "0.72rem", color: "var(--cockpit-text-muted)", marginBottom: "8px" }}>
+        <div style={{ fontSize: "0.72rem", color: "var(--color-muted)", marginBottom: "6px" }}>
           Model Armor（G2）と IAP CEL（G4）による決定論的防御を実機検証します。
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <button
-            className="btn-secondary"
-            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#38bdf8" }}
+            style={{
+              padding: "7px 10px",
+              borderRadius: "8px",
+              border: "1px solid var(--cockpit-border)",
+              backgroundColor: "#FFFFFF",
+              color: "var(--color-ink)",
+              fontSize: "0.74rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
             onClick={async () => {
               if (onAddLog) onAddLog("🛡️ [G2 Model Armor] 敵対的プロンプトインジェクション攻撃を送信中...");
               try {
@@ -185,8 +229,17 @@ export function CockpitPanel({
             🛡️ G2: プロンプトインジェクション遮断テスト
           </button>
           <button
-            className="btn-secondary"
-            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#f59e0b" }}
+            style={{
+              padding: "7px 10px",
+              borderRadius: "8px",
+              border: "1px solid var(--cockpit-border)",
+              backgroundColor: "#FFFFFF",
+              color: "var(--color-ink)",
+              fontSize: "0.74rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
             onClick={async () => {
               if (onAddLog) onAddLog("🛡️ [G4 IAP CEL] Resident Agent による権限外ツール（部屋番号開示）呼び出しを試行中...");
               try {
@@ -200,8 +253,17 @@ export function CockpitPanel({
             🛡️ G4: IAP 権限外ツール呼出物理拒否テスト
           </button>
           <button
-            className="btn-secondary"
-            style={{ fontSize: "0.72rem", padding: "6px 8px", textAlign: "left", borderColor: "#ef4444" }}
+            style={{
+              padding: "7px 10px",
+              borderRadius: "8px",
+              border: "1px solid var(--cockpit-border)",
+              backgroundColor: "#FFFFFF",
+              color: "var(--color-ink)",
+              fontSize: "0.74rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
             onClick={async () => {
               if (onAddLog) onAddLog("🛡️ [G2 SDP Filter] 外向き通信（Egress）への生部屋番号漏洩をシミュレーション中...");
               try {
@@ -221,7 +283,7 @@ export function CockpitPanel({
       <div className="cockpit-section">
         <div className="section-title">
           <span>👤 実機ペルソナ切り替え</span>
-          <span style={{ fontSize: "0.7rem", color: "var(--amber-fire)" }}>
+          <span className="font-mono-num" style={{ fontSize: "0.72rem", color: "var(--color-brand)", fontWeight: 700 }}>
             選択中: {activePersona.roomNumber}
           </span>
         </div>
@@ -236,9 +298,9 @@ export function CockpitPanel({
                   textAlign: "left",
                   padding: "8px 10px",
                   borderRadius: "8px",
-                  background: isSelected ? "rgba(249, 115, 22, 0.15)" : "rgba(255, 255, 255, 0.03)",
-                  border: isSelected ? "1px solid var(--amber-fire)" : "1px solid var(--cockpit-border)",
-                  color: isSelected ? "#ffffff" : "var(--cockpit-text-body)",
+                  backgroundColor: isSelected ? "var(--color-brand-tint)" : "#FFFFFF",
+                  border: isSelected ? "1.5px solid var(--color-brand)" : "1px solid var(--cockpit-border)",
+                  color: "var(--color-ink)",
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
@@ -247,47 +309,52 @@ export function CockpitPanel({
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, color: isSelected ? "var(--amber-fire)" : "#ffffff" }}>
+                  <div style={{ fontWeight: 700, color: isSelected ? "var(--color-brand)" : "var(--color-ink)" }}>
                     {p.name}
                   </div>
-                  <div style={{ fontSize: "0.68rem", color: "var(--cockpit-text-muted)" }}>
+                  <div style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
                     {p.desc}
                   </div>
                 </div>
-                {isSelected && <span style={{ color: "var(--amber-fire)" }}>✔</span>}
+                {isSelected && <span style={{ color: "var(--color-brand)", fontWeight: 700 }}>✔</span>}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 4. 棟内150戸の安否集約 (API-03) */}
+      {/* 4. 棟内150戸の安否集約 & C24 FloorMap */}
       <div className="cockpit-section">
         <div className="section-title">
           <span>🏢 棟内150戸の安否集約 (API-03)</span>
           {emergencyId && (
-            <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>
-              Emg: {emergencyId.slice(0, 6)} / Issue: {issueId ? issueId.slice(0, 6) : "-"}
+            <span className="font-mono-num" style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
+              Emg: {emergencyId.slice(0, 6)}
             </span>
           )}
         </div>
         <div className="status-grid">
           <div className="status-card">
             <span className="status-label">無事回答</span>
-            <span className="status-val ok">{safeCount} 戸</span>
+            <span className="status-val ok font-mono-num">{safeCount} 戸</span>
           </div>
           <div className="status-card">
             <span className="status-label">未応答 (要トリアージ)</span>
-            <span className="status-val alert">{unknownCount} 戸</span>
+            <span className="status-val alert font-mono-num">{unknownCount} 戸</span>
           </div>
           <div className="status-card">
             <span className="status-label">カレンダー外出中</span>
-            <span className="status-val warn">{outsideCount} 戸</span>
+            <span className="status-val warn font-mono-num">{outsideCount} 戸</span>
           </div>
           <div className="status-card">
             <span className="status-label">要救助回答</span>
-            <span className="status-val alert">{needHelpCount} 戸</span>
+            <span className="status-val alert font-mono-num">{needHelpCount} 戸</span>
           </div>
+        </div>
+
+        {/* 15階×10列 FloorMap (C24) */}
+        <div style={{ marginTop: 8 }}>
+          <FloorMap />
         </div>
       </div>
 
@@ -297,25 +364,25 @@ export function CockpitPanel({
           <div className="priority-header">
             <span>🚨 防災センター最優先現地確認アラート</span>
           </div>
-          <div style={{ fontSize: "0.72rem", color: "#fca5a5" }}>
+          <div style={{ fontSize: "0.72rem", color: "var(--color-danger-text)" }}>
             「本人未応答 × 隣室確認も応答なし × 高齢単身要配慮」の住戸を検出しました
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
             {priorityTargets.map((target) => (
               <div key={target.resident_id} className="priority-target-item">
                 <div>
-                  <span style={{ fontWeight: 800, color: "#ffffff", marginRight: "6px" }}>
+                  <span className="font-mono-num" style={{ fontWeight: 800, color: "var(--color-ink)", marginRight: "6px" }}>
                     {target.room_number}号室
                   </span>
-                  <span style={{ color: "#f87171" }}>
+                  <span style={{ color: "var(--color-danger)" }}>
                     {target.is_elderly ? "高齢単身" : "一般"}・安否未確認
                   </span>
                 </div>
                 <span
                   style={{
-                    background: "#ef4444",
-                    color: "#ffffff",
-                    fontSize: "0.65rem",
+                    backgroundColor: "var(--color-danger)",
+                    color: "#FFFFFF",
+                    fontSize: "0.68rem",
                     fontWeight: 700,
                     padding: "2px 6px",
                     borderRadius: "4px",
@@ -336,13 +403,13 @@ export function CockpitPanel({
         </div>
         <div className="cockpit-log">
           {logs.length === 0 ? (
-            <div style={{ color: "var(--cockpit-text-muted)" }}>
+            <div style={{ color: "var(--color-muted)" }}>
               災害トリガーまたはAPI呼び出しによりログが出力されます...
             </div>
           ) : (
             logs.map((log, idx) => (
               <div key={idx} className="log-entry">
-                <span className="log-time">[{log.time}]</span>
+                <span className="log-time font-mono-num">[{log.time}]</span>
                 <span>{log.text}</span>
               </div>
             ))

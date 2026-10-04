@@ -13,7 +13,7 @@ Zashikiwarashi の企画・設計ドキュメントと図の入口。実装の�
 | デモシナリオ4種（停電・火災・地震・洪水） | [DESIGN.md](DESIGN.md) §6 |
 | データモデル（ER図準拠）・ER未収容の項目 | [DESIGN.md](DESIGN.md) §7、ER図 |
 | API 一覧 | [DESIGN.md](DESIGN.md) §8 |
-| フロントエンドUI/UX仕様・PWA/Web Push | [DESIGN.md](DESIGN.md) §9 |
+| フロントエンドUI/UX仕様・PWA/Web Push | [DESIGN.md](DESIGN.md) §9、[UI_DESIGN_SPEC.md](UI_DESIGN_SPEC.md)（画面モック詳細仕様正本） |
 | GCP 構成・外部連携・停電時のフォールバック | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | MVP で実装する範囲・スケジュール・タスク | [PLAN.md](PLAN.md) §2〜4 |
 | 機能（FN-xx）から要件・設計・データ・API をたどる | [TRACEABILITY.md](TRACEABILITY.md) |

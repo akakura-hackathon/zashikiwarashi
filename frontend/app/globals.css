@@ -3,29 +3,51 @@
 @tailwind utilities;
 
 :root {
-  /* Zashikiwarashi Design Tokens (docs/DESIGN.md §9) */
-  --cockpit-bg: #0b0f17;
-  --cockpit-panel: #131b26;
-  --cockpit-border: #1e293b;
-  --cockpit-text-title: #f8fafc;
-  --cockpit-text-body: #94a3b8;
-  --cockpit-text-muted: #64748b;
+  /* ==========================================================================
+     ZASHIKI Core Design Tokens (docs/UI_DESIGN_SPEC.md §2)
+     ========================================================================== */
+  --color-ink: #1F1F1F;
+  --color-surface: #FFFFFF;
+  --color-muted: #666666;
+  --color-line: #E8E8E8;
+  --color-brand: #2D8680;
+  --color-brand-soft: #58B0A9;
+  --color-brand-tint: #E4F2F0;
+  --color-danger: #C23B2E;
+  --color-danger-tint: #FBE7E4;
+  --color-danger-text: #8A2317;
+  --color-warn: #8A5A00;
+  --color-warn-map: #C98A1A;
+  --color-neutral-cell: #9C9C96;
+  --color-neutral-cell-light: #D9D9D4;
+  --color-canvas: #F4F4F2;
+  --color-track: #E3E3DF;
+  --color-pending: #D0D0D0;
+  --color-info: #3E6E99;
+  --color-info-tint: #E3EDF6;
+  --color-info-text: #23476A;
 
-  /* Mobile Hardware & OLED Black Display */
-  --phone-bezel: #1f242d;
-  --phone-titanium: #2e3440;
-  --phone-screen-bg: #090d14;
-  --phone-card-bg: #131924;
-  --phone-card-border: #232d3f;
+  /* Lock Screen Tokens */
+  --color-lock-bg: #1E2524;
+  --color-lock-text-2: #D5D5D0;
+  --color-lock-text-3: #ECECE6;
+  --color-lock-text-4: #B8B8B2;
+  --color-lock-timer: #FFE2A0;
+  --color-lock-secondary: #4B5250;
+  --color-lock-card: rgba(245, 245, 240, 0.16);
 
-  /* Key Accents */
-  --amber-fire: #f97316;
-  --amber-glow: rgba(249, 115, 22, 0.25);
-  --green-ok: #22c55e;
-  --red-alert: #ef4444;
-  --text-pure: #ffffff;
-  --text-sub: #cbd5e1;
-  --text-muted: #64748b;
+  /* Cockpit / Studio Frame Tokens (Clean Slate Dashboard) */
+  --cockpit-bg: #F4F4F2;
+  --cockpit-panel: #FFFFFF;
+  --cockpit-border: #E8E8E8;
+  --cockpit-text-title: #1F1F1F;
+  --cockpit-text-body: #4A4A4A;
+  --cockpit-text-muted: #666666;
+
+  /* Phone Frame Tokens */
+  --phone-bezel: #2B2C2D;
+  --phone-titanium: #D1D5DB;
+  --phone-screen-bg: #FFFFFF;
 }
 
 * {
@@ -35,14 +57,19 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  font-family: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
   background-color: var(--cockpit-bg);
-  color: var(--text-pure);
+  color: var(--color-ink);
   min-height: 100vh;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+/* Monospace font for room numbers, times, countdowns */
+.font-mono-num {
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 /* ==========================================================================
@@ -56,9 +83,9 @@ body {
   background-color: var(--cockpit-bg);
 }
 
-/* 1. Left Cockpit (Simulator Verification Sidebar) */
+/* 1. Left Cockpit (Clean Monitoring & Governance Dashboard) */
 .cockpit-sidebar {
-  width: 420px;
+  width: 440px;
   background-color: var(--cockpit-panel);
   border-right: 1px solid var(--cockpit-border);
   display: flex;
@@ -77,40 +104,40 @@ body {
 }
 
 .cockpit-badge {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--amber-fire);
+  letter-spacing: 0.06em;
+  color: var(--color-brand);
 }
 
 .cockpit-title {
   font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--cockpit-text-title);
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
 }
 
 .cockpit-desc {
-  font-size: 0.76rem;
-  color: var(--cockpit-text-muted);
-  line-height: 1.45;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  line-height: 1.5;
 }
 
 .cockpit-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: rgba(11, 15, 23, 0.45);
+  background: #FAFAFA;
   border: 1px solid var(--cockpit-border);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 14px;
 }
 
 .section-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--text-sub);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -124,9 +151,9 @@ body {
 }
 
 .status-card {
-  background: var(--cockpit-panel);
+  background: #FFFFFF;
   border: 1px solid var(--cockpit-border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -135,73 +162,68 @@ body {
 
 .status-label {
   font-size: 0.7rem;
-  color: var(--cockpit-text-muted);
+  color: var(--color-muted);
 }
 
 .status-val {
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: var(--text-pure);
+  color: var(--color-ink);
 }
 
 .status-val.ok {
-  color: var(--green-ok);
+  color: var(--color-brand);
 }
 
 .status-val.alert {
-  color: var(--red-alert);
+  color: var(--color-danger);
 }
 
 .status-val.warn {
-  color: var(--amber-fire);
+  color: var(--color-warn);
 }
 
 /* Priority Alert Box */
 .priority-alert-box {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 12px;
+  background: var(--color-danger-tint);
+  border: 1px solid rgba(194, 59, 46, 0.3);
+  border-radius: 10px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  animation: pulse-border 2s infinite;
-}
-
-@keyframes pulse-border {
-  0%, 100% { border-color: rgba(239, 68, 68, 0.4); }
-  50% { border-color: rgba(239, 68, 68, 0.85); box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
 }
 
 .priority-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  color: #f87171;
+  color: var(--color-danger-text);
 }
 
 .priority-target-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 8px;
+  background: #FFFFFF;
+  border: 1px solid rgba(194, 59, 46, 0.2);
+  border-radius: 6px;
   padding: 8px 10px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
 }
 
 /* Cockpit Log */
 .cockpit-log {
-  background: #070a0f;
-  border: 1px solid #1a2230;
-  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
   padding: 10px;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 0.72rem;
-  color: #a5b4fc;
-  height: 180px;
+  color: #333333;
+  height: 170px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -210,12 +232,12 @@ body {
 
 .log-entry {
   line-height: 1.4;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--color-line);
   padding-bottom: 4px;
 }
 
 .log-time {
-  color: var(--text-muted);
+  color: var(--color-muted);
   margin-right: 6px;
 }
 
@@ -225,25 +247,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 30%, #162033 0%, #090d14 100%);
+  background-color: var(--cockpit-bg);
   padding: 20px;
   position: relative;
   overflow: hidden;
 }
 
-/* Smartphone Bezel */
+/* Smartphone Hardware Frame */
 .device-wrapper {
   width: 100%;
   max-width: 410px;
-  height: 840px;
+  height: 844px;
   max-height: calc(100vh - 40px);
   background-color: var(--phone-bezel);
   border-radius: 50px;
   padding: 12px;
   box-shadow: 
-    0 30px 80px -15px rgba(0, 0, 0, 0.9),
+    0 25px 60px -15px rgba(0, 0, 0, 0.25),
     0 0 0 2px var(--phone-titanium),
-    0 0 0 4px #12151b;
+    0 0 0 4px #222324;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -268,15 +290,21 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 22px;
-  color: var(--text-pure);
+  color: var(--color-ink);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   position: sticky;
   top: 0;
-  background: rgba(9, 13, 20, 0.92);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   z-index: 50;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.device-notch-bar.dark {
+  color: #FFFFFF;
+  background: rgba(30, 37, 36, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .device-notch {
@@ -297,22 +325,14 @@ body {
   margin-left: 40px;
 }
 
-/* App Header inside Device */
-.app-header {
-  padding: 16px 18px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
+/* Persona Switch Bar in Stage */
 .persona-switch-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 6px 10px;
-  border-radius: 10px;
+  background: #F4F4F2;
+  border-bottom: 1px solid var(--color-line);
+  padding: 6px 16px;
 }
 
 .persona-info {
@@ -321,182 +341,41 @@ body {
   gap: 8px;
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--text-pure);
+  color: var(--color-ink);
 }
 
-.app-content {
+/* Main App Container inside Phone */
+.app-container {
   flex: 1;
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
+  min-height: 0;
+  background-color: var(--color-surface);
+  position: relative;
 }
 
-/* App Cards */
-.zashiki-card {
-  background: var(--phone-card-bg);
-  border: 1px solid var(--phone-card-border);
-  border-radius: 20px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.zashiki-card.highlight {
-  border-color: rgba(249, 115, 22, 0.4);
-  background: linear-gradient(180deg, rgba(249, 115, 22, 0.08) 0%, rgba(19, 25, 36, 0.95) 100%);
-}
-
-.card-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--text-sub);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* Progressive Disclosure Box */
-.disclosure-box {
-  background: rgba(11, 15, 23, 0.7);
-  border: 1px dashed var(--phone-card-border);
-  border-radius: 14px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.disclosure-box.unlocked {
-  border-style: solid;
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.06);
-}
-
-.room-badge-locked {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.room-badge-unlocked {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 1.1rem;
-  color: var(--green-ok);
-  font-weight: 800;
-}
-
-/* Buttons */
-.btn-primary {
-  width: 100%;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 14px;
-  padding: 13px 18px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
+/* Bottom Safe Area / Home Indicator */
+.home-indicator-bar {
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: transparent;
+  flex-shrink: 0;
 }
 
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+.home-indicator {
+  width: 134px;
+  height: 5px;
+  background-color: #1F1F1F;
+  border-radius: 3px;
 }
 
-.btn-primary:active {
-  transform: translateY(1px);
+.home-indicator.dark {
+  background-color: #FFFFFF;
 }
 
-.btn-secondary {
-  width: 100%;
-  background: #19202e;
-  color: var(--text-sub);
-  border: 1px solid var(--phone-card-border);
-  border-radius: 14px;
-  padding: 11px 16px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background: #232c3f;
-  color: #ffffff;
-}
-
-.btn-danger {
-  width: 100%;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  padding: 11px 14px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.btn-danger:hover {
-  background: #b91c1c;
-}
-
-/* Tabs */
-.app-tabs {
-  display: flex;
-  background: rgba(11, 15, 23, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 8px 12px 14px;
-  gap: 6px;
-}
-
-.tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 8px 4px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.tab-btn.active {
-  color: var(--amber-fire);
-  background: rgba(249, 115, 22, 0.08);
-}
-
-/* Responsive Media Queries: Mobile Device Direct View */
+/* Responsive Media Queries: Mobile Direct View */
 @media (max-width: 900px) {
   .cockpit-sidebar {
     display: none;

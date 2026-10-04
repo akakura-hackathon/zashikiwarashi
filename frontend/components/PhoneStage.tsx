@@ -21,6 +21,32 @@ import {
 
 import type { User } from "firebase/auth";
 
+// UI Components conforming to docs/UI_DESIGN_SPEC.md
+import { AppBar } from "./ui/AppBar";
+import { EmergencyBanner } from "./ui/EmergencyBanner";
+import { PageTitle } from "./ui/PageTitle";
+import {
+  PrimaryButton,
+  SecondaryButton,
+  TextButton,
+  ChoiceButton,
+  LongPressButton,
+} from "./ui/Buttons";
+import {
+  CheckRow,
+  StatusPill,
+  CountdownPill,
+  ProgressBar,
+} from "./ui/StatusAndInput";
+import {
+  Timeline,
+  PrivacyNote,
+  TabBar,
+  type TimelineItem,
+} from "./ui/NavigationAndInfo";
+import { LockNotification } from "./ui/LockNotification";
+import { FloorMap } from "./ui/FloorMap";
+
 type PhoneStageProps = {
   activePersona: Persona;
   emergencyId: string | null;
@@ -40,13 +66,25 @@ export function PhoneStage({
   isLoading,
   user,
 }: PhoneStageProps) {
-  const [activeTab, setActiveTab] = useState<"scenario" | "audit" | "push">("scenario");
+  // Navigation Tabs: home (P_R1), history (P_R2), settings (P_R3)
+  const [currentTab, setCurrentTab] = useState<"home" | "history" | "settings">("home");
+
+  // Emergency flow sub-screens for resident
+  // "lock" (R01), "safety_answer" (R02), "damage_detail" (R09), "reporting" (R07)
+  const [emergencySubScreen, setEmergencySubScreen] = useState<
+    "lock" | "safety_answer" | "damage_detail" | "reporting" | "default"
+  >("default");
+
+  // Damage checkbox items for R09
+  const [damageItems, setDamageItems] = useState({
+    injury: false,
+    trapped: false,
+    broken: false,
+    gasSmell: false,
+  });
+
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
-
-  // サーバー上の安否ステータスと直接同期（ペルソナ切り替え時に正しく反映）
-  const currentResidentSafety = issueDetail?.resident_states?.[activePersona.userId] ?? "UNKNOWN";
-  const isSafetyAnswered = currentResidentSafety === "SAFE" || currentResidentSafety === "NEED_HELP";
 
   // Push notification state
   const [pushStatus, setPushStatus] = useState<PushPermissionState>("default");
@@ -55,7 +93,11 @@ export function PhoneStage({
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(5);
 
-  // 自分の担当タスクを探す
+  // サーバー上の安否ステータス
+  const currentResidentSafety = issueDetail?.resident_states?.[activePersona.userId] ?? "UNKNOWN";
+  const isSafetyAnswered = currentResidentSafety === "SAFE" || currentResidentSafety === "NEED_HELP";
+
+  // 自分の担当タスク
   const myTask = tasks.find((t) => t.assigned_resident_id === activePersona.userId);
 
   // タスク詳細取得（Progressive Disclosure の開示状態確認）
@@ -87,10 +129,10 @@ export function PhoneStage({
   }, [user, activePersona]);
 
   useEffect(() => {
-    if (activeTab === "audit") {
+    if (currentTab === "history") {
       fetchAuditEvents();
     }
-  }, [activeTab, fetchAuditEvents]);
+  }, [currentTab, fetchAuditEvents]);
 
   // Push通知の初期状態確認
   useEffect(() => {
@@ -100,7 +142,7 @@ export function PhoneStage({
   }, []);
 
   // 安否回答 (API-02)
-  const handleConfirmPresence = async (safetyStatus: "SAFE" | "NEED_HELP") => {
+  const handleConfirmPresence = async (safetyStatus: "SAFE" | "NEED_HELP", message?: string) => {
     if (!emergencyId) return;
     try {
       await confirmPresence(
@@ -108,13 +150,18 @@ export function PhoneStage({
         {
           emergency_id: emergencyId,
           safety_status: safetyStatus,
-          message: safetyStatus === "SAFE" ? "室内転倒なし、動けます。" : "家具が転倒し足が挟まれました。",
+          message:
+            message ||
+            (safetyStatus === "SAFE"
+              ? "けがはなく、部屋から出られます。"
+              : "被害があります。支援が必要です。"),
         },
         activePersona,
       );
       await onActionComplete(
         `[API-02] ${activePersona.name} が安否回答を送信しました (status=${safetyStatus})`,
       );
+      setEmergencySubScreen("default");
     } catch (err) {
       alert(`安否回答に失敗しました: ${String(err)}`);
     }
@@ -143,6 +190,7 @@ export function PhoneStage({
         `[API-05] ${activePersona.name} が現地確認結果を完了報告しました (reason=${reasonCode})`,
       );
       await fetchTaskDetail();
+      setEmergencySubScreen("default");
     } catch (err) {
       alert(`完了報告に失敗しました: ${String(err)}`);
     }
@@ -187,342 +235,757 @@ export function PhoneStage({
     }
   };
 
+  // 計算値：安否集計
+  const safeCount = Object.values(issueDetail?.resident_states || {}).filter(
+    (s) => s === "SAFE",
+  ).length;
+  const needHelpCount = Object.values(issueDetail?.resident_states || {}).filter(
+    (s) => s === "NEED_HELP",
+  ).length;
+  const totalAnswered = safeCount + needHelpCount;
+
+  // --------------------------------------------------------------------------
+  // RENDER: Lock Screen Notification (R01 / R04)
+  // --------------------------------------------------------------------------
+  const showLockScreen = emergencyId && !isSafetyAnswered && emergencySubScreen === "lock";
+
   return (
     <main className="device-stage">
       <div className="device-wrapper">
         <div className="device-screen">
-          {/* iOS-style Status Notch */}
-          <div className="device-notch-bar">
-            <span>9:41</span>
+          {/* iOS-style Top Status Bar */}
+          <div className={`device-notch-bar ${showLockScreen ? "dark" : ""}`}>
+            <span className="font-mono-num">8:04</span>
             <div className="device-notch">
-              <span className="notch-camera-dot"></span>
+              <span className="notch-camera-dot" />
             </div>
             <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-              <span style={{ fontSize: "0.72rem" }}>5G</span>
-              <span>100%</span>
+              <span className="font-mono-num" style={{ fontSize: "0.75rem" }}>5G</span>
+              <span className="font-mono-num" style={{ fontSize: "0.75rem" }}>100%</span>
             </div>
           </div>
 
-          {/* App Header */}
-          <div className="app-header">
-            <div className="persona-switch-bar">
-              <div className="persona-info">
-                <span>🏠</span>
-                <span>{activePersona.roomNumber}号室</span>
-                <span style={{ color: "var(--text-sub)", fontWeight: 500 }}>
-                  {activePersona.name}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                  background: activePersona.role === "admin" ? "rgba(249, 115, 22, 0.2)" : "rgba(34, 197, 94, 0.2)",
-                  color: activePersona.role === "admin" ? "var(--amber-fire)" : "var(--green-ok)",
-                  fontWeight: 700,
-                }}
-              >
-                {activePersona.role === "admin" ? "ADMIN" : "RESIDENT"}
+          {/* Active Persona indicator bar in Stage */}
+          <div className="persona-switch-bar">
+            <div className="persona-info">
+              <span>🏠</span>
+              <span className="font-mono-num" style={{ fontWeight: 700 }}>
+                {activePersona.roomNumber}号室
+              </span>
+              <span style={{ color: "var(--color-muted)", fontWeight: 500 }}>
+                {activePersona.name}
               </span>
             </div>
+            <StatusPill
+              label={activePersona.role === "admin" ? "ADMIN 管理人" : "RESIDENT 住民"}
+              variant={activePersona.role === "admin" ? "warn" : "brand"}
+            />
           </div>
 
-          {/* App Scrollable Content */}
-          <div className="app-content">
-            {activeTab === "scenario" && (
-              <>
-                {/* 1. 平常時（災害未発令） */}
-                {!emergencyId && (
-                  <div className="zashiki-card">
-                    <div className="card-title">
-                      <span>🛡️ 平常見守りモード</span>
-                      <span style={{ color: "var(--green-ok)", fontSize: "0.75rem" }}>● 正常稼働</span>
-                    </div>
-                    <div style={{ textAlign: "center", padding: "20px 0" }}>
-                      <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>🏮</div>
-                      <div style={{ fontWeight: 800, fontSize: "1rem", color: "#ffffff" }}>
-                        座敷わらしが見守っています
+          {/* ================================================================
+              PATTERN 1: Lock Screen Notification (R01)
+              ================================================================ */}
+          {showLockScreen ? (
+            <LockNotification
+              timeStr="8:03"
+              dateStr="10月4日 土曜日"
+              title="地震が発生しました（震度5強）"
+              message="ご自身とお部屋は無事ですか？"
+              timeRemaining="2:00"
+              primaryButtonText="無事"
+              primaryButtonVariant="brand"
+              onPrimaryClick={() => handleConfirmPresence("SAFE")}
+              secondaryButtonText="被害あり"
+              onSecondaryClick={() => {
+                setEmergencySubScreen("damage_detail");
+              }}
+              onNotificationClick={() => setEmergencySubScreen("safety_answer")}
+            />
+          ) : (
+            <div className="app-container">
+              {/* ==============================================================
+                  PATTERN 2: Emergency Mode Active
+                  ============================================================== */}
+              {emergencyId ? (
+                <>
+                  {/* Top Bar with 119 and Read Aloud */}
+                  <AppBar
+                    variant={emergencySubScreen !== "default" ? "subpage" : "home"}
+                    onBack={() => setEmergencySubScreen("default")}
+                    showReadAloud={true}
+                  />
+
+                  {/* C3: Emergency Banner */}
+                  <EmergencyBanner disasterType="地震" detail="震度5強" issuedAt="8:03" />
+
+                  {/* Screen Content Container with auto-flex bottom action */}
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "16px 24px 20px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {/* --------------------------------------------------------
+                        R09: 被害内容の入力画面
+                        -------------------------------------------------------- */}
+                    {emergencySubScreen === "damage_detail" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <PageTitle
+                          title="被害の内容を教えてください"
+                          subtitle="管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。"
+                        />
+                        <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
+                          <CheckRow
+                            label="けがをしている"
+                            sublabel="応急手当が必要、出血など"
+                            checked={damageItems.injury}
+                            onChange={(checked) =>
+                              setDamageItems({ ...damageItems, injury: checked })
+                            }
+                          />
+                          <CheckRow
+                            label="部屋から出られない"
+                            sublabel="ドアの変形、閉じ込め"
+                            checked={damageItems.trapped}
+                            onChange={(checked) =>
+                              setDamageItems({ ...damageItems, trapped: checked })
+                            }
+                          />
+                          <CheckRow
+                            label="部屋の家具や設備が破損した"
+                            sublabel="大型家具の転倒、ガラス散乱"
+                            checked={damageItems.broken}
+                            onChange={(checked) =>
+                              setDamageItems({ ...damageItems, broken: checked })
+                            }
+                          />
+                          <CheckRow
+                            label="ガス・水の漏れやにおいがする"
+                            sublabel="二次災害の危険あり"
+                            checked={damageItems.gasSmell}
+                            onChange={(checked) =>
+                              setDamageItems({ ...damageItems, gasSmell: checked })
+                            }
+                          />
+                        </div>
+                        <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                          <PrimaryButton
+                            onClick={() =>
+                              handleConfirmPresence(
+                                "NEED_HELP",
+                                `被害あり: ${Object.entries(damageItems)
+                                  .filter(([, v]) => v)
+                                  .map(([k]) => k)
+                                  .join(", ") || "支援希望"}`,
+                              )
+                            }
+                          >
+                            管理人に送る
+                          </PrimaryButton>
+                          <SecondaryButton onClick={() => setEmergencySubScreen("default")}>
+                            もどる
+                          </SecondaryButton>
+                        </div>
                       </div>
-                      <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", marginTop: "6px" }}>
-                        平時の手入力は不要です。緊急事態発生時のみ、必要な情報と極小タスクをお届けします。
+                    )}
+
+                    {/* --------------------------------------------------------
+                        R02: 安否回答画面（2択Choiceカード）
+                        -------------------------------------------------------- */}
+                    {!isSafetyAnswered && emergencySubScreen !== "damage_detail" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                        <PageTitle
+                          title="ご自身とお部屋は無事ですか？"
+                          subtitle="回答は建物全体の把握に使われ、部屋番号は外部に公開されません。"
+                        />
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <CountdownPill label="回答の目安 残り" timeRemaining="1:42" />
+                        </div>
+
+                        {/* C9: 2択 Choice Buttons */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          <ChoiceButton
+                            title="無事（けがはなく、部屋から出られる）"
+                            description="自身で身の安全が確保できており、特別な手助けは不要です。"
+                            accentColor="brand"
+                            onClick={() => handleConfirmPresence("SAFE")}
+                            icon={
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            }
+                          />
+                          <ChoiceButton
+                            title="被害あり（けが・閉じ込め・部屋の損傷など）"
+                            description="家具の転倒、けが、室内に閉じ込められているなど支援が必要です。"
+                            accentColor="danger"
+                            onClick={() => setEmergencySubScreen("damage_detail")}
+                            icon={
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                              </svg>
+                            }
+                          />
+                        </div>
+
+                        <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                          <PrivacyNote note="ZASHIKIは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "10px" }}>
-                      💡 左側シミュレーター操作卓の「⚡ 震度5強 地震発生」を押すと、有事シナリオを開始できます。
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* 2. 災害発令中 & 安否未回答 */}
-                {emergencyId && !isSafetyAnswered && (
-                  <div className="zashiki-card highlight">
-                    <div className="card-title">
-                      <span>🚨 緊急安否確認 (API-02)</span>
-                      <span style={{ color: "var(--amber-fire)", fontSize: "0.72rem" }}>1タップ回答</span>
-                    </div>
-                    <div style={{ fontSize: "0.85rem", color: "#ffffff", fontWeight: 700 }}>
-                      震度5強の地震が発生しました。<br />
-                      ご自身とお部屋はご無事ですか？
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
-                      無事な住民の方へ、最寄りの隣室確認タスク（約20秒）の打診をお願いする場合があります。
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleConfirmPresence("SAFE")}
-                        disabled={isLoading}
-                      >
-                        ✅ 自身・室内ともに無事です
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => handleConfirmPresence("NEED_HELP")}
-                        disabled={isLoading}
-                      >
-                        ⚠️ 室内負傷・閉じ込め等で救助が必要
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. 安否回答済み & タスク打診なし */}
-                {emergencyId && isSafetyAnswered && !myTask && (
-                  <div className="zashiki-card">
-                    <div className="card-title">
-                      <span>✅ 安否回答を受理しました</span>
-                      <span style={{ color: "var(--green-ok)", fontSize: "0.75rem" }}>回答済</span>
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-sub)" }}>
-                      ご回答ありがとうございました。<br />
-                      現在、棟内全体の安否を集約しトリアージを行っています。
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "10px" }}>
-                      💡 左側操作卓の「🎯 トリアージ開始」を実行すると、近隣の未応答住戸に対する隣室確認タスクが打診されます。
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. タスク打診中 (OFFERED) - Progressive Disclosure */}
-                {myTask && myTask.status === "OFFERED" && (
-                  <div className="zashiki-card highlight">
-                    <div className="card-title">
-                      <span>🤝 極小タスクの打診 (API-04)</span>
-                      <span style={{ color: "var(--amber-fire)", fontSize: "0.72rem" }}>約20秒</span>
-                    </div>
-                    <div style={{ fontSize: "0.88rem", fontWeight: 800, color: "#ffffff" }}>
-                      隣の部屋のインターホンを1回確認できますか？
-                    </div>
-                    <div style={{ fontSize: "0.76rem", color: "var(--text-sub)", lineHeight: 1.45 }}>
-                      ご自身の安全確保後、同じ階の近隣住戸の応答有無のみご確認をお願いします。室内に入る必要はありません。
-                    </div>
-
-                    {/* Progressive Disclosure: 未承認時は部屋番号マスク */}
-                    <div className="disclosure-box">
-                      <div className="room-badge-locked">
-                        <span>🔒 確認対象: 3階の近隣住戸</span>
-                      </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                        ※ プライバシー保護のため、引き受け承認後にのみ具体的な部屋番号が開示されます。
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                      <button
-                        className="btn-primary"
-                        style={{ flex: 2 }}
-                        onClick={() => handleRespondTask("APPROVED")}
-                        disabled={isLoading}
-                      >
-                        手伝える（約20秒）
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        style={{ flex: 1 }}
-                        onClick={() => handleRespondTask("DECLINED")}
-                        disabled={isLoading}
-                      >
-                        今は無理
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. タスク承認済み (APPROVED / IN_PROGRESS) - 部屋番号開示 & 結果報告 */}
-                {myTask && (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") && (
-                  <div className="zashiki-card highlight">
-                    <div className="card-title">
-                      <span>🚪 現地確認の実行 & 完了報告 (API-05)</span>
-                      <span style={{ color: "var(--green-ok)", fontSize: "0.72rem" }}>進行中</span>
-                    </div>
-
-                    {/* Progressive Disclosure: 承認後に部屋番号が開示 */}
-                    <div className="disclosure-box unlocked">
-                      <div className="room-badge-unlocked">
-                        <span>🔓 確認対象: {taskDetail?.target_room_number ?? "302"} 号室</span>
-                      </div>
-                      <div style={{ fontSize: "0.74rem", color: "#86efac" }}>
-                        ✔ 承認により部屋番号が開示されました（監査ログに記録済み）
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: "0.78rem", color: "var(--text-sub)", lineHeight: 1.45 }}>
-                      <strong>手順:</strong> 廊下に出て、<strong>{taskDetail?.target_room_number ?? "302"}号室</strong>のインターホンを1回鳴らし、応答があるか確認してください。
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
-                      <button
-                        className="btn-danger"
-                        onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
-                        disabled={isLoading}
-                      >
-                        🚨 応答なし（声・返事なし）
-                      </button>
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleReportTask("TARGET_RESPONDED")}
-                        disabled={isLoading}
-                      >
-                        ✅ 応答あり（無事を確認）
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 6. タスク完了 (COMPLETED) */}
-                {myTask && myTask.status === "COMPLETED" && (
-                  <div className="zashiki-card">
-                    <div className="card-title">
-                      <span>🎉 確認完了</span>
-                      <span style={{ color: "var(--green-ok)", fontSize: "0.75rem" }}>完了</span>
-                    </div>
-                    <div style={{ textAlign: "center", padding: "16px 0" }}>
-                      <div style={{ fontSize: "2rem", marginBottom: "6px" }}>🙏</div>
-                      <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "#ffffff" }}>
-                        ご協力ありがとうございました
-                      </div>
-                      <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                        確認結果は防災センターへ即座に共有され、優先救助トリアージに反映されました。
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* タブ2: 監査ログ (API-07) */}
-            {activeTab === "audit" && (
-              <div className="zashiki-card">
-                <div className="card-title">
-                  <span>📜 個人監査ログ閲覧 (API-07)</span>
-                  <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>改ざん不能</span>
-                </div>
-                <div style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
-                  あなたの個人データ（部屋番号等）が開示された記録です。人物プロファイリングや評価スコア化は行われません。
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
-                  {auditEvents.length === 0 ? (
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>
-                      監査イベントはまだありません
-                    </div>
-                  ) : (
-                    auditEvents.map((e) => (
-                      <div
-                        key={e.audit_id}
-                        style={{
-                          background: "rgba(0,0,0,0.3)",
-                          border: "1px solid var(--phone-card-border)",
-                          borderRadius: "10px",
-                          padding: "10px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontWeight: 700, color: "var(--amber-fire)", fontSize: "0.75rem" }}>
-                            {e.event_name}
+                    {/* --------------------------------------------------------
+                        R10: 被害あり送信後の待機タイムライン画面
+                        -------------------------------------------------------- */}
+                    {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                        <PageTitle
+                          title="管理人に伝わりました"
+                          subtitle="状況が共有され、優先度の高い住戸として救護の手配を進めています。"
+                        />
+                        <div
+                          style={{
+                            backgroundColor: "var(--color-danger-tint)",
+                            borderRadius: 12,
+                            padding: "14px 16px",
+                            border: "1px solid rgba(194, 59, 46, 0.3)",
+                          }}
+                        >
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-danger-text)" }}>
+                            助けが来るまで
                           </span>
-                          <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                            {new Date(e.created_at).toLocaleTimeString()}
-                          </span>
+                          <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
+                            体力を温存し、無理に動かず安全な姿勢を保ってください。大きな音（壁や床を叩く等）で居場所を知らせることも有効です。
+                          </p>
                         </div>
-                        <div style={{ fontSize: "0.74rem", color: "#ffffff" }}>
-                          {e.description}
+
+                        {/* C18 Timeline */}
+                        <div style={{ marginTop: 8 }}>
+                          <Timeline
+                            items={[
+                              { time: "8:04", text: "被害状況を送信しました", status: "completed" },
+                              { time: "8:05", text: "管理人が確認・優先支援リストに登録", status: "completed" },
+                              { time: "8:07", text: "現地確認に向かう準備をしています", status: "in_progress" },
+                              { text: "管理人または救助隊が到着", status: "pending" },
+                            ]}
+                          />
                         </div>
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                          実行者: {e.actor_type} ({e.actor_id})
+
+                        <div style={{ marginTop: "auto", paddingTop: 20 }}>
+                          <SecondaryButton onClick={() => setEmergencySubScreen("damage_detail")}>
+                            状況が変わったので更新する
+                          </SecondaryButton>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+                    )}
 
-            {/* タブ3: Push通知設定 */}
-            {activeTab === "push" && (
-              <div className="zashiki-card">
-                <div className="card-title">
-                  <span>🔔 Web Push・スリープ通知テスト</span>
-                  <span style={{ fontSize: "0.72rem", color: "var(--amber-fire)" }}>iOS 16.4+ / PWA</span>
-                </div>
-                <div style={{ fontSize: "0.74rem", color: "var(--text-sub)", lineHeight: 1.45 }}>
-                  災害時のロック画面通知（FCM HTTP v1 / APNs 連携）を検証できます。
-                </div>
+                    {/* --------------------------------------------------------
+                        R03〜R08: 無事回答後の各ステップ
+                        -------------------------------------------------------- */}
+                    {isSafetyAnswered && currentResidentSafety === "SAFE" && (
+                      <>
+                        {/* 1. 打診なし：R03 回答済み・待機画面 */}
+                        {!myTask && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                            <PageTitle
+                              title="無事を受け付けました"
+                              subtitle="8:04 回答済み。ご協力ありがとうございます。"
+                            />
+                            {/* C17 ProgressBar */}
+                            <ProgressBar
+                              title="全館の安否回答状況"
+                              current={totalAnswered || 96}
+                              total={150}
+                            />
+                            <div
+                              style={{
+                                backgroundColor: "var(--color-canvas)",
+                                borderRadius: 12,
+                                padding: "16px",
+                                border: "1px solid var(--color-line)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                              }}
+                            >
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                                近くのお宅の確認をお願いすることがあります
+                              </span>
+                              <p style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.5, margin: 0 }}>
+                                同じ階で未だ応答がないお部屋がある場合、インターホンを1回鳴らす極小タスク（約20秒）の打診が届く場合があります。
+                              </p>
+                            </div>
+                            <div style={{ marginTop: "auto", paddingTop: 20, textAlign: "center" }}>
+                              <TextButton
+                                color="var(--color-danger)"
+                                onClick={() => setEmergencySubScreen("damage_detail")}
+                              >
+                                回答を「被害あり」に変更する
+                              </TextButton>
+                            </div>
+                          </div>
+                        )}
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
-                  {pushStatus !== "granted" ? (
-                    <button className="btn-primary" onClick={handleEnablePush}>
-                      📢 通知を許可する (VAPID)
-                    </button>
-                  ) : (
-                    <button
-                      className="btn-primary"
-                      onClick={handleTriggerSleepTest}
-                      disabled={isCountingDown || !fcmToken}
-                    >
-                      {isCountingDown ? `⏳ ${countdown}秒後に送信... 画面をロックしてください` : "⚡ 5秒後スリープ画面通知テスト"}
-                    </button>
-                  )}
+                        {/* 2. タスク打診中：R04 / R05 確認のお願い */}
+                        {myTask && myTask.status === "ASSIGNED" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <PageTitle
+                              title="近くのお宅の確認をお願いできますか？"
+                              subtitle="インターホンを1回鳴らすだけです。約20秒。断っても理由は聞きません。"
+                            />
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <CountdownPill label="返事の期限 残り" timeRemaining="0:45" />
+                            </div>
 
-                  {pushMsg && (
-                    <div style={{ fontSize: "0.72rem", color: "#cbd5e1", background: "rgba(0,0,0,0.3)", padding: "8px", borderRadius: "8px" }}>
-                      {pushMsg}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                            <div
+                              style={{
+                                backgroundColor: "var(--color-canvas)",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                                border: "1px solid var(--color-line)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 8,
+                                fontSize: 13.5,
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "var(--color-muted)" }}>やること</span>
+                                <span style={{ fontWeight: 700 }}>インターホンを1回鳴らして応答を確認</span>
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "var(--color-muted)" }}>場所</span>
+                                <span style={{ fontWeight: 700 }}>同じ3階の住戸</span>
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "var(--color-muted)" }}>所要時間</span>
+                                <span style={{ fontWeight: 700 }}>約20秒</span>
+                              </div>
+                            </div>
+
+                            <PrivacyNote note="部屋番号は協力すると表示されます。あなたに頼んだ理由：同じ階で無事と回答し、いちばん近いため。" />
+
+                            {/* Actions (Max 2 Buttons) */}
+                            <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                              <PrimaryButton onClick={() => handleRespondTask("APPROVED")}>
+                                協力する（約20秒）
+                              </PrimaryButton>
+                              <SecondaryButton onClick={() => handleRespondTask("DECLINED")}>
+                                今は無理（理由は不要です）
+                              </SecondaryButton>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. 承認後：R06 確認先・手順表示 */}
+                        {myTask && myTask.status === "ACCEPTED" && emergencySubScreen !== "reporting" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <PageTitle
+                              title="確認先のお部屋"
+                              subtitle="無理は禁物です。危険を感じたら直ちに引き返してください。"
+                            />
+                            {/* Big Room Number */}
+                            <div
+                              style={{
+                                textAlign: "center",
+                                padding: "20px 0",
+                                backgroundColor: "var(--color-canvas)",
+                                borderRadius: 16,
+                                border: "1px solid var(--color-line)",
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
+                                確認対象住戸
+                              </span>
+                              <div style={{ marginTop: 4 }}>
+                                <span className="font-mono-num" style={{ fontSize: 36, fontWeight: 900, color: "var(--color-ink)" }}>
+                                  {taskDetail?.target_room || "302"}
+                                </span>
+                                <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4 }}>号室</span>
+                              </div>
+                            </div>
+
+                            {/* Steps list */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
+                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                  1
+                                </span>
+                                <span>302号室の前へ向かいます</span>
+                              </div>
+                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                  2
+                                </span>
+                                <span>インターホンを1回だけ鳴らします（不在時は深追い不要）</span>
+                              </div>
+                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                  3
+                                </span>
+                                <span>応答の有無をアプリで報告してください</span>
+                              </div>
+                            </div>
+
+                            <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                              <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
+                                302号室の前に着いた・報告する
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. 結果報告：R07 結果の報告 */}
+                        {myTask && myTask.status === "ACCEPTED" && emergencySubScreen === "reporting" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <PageTitle
+                              title="応答はありましたか？"
+                              subtitle="確認できた状況を選んでください。"
+                            />
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+                              <ChoiceButton
+                                title="応答があった"
+                                description="声や返答があり、無事であることが確認できました。"
+                                accentColor="brand"
+                                onClick={() => handleReportTask("TARGET_RESPONDED")}
+                                icon={
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                }
+                              />
+                              <ChoiceButton
+                                title="応答がなかった"
+                                description="インターホンへの返答がなく、室内の物音も聞こえません。"
+                                accentColor="ink"
+                                onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
+                                icon={
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2.5">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                  </svg>
+                                }
+                              />
+                              <ChoiceButton
+                                title="確認できなかった（危険・たどり着けない）"
+                                description="障害物や煙、落下物などで安全に接近できませんでした。"
+                                accentColor="danger"
+                                onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
+                                icon={
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
+                                    <polygon points="12 2 2 22 22 22 12 2" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                  </svg>
+                                }
+                              />
+                            </div>
+                            <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                              <SecondaryButton onClick={() => setEmergencySubScreen("default")}>
+                                前の画面へもどる
+                              </SecondaryButton>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 5. 完了：R08 完了・開示の終了 */}
+                        {myTask && myTask.status === "COMPLETED" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <PageTitle
+                              title="確認ありがとうございました"
+                              subtitle="状況は管理人に送信されました。開示されていた部屋番号はマスキングされました。"
+                            />
+                            {/* Masked room number */}
+                            <div
+                              style={{
+                                textAlign: "center",
+                                padding: "20px 0",
+                                backgroundColor: "var(--color-canvas)",
+                                borderRadius: 16,
+                                border: "1px solid var(--color-line)",
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
+                                確認先住戸（開示終了）
+                              </span>
+                              <div style={{ marginTop: 4 }}>
+                                <span className="font-mono-num" style={{ fontSize: 32, fontWeight: 900, color: "var(--color-muted)" }}>
+                                  •••
+                                </span>
+                                <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4, color: "var(--color-muted)" }}>号室</span>
+                              </div>
+                            </div>
+
+                            {/* Privacy Audit Trail in Card */}
+                            <div
+                              style={{
+                                backgroundColor: "var(--color-surface)",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                                border: "1px solid var(--color-line)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                                fontSize: 13,
+                              }}
+                            >
+                              <span style={{ fontWeight: 700, color: "var(--color-ink)" }}>
+                                このタスクで扱われた情報
+                              </span>
+                              <div style={{ color: "var(--color-muted)" }}>
+                                • 使われた情報：同じ3階・無事の回答・在宅状況
+                              </div>
+                              <div style={{ color: "var(--color-muted)" }}>
+                                • 開示された情報：確認先の部屋番号（8:05〜8:07のみ、現在非表示）
+                              </div>
+                            </div>
+
+                            <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                              <PrimaryButton onClick={() => setCurrentTab("history")}>
+                                くわしい利用記録を見る
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* ==============================================================
+                   PATTERN 3: Normal Time (P_R1〜P_R3)
+                   ============================================================== */
+                <>
+                  <AppBar variant="home" showReadAloud={false} />
+
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "16px 24px 20px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {/* Tab 1: P_R1 ホーム（平時マイページ） */}
+                    {currentTab === "home" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                        <PageTitle
+                          title="平常時 何もしなくて大丈夫です"
+                          subtitle="緊急時のみ、必要な確認やお願いが届きます。"
+                        />
+
+                        {/* Status Card */}
+                        <div
+                          style={{
+                            backgroundColor: "var(--color-canvas)",
+                            borderRadius: 14,
+                            padding: "16px",
+                            border: "1px solid var(--color-line)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 12,
+                          }}
+                        >
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                            連携状況
+                          </span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13.5 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ color: "var(--color-muted)" }}>プッシュ通知</span>
+                              <span style={{ fontWeight: 700, color: "var(--color-brand)" }}>
+                                {pushStatus === "granted" ? "受信可能" : "未設定"}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ color: "var(--color-muted)" }}>Google カレンダー</span>
+                              <span style={{ fontWeight: 700, color: "var(--color-brand)" }}>連携中</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ color: "var(--color-muted)" }}>在宅シグナル</span>
+                              <span style={{ fontWeight: 700 }}>自動検知中</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Knowledge Card */}
+                        <div
+                          style={{
+                            backgroundColor: "#FFFFFF",
+                            borderRadius: 14,
+                            padding: "16px",
+                            border: "1px solid var(--color-line)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                          }}
+                        >
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                            いま座敷わらしが知っていること
+                          </span>
+                          <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
+                            • 在館推定：在宅の可能性が高い<br />
+                            • 階段の支援：健脚（短時間の階段移動が可能）<br />
+                            • 個人の性格・評価・ランキングは一切作成・保存しません。
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                          <PrivacyNote note="ZASHIKIは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 2: P_R2 記録（監査ログ・利用履歴） */}
+                    {currentTab === "history" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <PageTitle
+                          title="情報の利用記録"
+                          subtitle="わたしの情報を、いつ誰が使い、誰に見せたかを透明に記録しています。"
+                        />
+                        <div
+                          style={{
+                            backgroundColor: "var(--color-canvas)",
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            fontSize: 12.5,
+                            color: "var(--color-muted)",
+                          }}
+                        >
+                          断ったお願いや不参加は評価として一切残りません。
+                        </div>
+
+                        {auditEvents.length === 0 ? (
+                          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--color-muted)", fontSize: 14 }}>
+                            平常時のため、情報の外部利用・開示の記録はありません。
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {auditEvents.map((evt) => (
+                              <div
+                                key={evt.event_id}
+                                style={{
+                                  backgroundColor: "#FFFFFF",
+                                  border: "1px solid var(--color-line)",
+                                  borderRadius: 12,
+                                  padding: "12px 14px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 4,
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                                    {evt.action}
+                                  </span>
+                                  <span className="font-mono-num" style={{ fontSize: 12, color: "var(--color-muted)" }}>
+                                    {evt.created_at.slice(11, 16)}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: 12.5, color: "var(--color-muted)" }}>
+                                  主体: {evt.actor_type} ({evt.actor_id})
+                                </div>
+                                {evt.data_categories?.length > 0 && (
+                                  <div style={{ fontSize: 12, color: "var(--color-brand)", fontWeight: 600 }}>
+                                    利用カテゴリ: {evt.data_categories.join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tab 3: P_R3 設定 */}
+                    {currentTab === "settings" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                        <PageTitle
+                          title="設定"
+                          subtitle="通知や外部サービスとの連携設定です。"
+                        />
+
+                        {/* Push Notification Setup */}
+                        <div
+                          style={{
+                            backgroundColor: "var(--color-canvas)",
+                            borderRadius: 14,
+                            padding: "16px",
+                            border: "1px solid var(--color-line)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 12,
+                          }}
+                        >
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                            Web Push通知（スリープ対応）
+                          </span>
+                          <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>
+                            緊急時にロック画面へ通知を灯すための設定です。
+                          </p>
+                          {pushStatus !== "granted" ? (
+                            <PrimaryButton onClick={handleEnablePush}>
+                              通知を有効にする
+                            </PrimaryButton>
+                          ) : (
+                            <SecondaryButton
+                              onClick={handleTriggerSleepTest}
+                              disabled={isCountingDown}
+                            >
+                              {isCountingDown ? `${countdown}秒後に送信...` : "5秒後にテスト通知を送信"}
+                            </SecondaryButton>
+                          )}
+                          {pushMsg && (
+                            <span style={{ fontSize: 12.5, color: "var(--color-brand)", fontWeight: 600 }}>
+                              {pushMsg}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Google Calendar */}
+                        <div
+                          style={{
+                            backgroundColor: "#FFFFFF",
+                            borderRadius: 14,
+                            padding: "16px",
+                            border: "1px solid var(--color-line)",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                              Google カレンダー
+                            </div>
+                            <div style={{ fontSize: 12.5, color: "var(--color-muted)", marginTop: 2 }}>
+                              在宅シグナルの推定に使用
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-brand)" }}>
+                            連携中
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* C22 TabBar */}
+                  <TabBar currentTab={currentTab} onChangeTab={setCurrentTab} />
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Bottom Home Indicator Bar */}
+          <div className="home-indicator-bar">
+            <div className={`home-indicator ${showLockScreen ? "dark" : ""}`} />
           </div>
-
-          {/* Bottom Tabs */}
-          <nav className="app-tabs">
-            <button
-              className={`tab-btn ${activeTab === "scenario" ? "active" : ""}`}
-              onClick={() => setActiveTab("scenario")}
-            >
-              <span>🛡️</span>
-              <span>災害対応</span>
-            </button>
-            <button
-              className={`tab-btn ${activeTab === "audit" ? "active" : ""}`}
-              onClick={() => setActiveTab("audit")}
-            >
-              <span>📜</span>
-              <span>監査ログ</span>
-            </button>
-            <button
-              className={`tab-btn ${activeTab === "push" ? "active" : ""}`}
-              onClick={() => setActiveTab("push")}
-            >
-              <span>🔔</span>
-              <span>Push通知</span>
-            </button>
-          </nav>
         </div>
       </div>
     </main>

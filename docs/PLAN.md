@@ -156,15 +156,24 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
   - 緊急モード発令・自然言語の指示入力（Issue）
   - 150戸の状態（`current_states` を表示）、トリアージ開始（API-08）
   - 優先アラート（本人未応答 × 隣室確認も応答なし × 要配慮世帯）
-- [x] 住民アプリ PWA / Web Push 基盤（FN-06, FN-07, FN-08, [DESIGN.md §9](DESIGN.md#9-フロントエンド-uiuxpwa-設計studio-architecture--web-push)）
+- [x] 住民アプリ PWA / Web Push 基盤（FN-06, FN-07, FN-08, [DESIGN.md §9](DESIGN.md#9-フロントエンド-uiuxpwa-設計studio-architecture--web-push), [UI_DESIGN_SPEC.md](UI_DESIGN_SPEC.md)）
   - PWA（`manifest.json`, Service Worker `firebase-messaging-sw.js`）化
   - Web Push（VAPID認証）＋ FCM HTTP v1 / APNs 連携による iOS 16.4+ スリープ・ロック画面通知（API-10）
-  - Studio Architecture（審査員検証卓と住民スマホ画面の分離）および OLED Black / Amber灯火デザインシステム
+  - Studio Architecture（審査員検証卓と住民スマホ画面の分離）
+  - **フロントエンド画面デザインの全面刷新（ZASHIKI 画面デザイン設計書（モック → 本番）準拠）**:
+    - AIチックなダークネオンを排除し、白地・細線・黒文字の生活感と信頼性を重視したUI（Zen Kaku Gothic New / IBM Plex Mono）
+    - 共通コンポーネント C1〜C24（AppBar、EmergencyBanner、CountdownPill、119番通報ボタン、2択ChoiceButton、長押し2秒ボタン、ProgressBar、Timeline、FloorMap）の実装
 - [x] 住民アプリ シナリオ画面遷移（FN-06, FN-07, FN-08）
-  - 安否回答（無事 / 被害あり、自由文も可）
-  - 打診の承認 / 辞退 → 承認後に初めて部屋番号を表示（Progressive Disclosure） → 結果報告（応答あり / なし）
-  - Resident Agent からの聞き返しの表示（FN-03 R3）
-  - デモ用に住民（H・I・J・K）を切り替えて操作できるようにする
+  - R01/R04 ロック画面通知（2択: 無事/被害あり、協力/今は無理）
+  - R02 安否回答（2択Choiceカード）
+  - R09/R10 被害内容入力（チェック行）および待機タイムライン
+  - R03 回答済み・待機（全館安否進捗ProgressBar）
+  - R04/R05 打診確認（所要時間20秒、あなたに頼んだ理由明記）
+  - R06 承認後住戸開示（302号室表示、3ステップ案内）
+  - R07 結果報告（3択Choice）
+  - R08 完了・開示終了（部屋番号 `•••` マスク、利用情報の透明化）
+  - P_R1〜P_R3 平常時マイページ、情報の利用記録（監査ログ）、設定
+  - デモ用に住民（H・I・J・K・Admin）を切り替えて操作可能
 - [x] 監査ログ閲覧画面（FN-09）
 - [x] 完了の目安: **Agent なしの SC-3 デモが成立する（Studio Architecture 統合画面完成）**
 

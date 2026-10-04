@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import get_settings
-from src.routers import chat, health, me, push
+from src.routers import audit, chat, emergency, health, me, push, tasks
 
 
 def create_app() -> FastAPI:
@@ -20,6 +20,9 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(me.router)
     app.include_router(push.router)
+    app.include_router(emergency.router)
+    app.include_router(tasks.router)
+    app.include_router(audit.router)
     app.include_router(chat.router, prefix="/api")
 
     return app

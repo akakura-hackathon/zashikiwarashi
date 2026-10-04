@@ -305,7 +305,7 @@ export function PhoneStage({
                   ============================================================== */}
               {emergencyId ? (
                 <>
-                  {/* Top Bar with 119 and Read Aloud */}
+                  {/* Top Bar with Read Aloud */}
                   <AppBar
                     variant={emergencySubScreen !== "default" ? "subpage" : "home"}
                     onBack={() => setEmergencySubScreen("default")}

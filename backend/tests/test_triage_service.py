@@ -65,7 +65,7 @@ async def test_sc3_triage_and_task_lifecycle():
             safety_status=SafetyStatus.UNKNOWN,
         ),
     )
-    # Resident K (1204) is UNKNOWN, but presence context is OUTSIDE_BUILDING (calendar busy)
+    # Resident K (504) is UNKNOWN, but presence context is OUTSIDE_BUILDING (calendar busy)
     await repo.set_current_state(
         building_id,
         ResidentEmergencyCurrentState(
@@ -86,7 +86,7 @@ async def test_sc3_triage_and_task_lifecycle():
     assert task_for_h.resident_id == "resident-i"
     assert task_for_h.status == TaskStatus.OFFERED
 
-    # Resident K (1204, outside building) should NOT have neighbor check task created
+    # Resident K (504, outside building) should NOT have neighbor check task created
     task_for_k = next((t for t in tasks if t.target_resident_id == "resident-k"), None)
     assert task_for_k is None
 

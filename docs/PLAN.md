@@ -140,7 +140,7 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 
 ### ステップ 4: SC-3 の業務ロジック（Agent なし）（9/30 - 10/3）✅
 
-- [x] シードスクリプト（[DESIGN.md §7.3.4](DESIGN.md#734-sc-3-のシードデータ)。15階・150戸、住民 H・I・J・K、在館コンテキストはダミー）
+- [x] シードスクリプト（[DESIGN.md §7.3.4](DESIGN.md#734-sc-3-のシードデータ)。5階・50戸、住民 H・I・J・K、在館コンテキストはダミー）
 - [x] API-01〜08（[DESIGN.md §8](DESIGN.md#8-api一覧)）（FN-01・FN-06・FN-07・FN-08・FN-09）
 - [x] ルールベースのトリアージ: 未応答住戸の分類（在宅可能性あり／Likely Away）、同じ階の最寄りの「無事」の住民への割り当て（1住戸1担当・重複なし）、応答期限と再打診（[DESIGN.md §7.4 #6](DESIGN.md#74-er未収容の項目未決)）、管理人への優先表示（§6.3 D）。LLM 失敗時のフォールバックとしても使う（NFR-03）
 - [x] Policy Engine（FN-06, FN-07）
@@ -154,7 +154,7 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 
 - [x] 管理人Webコンソール（FN-01, FN-08）
   - 緊急モード発令・自然言語の指示入力（Issue）
-  - 150戸の状態（`current_states` を表示）、トリアージ開始（API-08）
+  - 50戸の状態（`current_states` を表示）、トリアージ開始（API-08）
   - 優先アラート（本人未応答 × 隣室確認も応答なし × 要配慮世帯）
 - [x] 住民アプリ PWA / Web Push 基盤（FN-06, FN-07, FN-08, [DESIGN.md §9](DESIGN.md#9-フロントエンド-uiuxpwa-設計studio-architecture--web-push), [UI_DESIGN_SPEC.md](UI_DESIGN_SPEC.md)）
   - PWA（`manifest.json`, Service Worker `firebase-messaging-sw.js`）化

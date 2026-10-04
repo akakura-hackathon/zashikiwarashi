@@ -240,6 +240,24 @@ class FirestoreRepository(BaseRepository):
         )
         await doc_ref.set(state.model_dump(mode="json"))
 
+    async def batch_set_current_states(
+        self, building_id: str, states: list[ResidentEmergencyCurrentState]
+    ) -> None:
+        if not states:
+            return
+        batch = self.db.batch()
+        for state in states:
+            doc_ref = (
+                self.db.collection("buildings")
+                .document(building_id)
+                .collection("emergencies")
+                .document(state.emergency_id)
+                .collection("current_states")
+                .document(state.resident_id)
+            )
+            batch.set(doc_ref, state.model_dump(mode="json"))
+        await batch.commit()
+
     async def get_current_state(
         self, building_id: str, emergency_id: str, resident_id: str
     ) -> ResidentEmergencyCurrentState | None:

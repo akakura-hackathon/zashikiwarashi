@@ -125,6 +125,13 @@ class InMemoryRepository(BaseRepository):
         key = f"{building_id}:{state.emergency_id}"
         self.current_states.setdefault(key, {})[state.resident_id] = state
 
+    async def batch_set_current_states(
+        self, building_id: str, states: list[ResidentEmergencyCurrentState]
+    ) -> None:
+        for state in states:
+            key = f"{building_id}:{state.emergency_id}"
+            self.current_states.setdefault(key, {})[state.resident_id] = state
+
     async def get_current_state(
         self, building_id: str, emergency_id: str, resident_id: str
     ) -> ResidentEmergencyCurrentState | None:

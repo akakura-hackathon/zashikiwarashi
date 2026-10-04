@@ -24,17 +24,15 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
     if (rooms && rooms.length > 0) {
       rooms.forEach((r) => map.set(r.roomNo, r));
     } else {
-      // 15階 × 10戸 = 150戸のデフォルトデータ
-      for (let f = 15; f >= 1; f--) {
+      // 5階 × 10戸 = 50戸のデフォルトデータ
+      for (let f = 5; f >= 1; f--) {
         for (let c = 1; c <= 10; c++) {
           const roomNo = `${f}${c < 10 ? "0" + c : c}`;
           let status: RoomStatusType = "safe";
           if (roomNo === "302") status = "urgent";
-          else if (roomNo === "1107") status = "urgent";
-          else if (roomNo === "815" || roomNo === "805") status = "unassigned";
-          else if (f === 5 && c <= 3) status = "unresponsive";
-          else if (f === 12 && c >= 8) status = "away";
-          else if (f === 2 && c === 4) status = "unresponsive";
+          else if (roomNo === "504") status = "away";
+          else if (roomNo === "405") status = "unassigned";
+          else if (f === 2 && c <= 3) status = "unresponsive";
 
           map.set(roomNo, { roomNo, floor: f, col: c, status });
         }
@@ -58,7 +56,7 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
     }
   };
 
-  const floors = Array.from({ length: 15 }, (_, i) => 15 - i); // 15F down to 1F
+  const floors = Array.from({ length: 5 }, (_, i) => 5 - i); // 5F down to 1F
 
   return (
     <div

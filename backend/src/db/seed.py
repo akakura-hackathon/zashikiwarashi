@@ -1,13 +1,13 @@
 """Seed data generator for SC-3 (Earthquake Safety Check Distribution Scenario).
 
 Adheres to docs/DESIGN.md §7.3.4:
-- 1 Building: 15 floors, 150 units (10 units per floor: x01 - x10).
+- 1 Building: 5 floors, 50 units (10 units per floor: x01 - x10).
 - Nodes and Edges: Unit entrances, corridors, stairs up/down.
 - Specific Residents:
   - H: 302 (Elderly solo: elderly_count=1, mobility_difficulty_count=1)
   - I: 301 (Normal solo helper)
   - J: 303 (Normal neighbor)
-  - K: 1204 (Outside building: calendar busy)
+  - K: 504 (Outside building: calendar busy)
   - Other units: Deterministic pseudorandom household profiles (seed 42).
 """
 
@@ -39,14 +39,14 @@ async def seed_sc3_data(repo: BaseRepository, building_id: str = "bld-01") -> No
     building = Building(
         building_id=building_id,
         name="グランドタワー赤倉",
-        floor_count=15,
+        floor_count=5,
         created_at=now,
     )
     await repo.create_building(building)
 
     # 2. Nodes & Edges (E-003, E-004)
-    # Corridors and Stairs for each floor (1..15)
-    for floor in range(1, 16):
+    # Corridors and Stairs for each floor (1..5)
+    for floor in range(1, 6):
         corridor_node = Node(
             node_id=f"node-corridor-{floor}",
             building_id=building_id,
@@ -77,7 +77,7 @@ async def seed_sc3_data(repo: BaseRepository, building_id: str = "bld-01") -> No
         )
 
         # Stairs up/down to next floor
-        if floor < 15:
+        if floor < 5:
             next_stairs = f"node-stairs-{floor + 1}"
             await repo.create_edge(
                 Edge(
@@ -105,7 +105,7 @@ async def seed_sc3_data(repo: BaseRepository, building_id: str = "bld-01") -> No
     # 3. Units, Entrance Nodes, Residents & HouseholdProfiles (E-002, E-005, E-006, E-007)
     rng = random.Random(42)  # Deterministic seed for repeatable demo test runs (NFR-05)
 
-    for floor in range(1, 16):
+    for floor in range(1, 6):
         for room_idx in range(1, 11):
             room_number = f"{floor}{room_idx:02d}"
             unit_id = f"unit-{room_number}"
@@ -162,7 +162,7 @@ async def seed_sc3_data(repo: BaseRepository, building_id: str = "bld-01") -> No
             elif room_number == "303":
                 # Resident J: 近隣住民
                 resident_id = "resident-j"
-            elif room_number == "1204":
+            elif room_number == "504":
                 # Resident K: 終日カレンダー外出中
                 resident_id = "resident-k"
                 presence_state = PresenceState.OUTSIDE_BUILDING

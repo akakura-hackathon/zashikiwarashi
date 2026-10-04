@@ -21,11 +21,11 @@ async def test_sc3_seeding_and_queries():
     # 1. Building Check
     bld = await repo.get_building("bld-01")
     assert bld is not None
-    assert bld.floor_count == 15
+    assert bld.floor_count == 5
 
-    # 2. Units Check (15 floors * 10 units = 150)
+    # 2. Units Check (5 floors * 10 units = 50)
     units = await repo.list_units("bld-01")
-    assert len(units) == 150
+    assert len(units) == 50
 
     # 3. Personas Check
     res_h = await repo.get_resident("bld-01", "resident-h")

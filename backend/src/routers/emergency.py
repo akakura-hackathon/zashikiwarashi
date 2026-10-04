@@ -80,18 +80,18 @@ async def trigger_emergency(
     )
     await repo.create_issue(building_id, issue)
 
-    # 3. Initialize all residents' state to UNKNOWN (E-009)
+    # 3. Initialize all residents' state to UNKNOWN via Batch Write (E-009)
     residents = await repo.list_residents(building_id)
-    for res in residents:
-        await repo.set_current_state(
-            building_id,
-            ResidentEmergencyCurrentState(
-                emergency_id=emergency_id,
-                resident_id=res.resident_id,
-                safety_status=SafetyStatus.UNKNOWN,
-                observed_at=now,
-            ),
+    initial_states = [
+        ResidentEmergencyCurrentState(
+            emergency_id=emergency_id,
+            resident_id=res.resident_id,
+            safety_status=SafetyStatus.UNKNOWN,
+            observed_at=now,
         )
+        for res in residents
+    ]
+    await repo.batch_set_current_states(building_id, initial_states)
 
     return EmergencyTriggerResponse(
         emergency_id=emergency_id,

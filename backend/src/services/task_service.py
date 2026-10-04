@@ -154,12 +154,13 @@ class TaskService:
                 else SafetyStatus.UNKNOWN
             )
             await self.repo.set_current_state(
+                building_id,
                 ResidentEmergencyCurrentState(
                     emergency_id=emergency_id,
                     resident_id=task.target_resident_id,
                     safety_status=updated_safety,
                     observed_at=now,
-                )
+                ),
             )
             # Append State Event
             await self.repo.append_state_event(

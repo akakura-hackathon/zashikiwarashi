@@ -59,11 +59,12 @@ async def test_sc3_seeding_and_queries():
 
     # Set State
     await repo.set_current_state(
+        "bld-01",
         ResidentEmergencyCurrentState(
             emergency_id="em-test-01",
             resident_id="resident-i",
             safety_status=SafetyStatus.SAFE,
-        )
+        ),
     )
     st = await repo.get_current_state("bld-01", "em-test-01", "resident-i")
     assert st is not None

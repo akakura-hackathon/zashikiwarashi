@@ -227,12 +227,13 @@ class FirestoreRepository(BaseRepository):
     async def update_emergency(self, emergency: Emergency) -> None:
         await self.create_emergency(emergency)
 
-    async def set_current_state(self, state: ResidentEmergencyCurrentState) -> None:
-        # Key: buildings/{building_id}/emergencies/{emergency_id}/current_states/{resident_id}
-        # Note: state has emergency_id and resident_id
-        # We query the emergency to find its building_id if needed, or use a default
+    async def set_current_state(
+        self, building_id: str, state: ResidentEmergencyCurrentState
+    ) -> None:
         doc_ref = (
-            self.db.collection("emergencies")
+            self.db.collection("buildings")
+            .document(building_id)
+            .collection("emergencies")
             .document(state.emergency_id)
             .collection("current_states")
             .document(state.resident_id)

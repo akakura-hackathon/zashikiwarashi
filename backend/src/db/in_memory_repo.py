@@ -119,19 +119,23 @@ class InMemoryRepository(BaseRepository):
     async def update_emergency(self, emergency: Emergency) -> None:
         self.emergencies.setdefault(emergency.building_id, {})[emergency.emergency_id] = emergency
 
-    async def set_current_state(self, state: ResidentEmergencyCurrentState) -> None:
-        key = f"{state.emergency_id}"
+    async def set_current_state(
+        self, building_id: str, state: ResidentEmergencyCurrentState
+    ) -> None:
+        key = f"{building_id}:{state.emergency_id}"
         self.current_states.setdefault(key, {})[state.resident_id] = state
 
     async def get_current_state(
         self, building_id: str, emergency_id: str, resident_id: str
     ) -> ResidentEmergencyCurrentState | None:
-        return self.current_states.get(emergency_id, {}).get(resident_id)
+        key = f"{building_id}:{emergency_id}"
+        return self.current_states.get(key, {}).get(resident_id)
 
     async def list_current_states(
         self, building_id: str, emergency_id: str
     ) -> list[ResidentEmergencyCurrentState]:
-        return list(self.current_states.get(emergency_id, {}).values())
+        key = f"{building_id}:{emergency_id}"
+        return list(self.current_states.get(key, {}).values())
 
     async def append_state_event(
         self, building_id: str, event: ResidentEmergencyStateEvent

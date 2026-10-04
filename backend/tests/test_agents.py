@@ -128,6 +128,7 @@ async def test_building_agent_triage_fallback(seeded_repo):
     now = datetime.now(UTC)
     # SC-3 の初期状態: 住民IはSAFE、住民HはUNKNOWN（未応答）
     await seeded_repo.set_current_state(
+        "bld-01",
         ResidentEmergencyCurrentState(
             emergency_id="emg-sc3",
             resident_id="resident-i",
@@ -136,6 +137,7 @@ async def test_building_agent_triage_fallback(seeded_repo):
         ),
     )
     await seeded_repo.set_current_state(
+        "bld-01",
         ResidentEmergencyCurrentState(
             emergency_id="emg-sc3",
             resident_id="resident-h",

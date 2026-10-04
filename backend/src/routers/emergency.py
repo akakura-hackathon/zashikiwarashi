@@ -51,6 +51,12 @@ async def trigger_emergency(
     issue_id = f"iss-{uuid.uuid4().hex[:12]}"
     building_id = req.building_id or admin.building_id or "bld-01"
 
+    # 0. Ensure building & SC-3 seed data exist (150 units, residents H/I/J/K)
+    building = await repo.get_building(building_id)
+    if not building:
+        from src.db.seed import seed_sc3_data
+        await seed_sc3_data(repo, building_id=building_id)
+
     # 1. Create Emergency (E-008)
     emergency = Emergency(
         emergency_id=emergency_id,
@@ -78,12 +84,13 @@ async def trigger_emergency(
     residents = await repo.list_residents(building_id)
     for res in residents:
         await repo.set_current_state(
+            building_id,
             ResidentEmergencyCurrentState(
                 emergency_id=emergency_id,
                 resident_id=res.resident_id,
                 safety_status=SafetyStatus.UNKNOWN,
                 observed_at=now,
-            )
+            ),
         )
 
     return EmergencyTriggerResponse(
@@ -131,12 +138,13 @@ async def confirm_presence(
 
     # 2. Update Current State (E-009)
     await repo.set_current_state(
+        building_id,
         ResidentEmergencyCurrentState(
             emergency_id=req.emergency_id,
             resident_id=resident_id,
             safety_status=req.safety_status,
             observed_at=now,
-        )
+        ),
     )
 
     # 3. Append State Event (E-010)

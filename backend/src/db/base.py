@@ -89,7 +89,9 @@ class BaseRepository(ABC):
     async def update_emergency(self, emergency: Emergency) -> None: ...
 
     @abstractmethod
-    async def set_current_state(self, state: ResidentEmergencyCurrentState) -> None: ...
+    async def set_current_state(
+        self, building_id: str, state: ResidentEmergencyCurrentState
+    ) -> None: ...
 
     @abstractmethod
     async def get_current_state(

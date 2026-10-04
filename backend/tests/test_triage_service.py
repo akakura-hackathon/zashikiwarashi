@@ -49,27 +49,30 @@ async def test_sc3_triage_and_task_lifecycle():
     # 3. Simulate Responses:
     # Resident I (301) reports SAFE
     await repo.set_current_state(
+        building_id,
         ResidentEmergencyCurrentState(
             emergency_id=emergency_id,
             resident_id="resident-i",
             safety_status=SafetyStatus.SAFE,
-        )
+        ),
     )
     # Resident H (302) is UNKNOWN (Unconfirmed elderly solo)
     await repo.set_current_state(
+        building_id,
         ResidentEmergencyCurrentState(
             emergency_id=emergency_id,
             resident_id="resident-h",
             safety_status=SafetyStatus.UNKNOWN,
-        )
+        ),
     )
     # Resident K (1204) is UNKNOWN, but presence context is OUTSIDE_BUILDING (calendar busy)
     await repo.set_current_state(
+        building_id,
         ResidentEmergencyCurrentState(
             emergency_id=emergency_id,
             resident_id="resident-k",
             safety_status=SafetyStatus.UNKNOWN,
-        )
+        ),
     )
 
     # 4. Execute SC-3 Triage

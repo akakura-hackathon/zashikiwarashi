@@ -582,62 +582,74 @@ export function PhoneStage({
                         {/* 3. 承認後：R06 確認先・手順表示 */}
                         {myTask &&
                           (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") &&
-                          emergencySubScreen !== "reporting" && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                            <PageTitle
-                              title="確認先のお部屋"
-                              subtitle="無理は禁物です。危険を感じたら直ちに引き返してください。"
-                            />
-                            {/* Big Room Number */}
-                            <div
-                              style={{
-                                textAlign: "center",
-                                padding: "20px 0",
-                                backgroundColor: "var(--color-canvas)",
-                                borderRadius: 16,
-                                border: "1px solid var(--color-line)",
-                              }}
-                            >
-                              <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                確認対象住戸
-                              </span>
-                              <div style={{ marginTop: 4 }}>
-                                <span className="font-mono-num" style={{ fontSize: 36, fontWeight: 900, color: "var(--color-ink)" }}>
-                                  {taskDetail?.target_room_number || "302"}
-                                </span>
-                                <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4 }}>号室</span>
-                              </div>
-                            </div>
+                          emergencySubScreen !== "reporting" && (() => {
+                            const isDisclosed = taskDetail?.is_disclosed && !!taskDetail?.target_room_number;
+                            const targetRoom = isDisclosed ? taskDetail.target_room_number! : "•••";
 
-                            {/* Steps list */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
-                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                  1
-                                </span>
-                                <span>302号室の前へ向かいます</span>
-                              </div>
-                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                  2
-                                </span>
-                                <span>インターホンを1回だけ鳴らします（不在時は深追い不要）</span>
-                              </div>
-                              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                                <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                  3
-                                </span>
-                                <span>応答の有無をアプリで報告してください</span>
-                              </div>
-                            </div>
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <PageTitle
+                                  title="確認先のお部屋"
+                                  subtitle="無理は禁物です。危険を感じたら直ちに引き返してください。"
+                                />
+                                {/* Big Room Number */}
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "20px 0",
+                                    backgroundColor: "var(--color-canvas)",
+                                    borderRadius: 16,
+                                    border: "1px solid var(--color-line)",
+                                  }}
+                                >
+                                  <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
+                                    確認対象住戸
+                                  </span>
+                                  <div style={{ marginTop: 4 }}>
+                                    <span
+                                      className="font-mono-num"
+                                      style={{
+                                        fontSize: 36,
+                                        fontWeight: 900,
+                                        color: isDisclosed ? "var(--color-ink)" : "var(--color-muted)",
+                                      }}
+                                    >
+                                      {targetRoom}
+                                    </span>
+                                    <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4 }}>号室</span>
+                                  </div>
+                                </div>
 
-                            <div style={{ marginTop: "auto", paddingTop: 16 }}>
-                              <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
-                                302号室の前に着いた・報告する
-                              </PrimaryButton>
-                            </div>
-                          </div>
-                        )}
+                                {/* Steps list */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
+                                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                    <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                      1
+                                    </span>
+                                    <span>{isDisclosed ? `${targetRoom}号室` : "確認先住戸"}の前へ向かいます</span>
+                                  </div>
+                                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                    <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                      2
+                                    </span>
+                                    <span>インターホンを1回だけ鳴らします（不在時は深追い不要）</span>
+                                  </div>
+                                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                    <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                      3
+                                    </span>
+                                    <span>応答の有無をアプリで報告してください</span>
+                                  </div>
+                                </div>
+
+                                <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                                  <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
+                                    {isDisclosed ? `${targetRoom}号室` : "確認先"}の前に着いた・報告する
+                                  </PrimaryButton>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                         {/* 4. 結果報告：R07 結果の報告 */}
                         {myTask &&

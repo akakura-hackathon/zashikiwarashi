@@ -235,8 +235,10 @@ export function getIssueDetail(
   user: User | null,
   issueId: string,
   persona?: Persona,
+  emergencyId?: string | null,
 ): Promise<IssueDetailResponse> {
-  return apiFetch<IssueDetailResponse>(user, `/issues/${issueId}`, {
+  const query = emergencyId ? `?emergency_id=${encodeURIComponent(emergencyId)}` : "";
+  return apiFetch<IssueDetailResponse>(user, `/issues/${issueId}${query}`, {
     method: "GET",
   }, persona);
 }

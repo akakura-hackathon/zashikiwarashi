@@ -111,9 +111,26 @@ class InMemoryRepository(BaseRepository):
         return self.emergencies.get(building_id, {}).get(emergency_id)
 
     async def get_active_emergency(self, building_id: str) -> Emergency | None:
+        active_list = [
+            em for em in self.emergencies.get(building_id, {}).values()
+            if em.status == EmergencyStatus.ACTIVE
+        ]
+        if not active_list:
+            return None
+        active_list.sort(key=lambda e: e.triggered_at, reverse=True)
+        return active_list[0]
+
+    async def close_all_active_emergencies(self, building_id: str) -> None:
         for em in self.emergencies.get(building_id, {}).values():
             if em.status == EmergencyStatus.ACTIVE:
-                return em
+                em.status = EmergencyStatus.CLOSED
+
+    async def find_emergency_by_issue(
+        self, building_id: str, issue_id: str
+    ) -> Emergency | None:
+        for em_id, issue_map in self.issues.items():
+            if issue_id in issue_map:
+                return self.emergencies.get(building_id, {}).get(em_id)
         return None
 
     async def update_emergency(self, emergency: Emergency) -> None:

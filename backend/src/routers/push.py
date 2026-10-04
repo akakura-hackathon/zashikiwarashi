@@ -81,8 +81,13 @@ async def test_sleep_notification(req: PushTestRequest, background_tasks: Backgr
         raise HTTPException(status_code=400, detail="FCM token is required")
 
     background_tasks.add_task(_delayed_send, req.delay_seconds, req.token, req.title, req.body)
+    msg = (
+        f"{req.delay_seconds}秒後にプッシュ通知を送信します。"
+        "スマホをスリープ状態にしてお待ちください。"
+    )
     return {
         "status": "scheduled",
         "delay_seconds": req.delay_seconds,
-        "message": f"{req.delay_seconds}秒後にプッシュ通知を送信します。スマホをスリープ状態にしてお待ちください。",
+        "message": msg,
     }
+

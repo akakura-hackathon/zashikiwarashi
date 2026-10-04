@@ -1,6 +1,14 @@
-"""Firestore document access helpers.
+"""Firestore and database access entry point."""
 
-Keep query/document logic here rather than in services/ or routers/,
-so persistence details stay swappable without touching business logic.
-TODO: add collection accessors as the data model in docs/DESIGN.md is defined.
-"""
+from src.db.base import BaseRepository
+from src.db.factory import get_repository, reset_in_memory_repo
+from src.db.firestore_repo import FirestoreRepository
+from src.db.in_memory_repo import InMemoryRepository
+
+__all__ = [
+    "BaseRepository",
+    "FirestoreRepository",
+    "InMemoryRepository",
+    "get_repository",
+    "reset_in_memory_repo",
+]

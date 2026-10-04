@@ -84,7 +84,9 @@ async def get_issue_progress(
     priority_targets = []
     if user.role == "admin":
         triage_svc = TriageService(repo)
-        priority_targets = await triage_svc.calculate_priority_alerts(building_id, actual_emergency_id)
+        priority_targets = await triage_svc.calculate_priority_alerts(
+            building_id, actual_emergency_id
+        )
 
     return IssueDetailResponse(
         issue=issue,

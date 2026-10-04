@@ -171,6 +171,11 @@ class InMemoryRepository(BaseRepository):
             t for t in self.tasks.get(emergency_id, {}).values() if t.resident_id == resident_id
         ]
 
+    async def list_all_tasks(
+        self, building_id: str, emergency_id: str
+    ) -> list[Task]:
+        return list(self.tasks.get(emergency_id, {}).values())
+
     async def append_task_event(
         self, building_id: str, emergency_id: str, event: TaskEvent
     ) -> None:

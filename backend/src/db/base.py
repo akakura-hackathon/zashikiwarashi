@@ -138,6 +138,11 @@ class BaseRepository(ABC):
     ) -> list[Task]: ...
 
     @abstractmethod
+    async def list_all_tasks(
+        self, building_id: str, emergency_id: str
+    ) -> list[Task]: ...
+
+    @abstractmethod
     async def append_task_event(
         self, building_id: str, emergency_id: str, event: TaskEvent
     ) -> None: ...

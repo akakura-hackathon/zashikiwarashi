@@ -101,7 +101,7 @@ class TaskRespondResponse(BaseModel):
 
 
 class TaskReportRequest(BaseModel):
-    status: TaskStatus  # STARTED | COMPLETED | FAILED
+    status: TaskStatus  # IN_PROGRESS | COMPLETED | FAILED
     reason_code: ReasonCode | None = None
 
 

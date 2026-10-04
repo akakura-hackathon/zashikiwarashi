@@ -360,6 +360,19 @@ class FirestoreRepository(BaseRepository):
         docs = [d async for d in query.stream()]
         return [Task.model_validate(d.to_dict()) for d in docs]
 
+    async def list_all_tasks(
+        self, building_id: str, emergency_id: str
+    ) -> list[Task]:
+        query = (
+            self.db.collection("buildings")
+            .document(building_id)
+            .collection("emergencies")
+            .document(emergency_id)
+            .collection("tasks")
+        )
+        docs = [d async for d in query.stream()]
+        return [Task.model_validate(d.to_dict()) for d in docs]
+
     async def append_task_event(
         self, building_id: str, emergency_id: str, event: TaskEvent
     ) -> None:

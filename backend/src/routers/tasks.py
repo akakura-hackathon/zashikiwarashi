@@ -29,37 +29,51 @@ router = APIRouter(prefix="", tags=["tasks"])
 )
 async def get_issue_progress(
     issue_id: str,
+    emergency_id: str | None = None,
     user: CurrentUser = Depends(get_current_user),
     repo: BaseRepository = Depends(get_repository),
 ) -> IssueDetailResponse:
     """Fetch issue, associated tasks, and prioritized unconfirmed targets (API-03)."""
     building_id = user.building_id or "bld-01"
 
-    # 1. Lookup active emergency or find emergency containing this issue
-    emergency = await repo.get_active_emergency(building_id)
-    if not emergency:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active emergency found.",
-        )
-    emergency_id = emergency.emergency_id
+    # 1. Lookup emergency: use provided emergency_id, active emergency, or search by issue_id
+    target_emergency = None
+    if emergency_id:
+        target_emergency = await repo.get_emergency(building_id, emergency_id)
 
-    issue = await repo.get_issue(building_id, emergency_id, issue_id)
-    if not issue:
+    if not target_emergency:
+        target_emergency = await repo.get_active_emergency(building_id)
+
+    issue = None
+    if target_emergency:
+        issue = await repo.get_issue(building_id, target_emergency.emergency_id, issue_id)
+        if not issue:
+            # Fallback: search across all emergencies in building
+            fallback_em = await repo.find_emergency_by_issue(building_id, issue_id)
+            if fallback_em:
+                target_emergency = fallback_em
+                issue = await repo.get_issue(building_id, target_emergency.emergency_id, issue_id)
+    else:
+        target_emergency = await repo.find_emergency_by_issue(building_id, issue_id)
+        if target_emergency:
+            issue = await repo.get_issue(building_id, target_emergency.emergency_id, issue_id)
+
+    if not target_emergency or not issue:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Issue {issue_id} not found in emergency {emergency_id}.",
+            detail=f"Issue {issue_id} not found in any emergency.",
         )
+    actual_emergency_id = target_emergency.emergency_id
 
     # 2. Fetch tasks for issue
-    tasks = await repo.list_tasks_by_issue(building_id, emergency_id, issue_id)
+    tasks = await repo.list_tasks_by_issue(building_id, actual_emergency_id, issue_id)
 
     # If resident, they can only view tasks assigned to them (DESIGN §7.3.2)
     if user.role == "resident":
         tasks = [t for t in tasks if t.resident_id == (user.resident_id or user.uid)]
 
     # 3. Current states summary and mapping
-    current_states = await repo.list_current_states(building_id, emergency_id)
+    current_states = await repo.list_current_states(building_id, actual_emergency_id)
     summary: dict[str, int] = {}
     resident_states: dict[str, SafetyStatus] = {}
     for st in current_states:
@@ -70,7 +84,7 @@ async def get_issue_progress(
     priority_targets = []
     if user.role == "admin":
         triage_svc = TriageService(repo)
-        priority_targets = await triage_svc.calculate_priority_alerts(building_id, emergency_id)
+        priority_targets = await triage_svc.calculate_priority_alerts(building_id, actual_emergency_id)
 
     return IssueDetailResponse(
         issue=issue,

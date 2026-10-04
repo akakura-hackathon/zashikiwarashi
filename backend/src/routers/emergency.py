@@ -51,11 +51,14 @@ async def trigger_emergency(
     issue_id = f"iss-{uuid.uuid4().hex[:12]}"
     building_id = req.building_id or admin.building_id or "bld-01"
 
-    # 0. Ensure building & SC-3 seed data exist (150 units, residents H/I/J/K)
+    # 0. Ensure building & SC-3 seed data exist (50 units, residents H/I/J/K)
     building = await repo.get_building(building_id)
     if not building:
         from src.db.seed import seed_sc3_data
         await seed_sc3_data(repo, building_id=building_id)
+
+    # 0.5 Close any previous active emergencies in this building
+    await repo.close_all_active_emergencies(building_id)
 
     # 1. Create Emergency (E-008)
     emergency = Emergency(

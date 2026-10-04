@@ -219,10 +219,42 @@ class FirestoreRepository(BaseRepository):
             .document(building_id)
             .collection("emergencies")
             .where(filter=firestore.FieldFilter("status", "==", EmergencyStatus.ACTIVE.value))
-            .limit(1)
         )
         docs = [d async for d in query.stream()]
-        return Emergency.model_validate(docs[0].to_dict()) if docs else None
+        if not docs:
+            return None
+        emergencies = [Emergency.model_validate(d.to_dict()) for d in docs]
+        emergencies.sort(key=lambda e: e.triggered_at, reverse=True)
+        return emergencies[0]
+
+    async def close_all_active_emergencies(self, building_id: str) -> None:
+        query = (
+            self.db.collection("buildings")
+            .document(building_id)
+            .collection("emergencies")
+            .where(filter=firestore.FieldFilter("status", "==", EmergencyStatus.ACTIVE.value))
+        )
+        docs = [d async for d in query.stream()]
+        for d in docs:
+            em = Emergency.model_validate(d.to_dict())
+            em.status = EmergencyStatus.CLOSED
+            await self.update_emergency(em)
+
+    async def find_emergency_by_issue(
+        self, building_id: str, issue_id: str
+    ) -> Emergency | None:
+        emergencies_ref = (
+            self.db.collection("buildings").document(building_id).collection("emergencies")
+        )
+        docs = [d async for d in emergencies_ref.stream()]
+        for d in docs:
+            em_id = d.id
+            issue_doc = (
+                await emergencies_ref.document(em_id).collection("issues").document(issue_id).get()
+            )
+            if issue_doc.exists:
+                return Emergency.model_validate(d.to_dict())
+        return None
 
     async def update_emergency(self, emergency: Emergency) -> None:
         await self.create_emergency(emergency)

@@ -97,13 +97,13 @@ export function StudioWorkspace() {
   const refreshIssueDetail = useCallback(async () => {
     if (!issueId) return;
     try {
-      const detail = await getIssueDetail(user, issueId, activePersona);
+      const detail = await getIssueDetail(user, issueId, activePersona, emergencyId);
       setIssueDetail(detail);
       setTasks(detail.tasks);
     } catch (err) {
       console.error("Failed to fetch issue detail:", err);
     }
-  }, [issueId, user, activePersona]);
+  }, [issueId, user, activePersona, emergencyId]);
 
   useEffect(() => {
     if (issueId) {
@@ -149,9 +149,13 @@ export function StudioWorkspace() {
       addLog("全50戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
       // 発令直後の初期状態を取得
-      const detail = await getIssueDetail(user, res.issue_id, DEMO_PERSONAS[0]);
-      setIssueDetail(detail);
-      setTasks(detail.tasks);
+      try {
+        const detail = await getIssueDetail(user, res.issue_id, DEMO_PERSONAS[0], res.emergency_id);
+        setIssueDetail(detail);
+        setTasks(detail.tasks);
+      } catch (e) {
+        console.warn("Issue detail initial fetch warning:", e);
+      }
     } catch (err) {
       alert(`緊急モード発令に失敗しました: ${String(err)}`);
       addLog(`[ERROR] 発令失敗: ${String(err)}`);

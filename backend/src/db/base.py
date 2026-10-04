@@ -86,6 +86,14 @@ class BaseRepository(ABC):
     async def get_active_emergency(self, building_id: str) -> Emergency | None: ...
 
     @abstractmethod
+    async def close_all_active_emergencies(self, building_id: str) -> None: ...
+
+    @abstractmethod
+    async def find_emergency_by_issue(
+        self, building_id: str, issue_id: str
+    ) -> Emergency | None: ...
+
+    @abstractmethod
     async def update_emergency(self, emergency: Emergency) -> None: ...
 
     @abstractmethod

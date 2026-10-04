@@ -6,6 +6,7 @@ from src.db.base import BaseRepository
 from src.db.factory import get_repository
 from src.dependencies.auth import get_current_user
 from src.models.auth import CurrentUser
+from src.models.domain import SafetyStatus
 from src.models.schemas import (
     IssueDetailResponse,
     TaskDetailResponse,
@@ -57,11 +58,13 @@ async def get_issue_progress(
     if user.role == "resident":
         tasks = [t for t in tasks if t.resident_id == (user.resident_id or user.uid)]
 
-    # 3. Current states summary
+    # 3. Current states summary and mapping
     current_states = await repo.list_current_states(building_id, emergency_id)
     summary: dict[str, int] = {}
+    resident_states: dict[str, SafetyStatus] = {}
     for st in current_states:
         summary[st.safety_status] = summary.get(st.safety_status, 0) + 1
+        resident_states[st.resident_id] = st.safety_status
 
     # 4. Priority targets for management triage (computed on-the-fly, DESIGN §6.3 D)
     priority_targets = []
@@ -73,6 +76,7 @@ async def get_issue_progress(
         issue=issue,
         tasks=tasks,
         current_states_summary=summary,
+        resident_states=resident_states,
         priority_targets=priority_targets,
     )
 

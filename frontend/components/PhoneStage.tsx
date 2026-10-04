@@ -5,6 +5,7 @@ import {
   type Persona,
   type Task,
   type TaskDetailResponse,
+  type IssueDetailResponse,
   type AuditEvent,
   confirmPresence,
   respondToTask,
@@ -24,6 +25,7 @@ type PhoneStageProps = {
   activePersona: Persona;
   emergencyId: string | null;
   tasks: Task[];
+  issueDetail: IssueDetailResponse | null;
   onActionComplete: (logText: string) => Promise<void>;
   isLoading: boolean;
   user: User | null;
@@ -33,14 +35,18 @@ export function PhoneStage({
   activePersona,
   emergencyId,
   tasks,
+  issueDetail,
   onActionComplete,
   isLoading,
   user,
 }: PhoneStageProps) {
   const [activeTab, setActiveTab] = useState<"scenario" | "audit" | "push">("scenario");
-  const [mySafetyAnswered, setMySafetyAnswered] = useState<boolean>(false);
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+
+  // サーバー上の安否ステータスと直接同期（ペルソナ切り替え時に正しく反映）
+  const currentResidentSafety = issueDetail?.resident_states?.[activePersona.userId] ?? "UNKNOWN";
+  const isSafetyAnswered = currentResidentSafety === "SAFE" || currentResidentSafety === "NEED_HELP";
 
   // Push notification state
   const [pushStatus, setPushStatus] = useState<PushPermissionState>("default");
@@ -106,7 +112,6 @@ export function PhoneStage({
         },
         activePersona,
       );
-      setMySafetyAnswered(true);
       await onActionComplete(
         `[API-02] ${activePersona.name} が安否回答を送信しました (status=${safetyStatus})`,
       );
@@ -250,7 +255,7 @@ export function PhoneStage({
                 )}
 
                 {/* 2. 災害発令中 & 安否未回答 */}
-                {emergencyId && !mySafetyAnswered && (
+                {emergencyId && !isSafetyAnswered && (
                   <div className="zashiki-card highlight">
                     <div className="card-title">
                       <span>🚨 緊急安否確認 (API-02)</span>
@@ -284,7 +289,7 @@ export function PhoneStage({
                 )}
 
                 {/* 3. 安否回答済み & タスク打診なし */}
-                {emergencyId && mySafetyAnswered && !myTask && (
+                {emergencyId && isSafetyAnswered && !myTask && (
                   <div className="zashiki-card">
                     <div className="card-title">
                       <span>✅ 安否回答を受理しました</span>

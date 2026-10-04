@@ -73,6 +73,7 @@ export type IssueDetailResponse = {
   issue: Issue;
   tasks: Task[];
   current_states_summary: Record<string, number>;
+  resident_states?: Record<string, SafetyStatus>;
   priority_targets: PriorityAlertTarget[];
 };
 

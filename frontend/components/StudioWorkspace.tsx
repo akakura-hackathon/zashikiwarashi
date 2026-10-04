@@ -196,6 +196,7 @@ export function StudioWorkspace() {
         activePersona={activePersona}
         emergencyId={emergencyId}
         tasks={tasks}
+        issueDetail={issueDetail}
         onActionComplete={handleActionComplete}
         isLoading={isLoading}
         user={user}

@@ -68,6 +68,14 @@ class InMemoryRepository(BaseRepository):
     async def create_edge(self, edge: Edge) -> None:
         self.edges.setdefault(edge.building_id, {})[edge.edge_id] = edge
 
+    async def clear_building_data(self, building_id: str) -> None:
+        self.units.pop(building_id, None)
+        self.nodes.pop(building_id, None)
+        self.edges.pop(building_id, None)
+        self.residents.pop(building_id, None)
+        self.household_profiles.pop(building_id, None)
+        self.presence_contexts.pop(building_id, None)
+
     # --- Cat 2 ---
     async def create_resident(self, resident: Resident) -> None:
         target_bld = "bld-01"

@@ -13,6 +13,16 @@ import {
 import type { User } from "firebase/auth";
 import { FloorMap } from "./ui/FloorMap";
 
+export type TriageAiResult = {
+  tasks_created: number;
+  unresponsive_count: number;
+  likely_away_count: number;
+  assigned_residents: string[];
+  ai_reasoning: string;
+  agent_model: string;
+  policy_gate: string;
+};
+
 type CockpitPanelProps = {
   activePersona: Persona;
   onSelectPersona: (persona: Persona) => void;
@@ -30,6 +40,7 @@ type CockpitPanelProps = {
   onLogin: () => Promise<void>;
   onLogout: () => Promise<void>;
   onAddLog?: (text: string) => void;
+  triageAiResult?: TriageAiResult | null;
 };
 
 export function CockpitPanel({
@@ -49,6 +60,7 @@ export function CockpitPanel({
   onLogin,
   onLogout,
   onAddLog,
+  triageAiResult,
 }: CockpitPanelProps) {
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
@@ -246,6 +258,70 @@ export function CockpitPanel({
               </button>
             </div>
           )}
+
+          {/* Building Agent (AI) 推論結果カード */}
+          {triageAiResult && (
+            <div
+              style={{
+                marginTop: "10px",
+                padding: "10px 12px",
+                borderRadius: "10px",
+                backgroundColor: "rgba(37, 99, 235, 0.06)",
+                border: "1.5px solid var(--color-brand)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--color-brand)" }}>
+                  🤖 Building Agent AI推論結果
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    backgroundColor: "var(--color-brand)",
+                    color: "#FFFFFF",
+                    fontWeight: 600,
+                  }}
+                >
+                  {triageAiResult.agent_model}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.73rem", color: "var(--color-ink)", lineHeight: 1.45 }}>
+                {triageAiResult.ai_reasoning}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "6px",
+                  fontSize: "0.7rem",
+                  textAlign: "center",
+                  marginTop: "2px",
+                }}
+              >
+                <div style={{ backgroundColor: "#FFFFFF", padding: "4px 2px", borderRadius: "6px", border: "1px solid var(--cockpit-border)" }}>
+                  <div style={{ color: "var(--color-muted)", fontSize: "0.6rem" }}>未応答対象</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-danger)" }}>{triageAiResult.unresponsive_count} 戸</div>
+                </div>
+                <div style={{ backgroundColor: "#FFFFFF", padding: "4px 2px", borderRadius: "6px", border: "1px solid var(--cockpit-border)" }}>
+                  <div style={{ color: "var(--color-muted)", fontSize: "0.6rem" }}>カレンダー不在除外</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-warn)" }}>{triageAiResult.likely_away_count} 戸</div>
+                </div>
+                <div style={{ backgroundColor: "#FFFFFF", padding: "4px 2px", borderRadius: "6px", border: "1px solid var(--cockpit-border)" }}>
+                  <div style={{ color: "var(--color-muted)", fontSize: "0.6rem" }}>打診Task生成</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-brand)" }}>{triageAiResult.tasks_created} 件</div>
+                </div>
+              </div>
+              <div style={{ fontSize: "0.65rem", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                <span>🔒</span>
+                <span>{triageAiResult.policy_gate}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -407,7 +483,7 @@ export function CockpitPanel({
           </div>
         </div>
 
-        {/* 15階×10列 FloorMap (C24) */}
+        {/* 5階×10列 (全50戸) FloorMap (C24) */}
         <div style={{ marginTop: 8 }}>
           <FloorMap />
         </div>

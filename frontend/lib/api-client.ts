@@ -300,10 +300,14 @@ export function startTriage(
 ): Promise<{
   emergency_id: string;
   issue_id: string;
-  created_tasks_count: number;
-  tasks: Task[];
+  tasks_created: number;
+  triaged_units_count: number;
   unresponsive_count: number;
   likely_away_count: number;
+  assigned_residents: string[];
+  ai_reasoning: string;
+  agent_model: string;
+  policy_gate: string;
 }> {
   return apiFetch(user, `/emergencies/${emergencyId}/triage`, {
     method: "POST",

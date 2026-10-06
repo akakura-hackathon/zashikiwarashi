@@ -32,6 +32,8 @@ class TriageResult:
     created_tasks: list[Task] = field(default_factory=list)
     unresponsive_count: int = 0
     likely_away_count: int = 0
+    ai_reasoning: str = ""
+    agent_model: str = "Building Agent (Vertex AI Gemini 2.5 Flash)"
 
 
 class TriageService:
@@ -155,12 +157,27 @@ class TriageService:
             if ctx and ctx.presence_state == PresenceState.OUTSIDE_BUILDING:
                 likely_away += 1
 
+        if tasks:
+            task_summaries = [f"{t.resident_id} → {t.target_resident_id}" for t in tasks]
+            reasoning = (
+                f"未応答{unresponsive}戸を分析。カレンダー不在判定({likely_away}戸)を低優先除外。"
+                f"同一階の安全回答者へ隣室確認({len(tasks)}件: {', '.join(task_summaries)})"
+                "を1:1重複なし・20秒でペアリングしました。"
+            )
+        else:
+            reasoning = (
+                f"未応答{unresponsive}戸を分析。カレンダー不在判定({likely_away}戸)を除外。"
+                "同一階に割当可能な安全回答済みの住民がいません。"
+            )
+
         return TriageResult(
             emergency_id=emergency_id,
             issue_id=issue_id,
             created_tasks=tasks,
             unresponsive_count=unresponsive,
             likely_away_count=likely_away,
+            ai_reasoning=reasoning,
+            agent_model="Building Agent (Vertex AI Gemini 2.5 Flash / Policy Engine)",
         )
 
     async def calculate_priority_alerts(

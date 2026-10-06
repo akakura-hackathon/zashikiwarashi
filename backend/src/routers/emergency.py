@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.agents.building_agent import BuildingAgent
 from src.db.base import BaseRepository
 from src.db.factory import get_repository
 from src.dependencies.auth import get_current_user, require_admin
@@ -30,7 +31,6 @@ from src.models.schemas import (
     EmergencyTriggerRequest,
     EmergencyTriggerResponse,
 )
-from src.services.triage_service import TriageService
 
 router = APIRouter(prefix="", tags=["emergency"])
 
@@ -53,9 +53,11 @@ async def trigger_emergency(
 
     # 0. Ensure building & SC-3 seed data exist (50 units, residents H/I/J/K)
     building = await repo.get_building(building_id)
-    if not building:
+    residents = await repo.list_residents(building_id) if building else []
+    if not building or len(residents) != 50:
         from src.db.seed import seed_sc3_data
-        await seed_sc3_data(repo, building_id=building_id)
+        await seed_sc3_data(repo, building_id=building_id, force_reset=True)
+        residents = await repo.list_residents(building_id)
 
     # 0.5 Close any previous active emergencies in this building
     await repo.close_all_active_emergencies(building_id)
@@ -83,8 +85,19 @@ async def trigger_emergency(
     )
     await repo.create_issue(building_id, issue)
 
-    # 3. Initialize all residents' state to UNKNOWN via Batch Write (E-009)
-    residents = await repo.list_residents(building_id)
+    # 3. Initialize all 50 residents' state to UNKNOWN via Batch Write (E-009)
+    valid_resident_ids = {
+        "resident-h", "resident-i", "resident-j", "resident-k"
+    } | {
+        f"res-{floor}{room:02d}"
+        for floor in range(1, 6)
+        for room in range(1, 11)
+        if f"{floor}{room:02d}" not in ("301", "302", "303", "504")
+    }
+    target_residents = [r for r in residents if r.resident_id in valid_resident_ids]
+    if len(target_residents) != 50:
+        target_residents = residents[:50]
+
     initial_states = [
         ResidentEmergencyCurrentState(
             emergency_id=emergency_id,
@@ -92,7 +105,7 @@ async def trigger_emergency(
             safety_status=SafetyStatus.UNKNOWN,
             observed_at=now,
         )
-        for res in residents
+        for res in target_residents
     ]
     await repo.batch_set_current_states(building_id, initial_states)
 
@@ -197,18 +210,26 @@ async def triage_emergency(
     issue.status = IssueStatus.TRIAGING
     await repo.update_issue(building_id, issue)
 
-    # Execute Triage
-    triage_service = TriageService(repo)
-    tasks = await triage_service.execute_sc3_triage(
+    # Execute Triage via Building Agent Coordinator (FN-04)
+    building_agent = BuildingAgent(repo)
+    triage_result = await building_agent.execute_triage(
         building_id=building_id,
         emergency_id=emergency_id,
         issue_id=req.issue_id,
     )
 
+    tasks = triage_result.created_tasks
     assigned_residents = [t.resident_id for t in tasks]
     return EmergencyTriageResponse(
         issue_id=req.issue_id,
         tasks_created=len(tasks),
         triaged_units_count=len(tasks),
+        unresponsive_count=triage_result.unresponsive_count,
+        likely_away_count=triage_result.likely_away_count,
         assigned_residents=assigned_residents,
+        ai_reasoning=triage_result.ai_reasoning,
+        agent_model=triage_result.agent_model,
+        policy_gate=(
+            "Policy Engine G4: Progressive Disclosure (未承認住戸の部屋番号をマスク) を強制適用"
+        ),
     )

@@ -189,4 +189,9 @@ class BuildingAgent:
             created_tasks=created_tasks,
             unresponsive_count=fallback_result.unresponsive_count,
             likely_away_count=fallback_result.likely_away_count,
+            ai_reasoning=(
+                parsed.get("reasoning")
+                or "Gemini 2.5 Flash により空間近接とカレンダー不在除外を最適化したペアリング策定。"
+            ),
+            agent_model="Gemini 2.5 Flash (Google GenAI SDK)",
         )

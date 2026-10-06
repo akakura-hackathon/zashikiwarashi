@@ -10,7 +10,7 @@ import {
   GoogleAuthProvider,
   type User,
 } from "firebase/auth";
-import { CockpitPanel } from "./CockpitPanel";
+import { CockpitPanel, type TriageAiResult } from "./CockpitPanel";
 import { PhoneStage } from "./PhoneStage";
 import {
   type Persona,
@@ -33,6 +33,7 @@ export function StudioWorkspace() {
   const [issueId, setIssueId] = useState<string | null>(null);
   const [issueDetail, setIssueDetail] = useState<IssueDetailResponse | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [triageAiResult, setTriageAiResult] = useState<TriageAiResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<{ time: string; text: string }>>([
     {
@@ -137,6 +138,7 @@ export function StudioWorkspace() {
     };
 
     setIsLoading(true);
+    setTriageAiResult(null);
     try {
       const res = await triggerEmergency(user, {
         building_id: "bld-01",
@@ -171,10 +173,13 @@ export function StudioWorkspace() {
     try {
       addLog("[API-08] 安否確認を締め切り、Building Agent によるルールベース/LLM トリアージを開始します...");
       const res = await startTriage(user, emergencyId, issueId);
+      setTriageAiResult(res);
+      addLog(`🤖 [Building Agent AI推論] モデル: ${res.agent_model}`);
+      addLog(`💡 [AI推論判断根拠] ${res.ai_reasoning}`);
       addLog(
-        `[API-08] トリアージ完了: 未応答住戸 ${res.unresponsive_count}件, カレンダー外出除外 ${res.likely_away_count}件, 隣室確認Task作成 ${res.created_tasks_count}件`,
+        `[API-08] トリアージ完了: 未応答住戸 ${res.unresponsive_count}件, カレンダー外出除外 ${res.likely_away_count}件, 隣室確認Task作成 ${res.tasks_created}件`,
       );
-      addLog("Policy Engine: Progressive Disclosure (未承認住戸の部屋番号をマスク) を適用。");
+      addLog(`🛡️ [Policy Engine] ${res.policy_gate}`);
 
       // 詳細再取得
       await refreshIssueDetail();
@@ -212,6 +217,7 @@ export function StudioWorkspace() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         onAddLog={addLog}
+        triageAiResult={triageAiResult}
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}

@@ -30,10 +30,15 @@ from src.models.domain import (
 )
 
 
-async def seed_sc3_data(repo: BaseRepository, building_id: str = "bld-01") -> None:
+async def seed_sc3_data(
+    repo: BaseRepository, building_id: str = "bld-01", force_reset: bool = False
+) -> None:
     """Populate repository with deterministic SC-3 seed data."""
     now = datetime.now(UTC)
     expires_24h = now + timedelta(hours=24)
+
+    if force_reset:
+        await repo.clear_building_data(building_id)
 
     # 1. Building (E-001)
     building = Building(

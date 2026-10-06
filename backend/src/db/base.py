@@ -45,6 +45,9 @@ class BaseRepository(ABC):
     @abstractmethod
     async def create_edge(self, edge: Edge) -> None: ...
 
+    @abstractmethod
+    async def clear_building_data(self, building_id: str) -> None: ...
+
     # --- Cat 2: Residents & Households ---
     @abstractmethod
     async def create_resident(self, resident: Resident) -> None: ...

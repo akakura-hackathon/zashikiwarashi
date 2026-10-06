@@ -143,4 +143,11 @@ class EmergencyTriageResponse(BaseModel):
     issue_id: str
     tasks_created: int
     triaged_units_count: int
+    unresponsive_count: int = 0
+    likely_away_count: int = 0
     assigned_residents: list[str] = Field(default_factory=list)
+    ai_reasoning: str = ""
+    agent_model: str = "Building Agent (Gemini 2.5 Flash)"
+    policy_gate: str = (
+        "Policy Engine G4: Progressive Disclosure (未承認住戸の部屋番号をマスク) を強制適用"
+    )

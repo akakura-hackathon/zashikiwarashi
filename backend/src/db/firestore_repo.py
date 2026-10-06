@@ -112,6 +112,22 @@ class FirestoreRepository(BaseRepository):
         )
         await doc_ref.set(edge.model_dump(mode="json"))
 
+    async def clear_building_data(self, building_id: str) -> None:
+        subcollections = [
+            "units",
+            "nodes",
+            "edges",
+            "residents",
+            "household_profiles",
+            "presence_contexts",
+        ]
+        bld_ref = self.db.collection("buildings").document(building_id)
+        for col_name in subcollections:
+            col_ref = bld_ref.collection(col_name)
+            docs = [d async for d in col_ref.stream()]
+            for d in docs:
+                await col_ref.document(d.id).delete()
+
     # --- Cat 2 ---
     async def create_resident(self, resident: Resident) -> None:
         doc_ref = (

@@ -141,14 +141,29 @@ export function LoginPanel() {
 
       {loading ? (
         <div className="guardian-box">
-          <div className="guardian-icon">🕯️</div>
+          <img
+            src="/icons/icon-192.png"
+            alt="座敷わらし"
+            style={{ width: 64, height: 64, borderRadius: 14, margin: "0 auto 8px", display: "block" }}
+          />
           <p className="guardian-sub">起動中...</p>
         </div>
       ) : !user ? (
         /* 未ログイン時の画面 */
         <div className="zashiki-card">
           <div className="guardian-box">
-            <div className="guardian-icon">🏮</div>
+            <img
+              src="/icons/icon-192.png"
+              alt="座敷わらし"
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 16,
+                margin: "0 auto 12px",
+                display: "block",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              }}
+            />
             <div className="guardian-text">静かに佇む見守り</div>
             <p className="guardian-sub">
               平時の日常入力は不要です。緊急時のみ、住民同士の助け合いを安全に繋ぎます。
@@ -184,7 +199,18 @@ export function LoginPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {/* 見守りステータスカード */}
           <div className="guardian-box">
-            <div className="guardian-icon">🕯️</div>
+            <img
+              src="/icons/icon-192.png"
+              alt="座敷わらし"
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 14,
+                margin: "0 auto 8px",
+                display: "block",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              }}
+            />
             <div className="guardian-text">静かに見守っています</div>
             <p className="guardian-sub">棟内は平常です。平時の手入力は不要です。</p>
           </div>

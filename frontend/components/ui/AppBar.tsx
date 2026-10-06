@@ -66,22 +66,18 @@ export const AppBar: React.FC<AppBarProps> = ({
           </button>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
+            <img
+              src="/icons/icon-192.png"
+              alt="座敷わらし"
               style={{
-                width: 24,
-                height: 24,
+                width: 26,
+                height: 26,
                 borderRadius: 6,
-                backgroundColor: "var(--color-brand)",
-                color: "#FFFFFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                fontSize: 14,
+                objectFit: "cover",
+                display: "block",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12)",
               }}
-            >
-              ざ
-            </div>
+            />
             <span
               style={{
                 fontWeight: 900,

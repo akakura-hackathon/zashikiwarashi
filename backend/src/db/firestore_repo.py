@@ -17,6 +17,7 @@ Adheres strictly to the collection path hierarchy specified in docs/DESIGN.md §
       audit_events/{audit_event_id}
 """
 
+import asyncio
 from typing import Any
 
 from google.cloud import firestore
@@ -125,8 +126,9 @@ class FirestoreRepository(BaseRepository):
         for col_name in subcollections:
             col_ref = bld_ref.collection(col_name)
             docs = [d async for d in col_ref.stream()]
-            for d in docs:
-                await col_ref.document(d.id).delete()
+            if docs:
+                # Concurrent deletion
+                await asyncio.gather(*[col_ref.document(d.id).delete() for d in docs])
 
     # --- Cat 2 ---
     async def create_resident(self, resident: Resident) -> None:

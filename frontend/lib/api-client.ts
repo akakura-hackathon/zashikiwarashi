@@ -199,6 +199,21 @@ export async function apiFetch<T>(
   return (await response.json()) as T;
 }
 
+// 管理用: Firestore データベース完全初期化 & 50戸再シード (不要データ全削除)
+export function resetDatabase(
+  user: User | null,
+): Promise<{
+  status: string;
+  building_id: string;
+  units_count: number;
+  residents_count: number;
+  message: string;
+}> {
+  return apiFetch(user, "/admin/reset-database", {
+    method: "POST",
+  }, DEMO_PERSONAS[0]); // 管理人権限で実行
+}
+
 // API-01: 緊急モード発令 (Admin)
 export function triggerEmergency(
   user: User | null,

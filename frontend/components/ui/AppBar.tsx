@@ -68,7 +68,7 @@ export const AppBar: React.FC<AppBarProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <img
               src="/icons/icon-192.png"
-              alt="座敷わらし"
+              alt="Zashikiwarashi"
               style={{
                 width: 26,
                 height: 26,
@@ -82,11 +82,11 @@ export const AppBar: React.FC<AppBarProps> = ({
               style={{
                 fontWeight: 900,
                 fontSize: 16,
-                letterSpacing: "0.04em",
+                letterSpacing: "0.02em",
                 color: "var(--color-ink)",
               }}
             >
-              ZASHIKI
+              Zashikiwarashi
             </span>
           </div>
         )}

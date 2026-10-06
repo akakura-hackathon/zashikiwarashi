@@ -19,7 +19,7 @@ interface LockNotificationProps {
 export const LockNotification: React.FC<LockNotificationProps> = ({
   timeStr = "8:03",
   dateStr = "10月4日 土曜日",
-  sender = "ZASHIKI",
+  sender = "Zashikiwarashi",
   title,
   message,
   timeRemaining,
@@ -99,7 +99,7 @@ export const LockNotification: React.FC<LockNotificationProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <img
               src="/icons/icon-192.png"
-              alt="座敷わらし"
+              alt="Zashikiwarashi"
               style={{
                 width: 22,
                 height: 22,

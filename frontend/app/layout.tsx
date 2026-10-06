@@ -10,13 +10,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Zashikiwarashi — マンション互助",
+  title: "Zashikiwarashi",
   description: "マンション内の潜在的な助け合いを、緊急時だけ安全に利用可能にする Multi-Agent サービス",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "座敷わらし",
+    title: "Zashikiwarashi",
   },
   icons: {
     icon: "/icons/icon-192.png",

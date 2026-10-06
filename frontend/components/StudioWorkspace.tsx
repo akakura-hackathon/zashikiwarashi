@@ -37,7 +37,7 @@ export function StudioWorkspace() {
   const [logs, setLogs] = useState<Array<{ time: string; text: string }>>([
     {
       time: new Date().toLocaleTimeString(),
-      text: "座敷わらし Studio が初期化されました。平常見守りモード待機中。",
+      text: "Zashikiwarashi Studio が初期化されました。平常見守りモード待機中。",
     },
   ]);
 

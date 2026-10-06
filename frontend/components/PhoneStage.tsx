@@ -443,7 +443,7 @@ export function PhoneStage({
                         </div>
 
                         <div style={{ marginTop: "auto", paddingTop: 16 }}>
-                          <PrivacyNote note="ZASHIKIは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
+                          <PrivacyNote note="Zashikiwarashiは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
                         </div>
                       </div>
                     )}
@@ -800,54 +800,10 @@ export function PhoneStage({
                     {/* Tab 1: P_R1 ホーム（平時マイページ） */}
                     {currentTab === "home" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <img
-                            src="/icons/icon-192.png"
-                            alt="座敷わらし"
-                            style={{
-                              width: 54,
-                              height: 54,
-                              borderRadius: 14,
-                              objectFit: "cover",
-                              flexShrink: 0,
-                              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                            }}
-                          />
-                          <div>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                color: "var(--color-brand)",
-                                letterSpacing: "0.08em",
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              Zashiki Guardian
-                            </span>
-                            <h2
-                              style={{
-                                fontSize: 17,
-                                fontWeight: 900,
-                                color: "var(--color-ink)",
-                                margin: "2px 0 0",
-                                lineHeight: 1.3,
-                              }}
-                            >
-                              平常時 何もしなくて大丈夫です
-                            </h2>
-                          </div>
-                        </div>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            color: "var(--color-muted)",
-                            margin: "-6px 0 0",
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          緊急時のみ、必要な確認やお願いが届きます。
-                        </p>
+                        <PageTitle
+                          title="平常時 何もしなくて大丈夫です"
+                          subtitle="緊急時のみ、必要な確認やお願いが届きます。"
+                        />
 
                         {/* Status Card */}
                         <div
@@ -895,7 +851,7 @@ export function PhoneStage({
                           }}
                         >
                           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                            いま座敷わらしが知っていること
+                            いま Zashikiwarashi が知っていること
                           </span>
                           <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
                             • 在館推定：在宅の可能性が高い<br />
@@ -905,7 +861,7 @@ export function PhoneStage({
                         </div>
 
                         <div style={{ marginTop: "auto", paddingTop: 16 }}>
-                          <PrivacyNote note="ZASHIKIは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
+                          <PrivacyNote note="Zashikiwarashiは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
                         </div>
                       </div>
                     )}

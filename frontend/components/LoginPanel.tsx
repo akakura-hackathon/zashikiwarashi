@@ -143,7 +143,7 @@ export function LoginPanel() {
         <div className="guardian-box">
           <img
             src="/icons/icon-192.png"
-            alt="座敷わらし"
+            alt="Zashikiwarashi"
             style={{ width: 64, height: 64, borderRadius: 14, margin: "0 auto 8px", display: "block" }}
           />
           <p className="guardian-sub">起動中...</p>
@@ -154,7 +154,7 @@ export function LoginPanel() {
           <div className="guardian-box">
             <img
               src="/icons/icon-192.png"
-              alt="座敷わらし"
+              alt="Zashikiwarashi"
               style={{
                 width: 72,
                 height: 72,
@@ -201,7 +201,7 @@ export function LoginPanel() {
           <div className="guardian-box">
             <img
               src="/icons/icon-192.png"
-              alt="座敷わらし"
+              alt="Zashikiwarashi"
               style={{
                 width: 60,
                 height: 60,

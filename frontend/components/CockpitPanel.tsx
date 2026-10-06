@@ -62,8 +62,24 @@ export function CockpitPanel({
     <aside className="cockpit-sidebar">
       {/* 1. Header */}
       <div className="cockpit-header">
-        <span className="cockpit-badge">ZASHIKI STUDIO COCKPIT</span>
-        <h1 className="cockpit-title">座敷わらし検証卓</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <img
+            src="/icons/icon-192.png"
+            alt="座敷わらし"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              objectFit: "cover",
+              flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            }}
+          />
+          <div>
+            <span className="cockpit-badge" style={{ marginBottom: 2 }}>ZASHIKI STUDIO COCKPIT</span>
+            <h1 className="cockpit-title" style={{ margin: 0, fontSize: "1.25rem" }}>座敷わらし検証卓</h1>
+          </div>
+        </div>
         <p className="cockpit-desc">
           一般住民のスマホ画面（右）と、建物全体Multi-Agent（トリアージ・Policy Engine）の動作をリアルタイム検証します。
         </p>

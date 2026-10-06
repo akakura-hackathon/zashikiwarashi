@@ -97,22 +97,18 @@ export const LockNotification: React.FC<LockNotificationProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
+            <img
+              src="/icons/icon-192.png"
+              alt="座敷わらし"
               style={{
                 width: 22,
                 height: 22,
-                borderRadius: 6,
-                backgroundColor: "var(--color-brand)",
-                color: "#FFFFFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                fontSize: 12,
+                borderRadius: 5,
+                objectFit: "cover",
+                display: "block",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
               }}
-            >
-              ざ
-            </div>
+            />
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-lock-text-3)" }}>
               {sender}
             </span>

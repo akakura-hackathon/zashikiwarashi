@@ -21,6 +21,7 @@ import {
   triggerEmergency,
   startTriage,
   getIssueDetail,
+  resetDatabase,
   setActivePersona as setGlobalActivePersona,
 } from "@/lib/api-client";
 import { getFirebaseApp } from "@/lib/firebase";
@@ -197,6 +198,27 @@ export function StudioWorkspace() {
     await refreshIssueDetail();
   };
 
+  // 4. データベース完全初期化（不要データ全削除 & 50戸再シード）
+  const handleResetDatabase = async () => {
+    if (!confirm("Firestoreの古い住戸・住民データを全削除し、厳密な50戸（SC-3仕様）に再シードします。よろしいですか？")) return;
+    setIsLoading(true);
+    try {
+      addLog("🧹 Firestore上の不要データを全削除し、50戸（101〜510）に再シード中...");
+      const res = await resetDatabase(user);
+      addLog(`✅ ${res.message} (住戸: ${res.units_count}戸, 住民: ${res.residents_count}名)`);
+      setEmergencyId(null);
+      setIssueId(null);
+      setIssueDetail(null);
+      setTasks([]);
+      setTriageAiResult(null);
+    } catch (err) {
+      alert(`初期化に失敗しました: ${String(err)}`);
+      addLog(`❌ [ERROR] 初期化失敗: ${String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="studio-layout">
       {/* 1. 左側：シミュレーター操作卓（検証者・審査員視点） */}
@@ -218,6 +240,7 @@ export function StudioWorkspace() {
         onLogout={handleLogout}
         onAddLog={addLog}
         triageAiResult={triageAiResult}
+        onResetDatabase={handleResetDatabase}
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}

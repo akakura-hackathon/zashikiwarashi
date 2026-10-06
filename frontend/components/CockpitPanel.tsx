@@ -41,6 +41,7 @@ type CockpitPanelProps = {
   onLogout: () => Promise<void>;
   onAddLog?: (text: string) => void;
   triageAiResult?: TriageAiResult | null;
+  onResetDatabase?: () => Promise<void>;
 };
 
 export function CockpitPanel({
@@ -61,6 +62,7 @@ export function CockpitPanel({
   onLogout,
   onAddLog,
   triageAiResult,
+  onResetDatabase,
 }: CockpitPanelProps) {
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
@@ -196,8 +198,9 @@ export function CockpitPanel({
 
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {!emergencyId ? (
-            <button
-              onClick={onTriggerEmergency}
+            <>
+              <button
+                onClick={onTriggerEmergency}
               disabled={isLoading}
               style={{
                 width: "100%",
@@ -220,6 +223,31 @@ export function CockpitPanel({
               {selectedEmergencyType === "FIRE" && "🔥 火災警報鳴動・発令 (API-01)"}
               {selectedEmergencyType === "FLOOD" && "🌊 浸水警戒・洪水発令 (API-01)"}
             </button>
+            {onResetDatabase && (
+              <button
+                type="button"
+                onClick={onResetDatabase}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: "#FFFFFF",
+                  color: "var(--color-ink)",
+                  border: "1px dashed var(--color-ink)",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                🧹 Firestore 50戸初期化 (不要データ全削除)
+              </button>
+            )}
+          </>
           ) : (
             <div style={{ display: "flex", gap: "8px" }}>
               <button

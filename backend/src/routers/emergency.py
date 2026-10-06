@@ -36,6 +36,31 @@ router = APIRouter(prefix="", tags=["emergency"])
 
 
 @router.post(
+    "/admin/reset-database",
+    summary="Firestore データベースの完全クリーンアップ & 50戸再シード（管理人専用）",
+)
+async def reset_database(
+    admin: CurrentUser = Depends(require_admin),
+    repo: BaseRepository = Depends(get_repository),
+) -> dict:
+    """Clear all old documents and reseed strictly 50 units SC-3 dataset."""
+    from src.db.seed import seed_sc3_data
+
+    building_id = admin.building_id or "bld-01"
+    await repo.clear_building_data(building_id)
+    await seed_sc3_data(repo, building_id=building_id, force_reset=True)
+    units = await repo.list_units(building_id)
+    residents = await repo.list_residents(building_id)
+    return {
+        "status": "success",
+        "building_id": building_id,
+        "units_count": len(units),
+        "residents_count": len(residents),
+        "message": "Firestoreの不要データを全削除し、厳密な50戸（SC-3仕様）に再シードしました。",
+    }
+
+
+@router.post(
     "/emergency/trigger",
     response_model=EmergencyTriggerResponse,
     summary="API-01: 緊急モード発令（管理人専用）",

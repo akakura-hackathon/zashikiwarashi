@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   getAuth,
   onAuthStateChanged,
   signInWithPopup,
-  signInAnonymously,
   signOut,
   GoogleAuthProvider,
   type User,
@@ -14,6 +13,7 @@ import { CockpitPanel, type TriageAiResult } from "./CockpitPanel";
 import { PhoneStage } from "./PhoneStage";
 import {
   type Persona,
+  type SafetyConfirmation,
   type IssueDetailResponse,
   type Task,
   type EmergencyType,
@@ -23,6 +23,7 @@ import {
   getIssueDetail,
   setActivePersona as setGlobalActivePersona,
 } from "@/lib/api-client";
+import { applySafetyConfirmation } from "@/lib/emergency-view";
 import { getFirebaseApp } from "@/lib/firebase";
 
 export function StudioWorkspace() {
@@ -47,23 +48,18 @@ export function StudioWorkspace() {
     setLogs((prev) => [{ time, text }, ...prev].slice(0, 30));
   }, []);
 
-  // Firebase Auth 初期化 & 匿名自動認証（API Gateway 通過用のトークン確保）
+  // FN-02: Both consoles require an explicit, non-anonymous login.
   useEffect(() => {
     const auth = getAuth(getFirebaseApp());
-    const unsubscribe = onAuthStateChanged(auth, async (current) => {
-      setUser(current);
-      if (current) {
-        addLog(`認証セッション確立: ${current.email || "匿名デモユーザー"}`);
+    return onAuthStateChanged(auth, (current) => {
+      setUser(current && !current.isAnonymous ? current : null);
+      if (current && !current.isAnonymous) {
+        addLog(`認証セッション確立: ${current.email || current.uid}`);
       } else {
-        // ユーザーが未認証の場合、匿名ログインを試みて本番 API Gateway 用のトークンを自動発行
-        try {
-          await signInAnonymously(auth);
-        } catch {
-          addLog("※ API Gateway 通過には Google ログインが必要です。");
-        }
+        setIssueDetail(null);
+        setTasks([]);
       }
     });
-    return () => unsubscribe();
   }, [addLog]);
 
   const handleLogin = async () => {
@@ -94,23 +90,41 @@ export function StudioWorkspace() {
     addLog(`実機ペルソナを「${persona.name} (${persona.roomNumber}号室)」に切り替えました。`);
   };
 
+  const refreshVersion = useRef({ version: 0 });
+  const currentScope = useRef({ issueId, emergencyId, uid: user?.uid });
+  currentScope.current = { issueId, emergencyId, uid: user?.uid };
+
   // Issue 詳細同期 (API-03)
   const refreshIssueDetail = useCallback(async () => {
-    if (!issueId) return;
+    if (!issueId || !user || currentScope.current.issueId !== issueId || currentScope.current.uid !== user.uid) return;
+    const version = ++refreshVersion.current.version;
     try {
-      const detail = await getIssueDetail(user, issueId, activePersona, emergencyId);
+      const detail = await getIssueDetail(user, issueId, DEMO_PERSONAS[0], emergencyId);
+      if (version !== refreshVersion.current.version || currentScope.current.issueId !== issueId || currentScope.current.uid !== user.uid) return;
       setIssueDetail(detail);
       setTasks(detail.tasks);
     } catch (err) {
       console.error("Failed to fetch issue detail:", err);
     }
-  }, [issueId, user, activePersona, emergencyId]);
+  }, [issueId, user, emergencyId]);
 
   useEffect(() => {
-    if (issueId) {
-      refreshIssueDetail();
-    }
-  }, [issueId, refreshIssueDetail]);
+    if (!issueId || !user) return;
+    const refreshState = refreshVersion.current;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // FN-08: A slow API must finish before scheduling the next poll.
+    const poll = async () => {
+      await refreshIssueDetail();
+      if (!stopped) timer = setTimeout(() => void poll(), 5000);
+    };
+    void poll();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      refreshState.version++;
+    };
+  }, [issueId, user, refreshIssueDetail]);
 
   // 1. 災害発生・緊急モード発令 (API-01)
   const handleTriggerEmergency = async () => {
@@ -150,14 +164,11 @@ export function StudioWorkspace() {
       addLog(`[API-01] ${disasterLabels[selectedEmergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
       addLog("全50戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
-      // 発令直後の初期状態を取得
-      try {
-        const detail = await getIssueDetail(user, res.issue_id, DEMO_PERSONAS[0], res.emergency_id);
-        setIssueDetail(detail);
-        setTasks(detail.tasks);
-      } catch (e) {
-        console.warn("Issue detail initial fetch warning:", e);
-      }
+      // FN-08: The issue effect owns synchronization; discard the previous emergency view.
+      refreshVersion.current.version++;
+      setIssueDetail(null);
+      setTasks([]);
+
     } catch (err) {
       alert(`緊急モード発令に失敗しました: ${String(err)}`);
       addLog(`[ERROR] 発令失敗: ${String(err)}`);
@@ -192,8 +203,15 @@ export function StudioWorkspace() {
   };
 
   // 3. アクション完了コールバック
-  const handleActionComplete = async (logText: string) => {
+  const handleActionComplete = async (logText: string, answer?: SafetyConfirmation) => {
     addLog(logText);
+    if (answer && (answer.emergency_id !== currentScope.current.emergencyId || user?.uid !== currentScope.current.uid)) return;
+    if (answer) {
+      // FN-08: Invalidate pre-answer reads and retain the acknowledged state on refresh failure.
+      refreshVersion.current.version++;
+      const persona = DEMO_PERSONAS.find((p) => p.userId === answer.resident_id);
+      if (persona) setIssueDetail((current) => applySafetyConfirmation(current, answer, persona.roomNumber));
+    }
     await refreshIssueDetail();
   };
 
@@ -221,7 +239,8 @@ export function StudioWorkspace() {
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}
-      <PhoneStage
+      {user ? <PhoneStage
+        key={`${user.uid}:${activePersona.userId}:${emergencyId ?? "normal"}`}
         activePersona={activePersona}
         emergencyId={emergencyId}
         emergencyType={selectedEmergencyType}
@@ -230,7 +249,15 @@ export function StudioWorkspace() {
         onActionComplete={handleActionComplete}
         isLoading={isLoading}
         user={user}
-      />
+      /> : (
+        <main className="device-stage">
+          <div className="zashiki-card">
+            <h2>住民ログイン</h2>
+            <p>安否回答・協力依頼の確認にはログインが必要です。</p>
+            <button type="button" className="btn-google" onClick={handleLogin}>Google アカウントでログイン</button>
+          </div>
+        </main>
+      )}
     </div>
   );
 }

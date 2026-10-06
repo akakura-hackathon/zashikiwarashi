@@ -132,3 +132,48 @@ def test_api_sc3_end_to_end_flow():
     audit_events = res_audit.json()["audit_events"]
     assert len(audit_events) >= 1
     assert "unit_room_number:302" in audit_events[0]["data_disclosed"]
+
+
+def test_fn08_room_map_tracks_resident_answers_and_emergency_reset():
+    client = TestClient(app)
+    admin = {"X-User-Id": "admin-01", "X-User-Role": "admin"}
+    resident = {"X-User-Id": "resident-i", "X-User-Role": "resident"}
+    trigger = client.post(
+        "/emergency/trigger", headers=admin, json={"building_id": "bld-01"}
+    ).json()
+    path = f"/issues/{trigger['issue_id']}"
+    initial = client.get(path, headers=admin).json()
+    assert len(initial["room_states"]) == 50
+    assert set(initial["room_states"].values()) == {"UNKNOWN"}
+    assert initial["issue"]["created_at"]
+    for safety in ("SAFE", "NEED_HELP", "SAFE"):
+        response = client.post(
+            "/emergency/confirm-presence", headers=resident,
+            json={"emergency_id": trigger["emergency_id"], "safety_status": safety},
+        )
+        assert response.status_code == 200
+        detail = client.get(path, headers=admin).json()
+        assert detail["room_states"]["301"] == safety
+        assert detail["resident_states"]["resident-i"] == safety
+        assert detail["current_states_summary"][safety] == 1
+        assert detail["current_states_summary"]["UNKNOWN"] == 49
+    assert client.get(path, headers=resident).json()["room_states"] == {}
+    new = client.post("/emergency/trigger", headers=admin, json={"building_id": "bld-01"}).json()
+    reset = client.get(f"/issues/{new['issue_id']}", headers=admin).json()
+    assert set(reset["room_states"].values()) == {"UNKNOWN"}
+
+
+def test_fn02_anonymous_gateway_session_cannot_use_demo_personas():
+    import base64
+    import json
+
+    claims = {"sub": "anonymous-user", "firebase": {"sign_in_provider": "anonymous"}}
+    token = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode()
+    client = TestClient(app)
+    for persona in ("admin", "resident"):
+        response = client.post(
+            "/emergency/confirm-presence",
+            headers={"X-Apigateway-Api-Userinfo": token, "X-User-Role": persona},
+            json={"emergency_id": "em-demo", "safety_status": "SAFE"},
+        )
+        assert response.status_code == 401

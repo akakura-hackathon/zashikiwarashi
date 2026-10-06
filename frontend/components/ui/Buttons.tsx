@@ -141,8 +141,9 @@ export const ChoiceButton: React.FC<{
   icon?: React.ReactNode;
   accentColor?: "brand" | "danger" | "ink";
   selected?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
-}> = ({ title, description, icon, accentColor = "ink", selected, onClick }) => {
+}> = ({ title, description, icon, accentColor = "ink", selected, disabled, onClick }) => {
   const getBorderColor = () => {
     if (selected) {
       if (accentColor === "danger") return "var(--color-danger)";
@@ -165,6 +166,7 @@ export const ChoiceButton: React.FC<{
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
         width: "100%",
         minHeight: 88,
@@ -175,7 +177,8 @@ export const ChoiceButton: React.FC<{
         display: "flex",
         alignItems: "flex-start",
         gap: 16,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
         textAlign: "left",
         transition: "all 0.15s ease",
       }}

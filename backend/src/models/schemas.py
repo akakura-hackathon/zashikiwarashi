@@ -81,6 +81,7 @@ class IssueDetailResponse(BaseModel):
     tasks: list[Task]
     current_states_summary: dict[str, int] = Field(default_factory=dict)
     resident_states: dict[str, SafetyStatus] = Field(default_factory=dict)
+    room_states: dict[str, SafetyStatus] = Field(default_factory=dict)
     priority_targets: list[PriorityAlertTarget] = Field(default_factory=list)
 
 

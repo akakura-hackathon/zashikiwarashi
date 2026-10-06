@@ -55,12 +55,13 @@ export type Issue = {
   title: string;
   description: string;
   status: string;
+  created_at: string;
 };
 
 export type Task = {
   task_id: string;
   issue_id: string;
-  assigned_resident_id: string;
+  resident_id: string;
   target_resident_id?: string | null;
   task_type: string;
   status: TaskStatus;
@@ -69,11 +70,19 @@ export type Task = {
   is_disclosed?: boolean;
 };
 
+export type SafetyConfirmation = {
+  resident_id: string;
+  emergency_id: string;
+  safety_status: SafetyStatus;
+  observed_at: string;
+};
+
 export type IssueDetailResponse = {
   issue: Issue;
   tasks: Task[];
   current_states_summary: Record<string, number>;
   resident_states?: Record<string, SafetyStatus>;
+  room_states?: Record<string, SafetyStatus>;
   priority_targets: PriorityAlertTarget[];
 };
 
@@ -174,14 +183,12 @@ export async function apiFetch<T>(
     ...(init.headers as Record<string, string>),
   };
 
-  if (user) {
-    try {
-      const idToken = await user.getIdToken();
-      headers["Authorization"] = `Bearer ${idToken}`;
-    } catch {
-      // ignore
-    }
+  // FN-02: Never send an unauthenticated request when token acquisition fails.
+  if (!user || user.isAnonymous) {
+    throw new ApiError(401, "Google アカウントでログインしてください。");
   }
+  const idToken = await user.getIdToken();
+  headers["Authorization"] = `Bearer ${idToken}`;
 
   // デモ・ローカル環境用のペルソナヘッダー
   const persona = overridePersona ?? activePersona;
@@ -238,7 +245,7 @@ export function confirmPresence(
     message?: string;
   },
   persona?: Persona,
-): Promise<{ resident_id: string; emergency_id: string; safety_status: SafetyStatus; observed_at: string }> {
+): Promise<SafetyConfirmation> {
   return apiFetch(user, "/emergency/confirm-presence", {
     method: "POST",
     body: JSON.stringify(req),

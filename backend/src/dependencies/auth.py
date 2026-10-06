@@ -3,7 +3,8 @@
 Follows docs/ARCHITECTURE.md §3.1:
 - Production:
   - Validates `X-Apigateway-Api-Userinfo` header injected by Google Cloud API Gateway.
-  - Rejects unauthenticated or role-less requests (401 / 403).
+  - Rejects unauthenticated / anonymous sessions.
+  - FN-02 Studio demo headers select one of five fixed identities in bld-01.
 - Local / Test:
   - Allows header-based mocking (`X-User-Id`, `X-User-Role`, `X-Apigateway-Api-Userinfo`)
     or falls back to default persona for rapid developer testing.
@@ -17,6 +18,15 @@ from fastapi import Header, HTTPException, status
 from src.config import get_settings
 from src.models.auth import CurrentUser, Role
 
+# FN-02: Studio demo identities are fixed; Firebase uid remains the login actor.
+DEMO_IDENTITIES: dict[str, tuple[Role, str | None]] = {
+    "admin-001": ("admin", None),
+    "resident-i": ("resident", "unit-301"),
+    "resident-h": ("resident", "unit-302"),
+    "resident-j": ("resident", "unit-303"),
+    "resident-k": ("resident", "unit-504"),
+}
+
 
 def _decode_gateway_userinfo(userinfo_header: str) -> dict:
     """Decode base64url-encoded userinfo payload from API Gateway."""
@@ -24,7 +34,10 @@ def _decode_gateway_userinfo(userinfo_header: str) -> dict:
         # Standard base64url padding restoration
         padded = userinfo_header + "=" * (-len(userinfo_header) % 4)
         decoded = base64.urlsafe_b64decode(padded.encode("utf-8")).decode("utf-8")
-        return json.loads(decoded)
+        payload = json.loads(decoded)
+        if not isinstance(payload, dict):
+            raise ValueError("userinfo must be an object")
+        return payload
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,11 +57,32 @@ async def get_current_user(
     # 1. API Gateway Userinfo Header (Production primary source)
     if x_apigateway_api_userinfo:
         claims = _decode_gateway_userinfo(x_apigateway_api_userinfo)
+        # FN-02: Demo persona switching requires an authenticated human session.
+        if claims.get("firebase", {}).get("sign_in_provider") == "anonymous":
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google login required")
         uid = claims.get("user_id") or claims.get("sub") or claims.get("uid")
         if not uid:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Unauthorized: Userinfo missing uid.",
+            )
+
+        # FN-02: Resolve the selected demo identity as a whole, including custom-claim users.
+        if x_user_id:
+            identity = DEMO_IDENTITIES.get(x_user_id)
+            if not identity or x_user_role != identity[0]:
+                raise HTTPException(status.HTTP_403_FORBIDDEN, "Invalid demo persona")
+            if claims.get("building_id") not in (None, "bld-01") or x_building_id not in (
+                None, "bld-01"
+            ):
+                raise HTTPException(status.HTTP_403_FORBIDDEN, "Demo building mismatch")
+            return CurrentUser(
+                uid=uid,
+                email=claims.get("email"),
+                role=identity[0],
+                building_id="bld-01",
+                resident_id=x_user_id if identity[0] == "resident" else None,
+                unit_id=identity[1],
             )
 
         # Custom claims or demo persona fallback

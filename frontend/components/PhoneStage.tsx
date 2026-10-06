@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   type Persona,
+  type SafetyConfirmation,
   type Task,
   type TaskDetailResponse,
   type IssueDetailResponse,
@@ -19,6 +20,8 @@ import {
   scheduleSleepNotificationTest,
   type PushPermissionState,
 } from "@/lib/push-notification";
+
+import { safetyCountdown } from "@/lib/emergency-view";
 
 import type { User } from "firebase/auth";
 
@@ -51,7 +54,7 @@ type PhoneStageProps = {
   emergencyType?: EmergencyType;
   tasks: Task[];
   issueDetail: IssueDetailResponse | null;
-  onActionComplete: (logText: string) => Promise<void>;
+  onActionComplete: (logText: string, answer?: SafetyConfirmation) => Promise<void>;
   isLoading: boolean;
   user: User | null;
 };
@@ -93,12 +96,21 @@ export function PhoneStage({
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(5);
 
+  // FN-06: Use the server issue timestamp so navigation cannot restart the timer.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!emergencyId) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [emergencyId]);
+  const safetyTimeRemaining = safetyCountdown(issueDetail?.issue.created_at, now);
+
   // サーバー上の安否ステータス
   const currentResidentSafety = issueDetail?.resident_states?.[activePersona.userId] ?? "UNKNOWN";
   const isSafetyAnswered = currentResidentSafety === "SAFE" || currentResidentSafety === "NEED_HELP";
 
   // 自分の担当タスク
-  const myTask = tasks.find((t) => t.assigned_resident_id === activePersona.userId);
+  const myTask = tasks.find((t) => t.resident_id === activePersona.userId);
 
   // タスク詳細取得（Progressive Disclosure の開示状態確認）
   const fetchTaskDetail = useCallback(async () => {
@@ -141,11 +153,17 @@ export function PhoneStage({
     }
   }, []);
 
+  const sendingSafety = useRef(false);
+  const [isSendingSafety, setIsSendingSafety] = useState(false);
+
+  // FN-08: Serialize safety answers until the saved state has been reflected.
   // 安否回答 (API-02)
   const handleConfirmPresence = async (safetyStatus: "SAFE" | "NEED_HELP", message?: string) => {
-    if (!emergencyId) return;
+    if (!emergencyId || sendingSafety.current) return;
+    sendingSafety.current = true;
+    setIsSendingSafety(true);
     try {
-      await confirmPresence(
+      const answer = await confirmPresence(
         user,
         {
           emergency_id: emergencyId,
@@ -160,10 +178,14 @@ export function PhoneStage({
       );
       await onActionComplete(
         `[API-02] ${activePersona.name} が安否回答を送信しました (status=${safetyStatus})`,
+        answer,
       );
       setEmergencySubScreen("default");
     } catch (err) {
       alert(`安否回答に失敗しました: ${String(err)}`);
+    } finally {
+      sendingSafety.current = false;
+      setIsSendingSafety(false);
     }
   };
 
@@ -249,6 +271,19 @@ export function PhoneStage({
   // --------------------------------------------------------------------------
   const showLockScreen = emergencyId && !isSafetyAnswered && emergencySubScreen === "lock";
 
+  // FN-02: The admin persona has no resident safety answer or resident task.
+  if (activePersona.role === "admin") {
+    return (
+      <main className="device-stage">
+        <section className="zashiki-card">
+          <h2>防災センター（管理人）</h2>
+          <p>発令・トリアージ・住戸別の状況確認は管理人コンソールで操作してください。</p>
+          <p>安否回答済み：{totalAnswered} / 50戸</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="device-stage">
       <div className="device-wrapper">
@@ -277,8 +312,8 @@ export function PhoneStage({
               </span>
             </div>
             <StatusPill
-              label={activePersona.role === "admin" ? "ADMIN 管理人" : "RESIDENT 住民"}
-              variant={activePersona.role === "admin" ? "warn" : "brand"}
+              label="RESIDENT 住民"
+              variant="brand"
             />
           </div>
 
@@ -291,7 +326,7 @@ export function PhoneStage({
               dateStr="10月4日 土曜日"
               title="地震が発生しました（震度5強）"
               message="ご自身とお部屋は無事ですか？"
-              timeRemaining="2:00"
+              timeRemaining={safetyTimeRemaining}
               primaryButtonText="無事"
               primaryButtonVariant="brand"
               onPrimaryClick={() => handleConfirmPresence("SAFE")}
@@ -382,6 +417,7 @@ export function PhoneStage({
                         </div>
                         <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
                           <PrimaryButton
+                            disabled={isSendingSafety}
                             onClick={() =>
                               handleConfirmPresence(
                                 "NEED_HELP",
@@ -392,7 +428,7 @@ export function PhoneStage({
                               )
                             }
                           >
-                            管理人に送る
+                            {isSendingSafety ? "送信中…" : "管理人に送る"}
                           </PrimaryButton>
                           <SecondaryButton onClick={() => setEmergencySubScreen("default")}>
                             もどる
@@ -404,19 +440,20 @@ export function PhoneStage({
                     {/* --------------------------------------------------------
                         R02: 安否回答画面（2択Choiceカード）
                         -------------------------------------------------------- */}
-                    {!isSafetyAnswered && emergencySubScreen !== "damage_detail" && (
+                    {(!isSafetyAnswered || emergencySubScreen === "safety_answer") && emergencySubScreen !== "damage_detail" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                         <PageTitle
                           title="ご自身とお部屋は無事ですか？"
                           subtitle="回答は建物全体の把握に使われ、部屋番号は外部に公開されません。"
                         />
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <CountdownPill label="回答の目安 残り" timeRemaining="1:42" />
+                          <CountdownPill label="回答の目安 残り" timeRemaining={safetyTimeRemaining} />
                         </div>
 
                         {/* C9: 2択 Choice Buttons */}
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                           <ChoiceButton
+                            disabled={isSendingSafety}
                             title="無事（けがはなく、部屋から出られる）"
                             description="自身で身の安全が確保できており、特別な手助けは不要です。"
                             accentColor="brand"
@@ -428,6 +465,7 @@ export function PhoneStage({
                             }
                           />
                           <ChoiceButton
+                            disabled={isSendingSafety}
                             title="被害あり（けが・閉じ込め・部屋の損傷など）"
                             description="家具の転倒、けが、室内に閉じ込められているなど支援が必要です。"
                             accentColor="danger"
@@ -451,7 +489,7 @@ export function PhoneStage({
                     {/* --------------------------------------------------------
                         R10: 被害あり送信後の待機タイムライン画面
                         -------------------------------------------------------- */}
-                    {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && (
+                    {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && emergencySubScreen === "default" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                         <PageTitle
                           title="管理人に伝わりました"
@@ -486,7 +524,7 @@ export function PhoneStage({
                         </div>
 
                         <div style={{ marginTop: "auto", paddingTop: 20 }}>
-                          <SecondaryButton onClick={() => setEmergencySubScreen("damage_detail")}>
+                          <SecondaryButton onClick={() => setEmergencySubScreen("safety_answer")}>
                             状況が変わったので更新する
                           </SecondaryButton>
                         </div>
@@ -496,7 +534,7 @@ export function PhoneStage({
                     {/* --------------------------------------------------------
                         R03〜R08: 無事回答後の各ステップ
                         -------------------------------------------------------- */}
-                    {isSafetyAnswered && currentResidentSafety === "SAFE" && (
+                    {isSafetyAnswered && currentResidentSafety === "SAFE" && emergencySubScreen !== "damage_detail" && emergencySubScreen !== "safety_answer" && (
                       <>
                         {/* 1. 打診なし：R03 回答済み・待機画面 */}
                         {!myTask && (
@@ -508,7 +546,7 @@ export function PhoneStage({
                             {/* C17 ProgressBar */}
                             <ProgressBar
                               title="全館の安否回答状況"
-                              current={totalAnswered || 38}
+                              current={totalAnswered}
                               total={50}
                             />
                             <div

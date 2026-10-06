@@ -82,7 +82,17 @@ async def get_issue_progress(
 
     # 4. Priority targets for management triage (computed on-the-fly, DESIGN §6.3 D)
     priority_targets = []
+    room_states = {}
     if user.role == "admin":
+        # FN-08: Resolve rooms from repository data, never from demo labels.
+        residents = await repo.list_residents(building_id)
+        units = {u.unit_id: u for u in await repo.list_units(building_id)}
+        for resident in residents:
+            unit = units.get(resident.unit_id)
+            if unit:
+                room_states[unit.room_number] = resident_states.get(
+                    resident.resident_id, SafetyStatus.UNKNOWN
+                )
         triage_svc = TriageService(repo)
         priority_targets = await triage_svc.calculate_priority_alerts(
             building_id, actual_emergency_id
@@ -93,6 +103,7 @@ async def get_issue_progress(
         tasks=tasks,
         current_states_summary=summary,
         resident_states=resident_states,
+        room_states=room_states,
         priority_targets=priority_targets,
     )
 

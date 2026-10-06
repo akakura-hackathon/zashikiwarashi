@@ -153,6 +153,9 @@ async def confirm_presence(
     repo: BaseRepository = Depends(get_repository),
 ) -> ConfirmPresenceResponse:
     """Record 1-tap safety and presence response from resident (API-02)."""
+    # FN-02 / FN-08: The management persona cannot submit a resident answer.
+    if user.role != "resident":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Resident role required")
     now = datetime.now(UTC)
     resident_id = user.resident_id or user.uid
     building_id = user.building_id or "bld-01"

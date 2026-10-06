@@ -10,8 +10,10 @@ import {
   testGuardrail,
 } from "@/lib/api-client";
 
+import { safetyRoomStatus } from "@/lib/emergency-view";
+
 import type { User } from "firebase/auth";
-import { FloorMap } from "./ui/FloorMap";
+import { FloorMap, type RoomItem } from "./ui/FloorMap";
 
 export type TriageAiResult = {
   tasks_created: number;
@@ -71,6 +73,15 @@ export function CockpitPanel({
   const outsideCount = summary["OUTSIDE_BUILDING"] ?? 0;
 
   const priorityTargets: PriorityAlertTarget[] = issueDetail?.priority_targets ?? [];
+
+  // FN-08: The map and counters share the same API snapshot.
+  const rooms: RoomItem[] = Array.from({ length: 50 }, (_, i) => {
+    const floor = Math.floor(i / 10) + 1;
+    const col = i % 10 + 1;
+    const roomNo = `${floor}${String(col).padStart(2, "0")}`;
+    const safety = issueDetail?.room_states?.[roomNo];
+    return { roomNo, floor, col, status: safetyRoomStatus(safety) };
+  });
 
   return (
     <aside className="cockpit-sidebar">
@@ -513,7 +524,7 @@ export function CockpitPanel({
 
         {/* 5階×10列 (全50戸) FloorMap (C24) */}
         <div style={{ marginTop: 8 }}>
-          <FloorMap />
+          <FloorMap rooms={rooms} />
         </div>
       </div>
 

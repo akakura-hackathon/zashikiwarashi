@@ -294,18 +294,6 @@ export function PhoneStage({
     <main className="device-stage">
       <div className="device-wrapper">
         <div className="device-screen">
-          {/* iOS-style Top Status Bar */}
-          <div className={`device-notch-bar ${showLockScreen ? "dark" : ""}`}>
-            <span className="font-mono-num">8:04</span>
-            <div className="device-notch">
-              <span className="notch-camera-dot" />
-            </div>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-              <span className="font-mono-num" style={{ fontSize: "0.75rem" }}>5G</span>
-              <span className="font-mono-num" style={{ fontSize: "0.75rem" }}>100%</span>
-            </div>
-          </div>
-
           {/* Active Persona indicator bar in Stage */}
           <div className="persona-switch-bar">
             <div className="persona-info">

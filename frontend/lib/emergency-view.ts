@@ -37,3 +37,22 @@ export function applySafetyConfirmation(
     current_states_summary: summary,
   };
 }
+
+// FN-08: A triage request alone is not evidence that someone has accepted a visit.
+export function incomingCheckStatus(
+  detail: IssueDetailResponse | null,
+  residentId: string,
+  emergencyId: string | null,
+): "waiting" | "triaging" | "approved" | "in_progress" {
+  if (!detail || detail.issue.emergency_id !== emergencyId || detail.issue.status !== "TRIAGING") {
+    return "waiting";
+  }
+  const checks = detail.tasks.filter((task) =>
+    task.issue_id === detail.issue.issue_id &&
+    task.target_resident_id === residentId &&
+    task.task_type === "NEIGHBOR_CHECK"
+  );
+  if (checks.some((task) => task.status === "IN_PROGRESS")) return "in_progress";
+  if (checks.some((task) => task.status === "APPROVED")) return "approved";
+  return "triaging";
+}

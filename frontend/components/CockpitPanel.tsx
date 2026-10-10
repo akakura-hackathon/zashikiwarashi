@@ -10,10 +10,17 @@ import {
   testGuardrail,
 } from "@/lib/api-client";
 
+import { useSafetyCountdown } from "@/lib/use-safety-countdown";
+import { CountdownPill } from "./ui/StatusAndInput";
 import { safetyRoomStatus } from "@/lib/emergency-view";
 
 import type { User } from "firebase/auth";
 import { FloorMap, type RoomItem } from "./ui/FloorMap";
+
+export type TriageExecution = {
+  count: number;
+  status: "idle" | "running" | "completed" | "failed";
+};
 
 export type TriageAiResult = {
   tasks_created: number;
@@ -43,7 +50,7 @@ type CockpitPanelProps = {
   onLogout: () => Promise<void>;
   onAddLog?: (text: string) => void;
   triageAiResult?: TriageAiResult | null;
-  onResetDatabase?: () => Promise<void>;
+  triageExecution: TriageExecution;
 };
 
 export function CockpitPanel({
@@ -64,8 +71,12 @@ export function CockpitPanel({
   onLogout,
   onAddLog,
   triageAiResult,
-  onResetDatabase,
+  triageExecution,
 }: CockpitPanelProps) {
+  const safetyTimeRemaining = useSafetyCountdown(
+    emergencyId && issueDetail?.issue.emergency_id === emergencyId
+      ? issueDetail.issue.created_at : undefined,
+  );
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
   const unknownCount = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
@@ -234,36 +245,13 @@ export function CockpitPanel({
               {selectedEmergencyType === "FIRE" && "🔥 火災警報鳴動・発令 (API-01)"}
               {selectedEmergencyType === "FLOOD" && "🌊 浸水警戒・洪水発令 (API-01)"}
             </button>
-            {onResetDatabase && (
-              <button
-                type="button"
-                onClick={onResetDatabase}
-                disabled={isLoading}
-                style={{
-                  width: "100%",
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: "#FFFFFF",
-                  color: "var(--color-ink)",
-                  border: "1px dashed var(--color-ink)",
-                  fontSize: "0.72rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                }}
-              >
-                🧹 Firestore 50戸初期化 (不要データ全削除)
-              </button>
-            )}
           </>
           ) : (
             <div style={{ display: "flex", gap: "8px" }}>
               <button
                 onClick={onStartTriage}
-                disabled={isLoading}
+                aria-busy={triageExecution.status === "running"}
+                disabled={isLoading || triageExecution.status === "running"}
                 style={{
                   flex: 2,
                   height: 44,
@@ -276,7 +264,11 @@ export function CockpitPanel({
                   cursor: "pointer",
                 }}
               >
-                🎯 トリアージ開始 (API-08)
+                {triageExecution.status === "running"
+                  ? `${triageExecution.count}回目のトリアージ進行中…`
+                  : triageExecution.count > 0
+                    ? `${triageExecution.count + 1}回目のトリアージをする`
+                    : "🎯 トリアージ開始 (API-08)"}
               </button>
               <button
                 onClick={onRefresh}
@@ -299,6 +291,16 @@ export function CockpitPanel({
           )}
 
           {/* Building Agent (AI) 推論結果カード */}
+          {emergencyId && triageExecution.status !== "idle" && (
+            <p role="status" aria-live="polite" style={{ fontSize: "0.82rem", margin: "8px 0" }}>
+              {triageExecution.status === "running"
+                ? `${triageExecution.count}回目のトリアージ進行中です。完了までお待ちください。`
+                : triageExecution.status === "completed"
+                  ? `${triageExecution.count}回目のトリアージが完了しました。`
+                  : `${triageExecution.count}回目のトリアージに失敗しました。再実行できます。`}
+            </p>
+          )}
+
           {triageAiResult && (
             <div
               style={{
@@ -503,6 +505,11 @@ export function CockpitPanel({
             </span>
           )}
         </div>
+        {emergencyId && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <CountdownPill label="回答の目安 残り" timeRemaining={safetyTimeRemaining} />
+          </div>
+        )}
         <div className="status-grid">
           <div className="status-card">
             <span className="status-label">無事回答</span>

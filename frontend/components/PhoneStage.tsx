@@ -21,7 +21,8 @@ import {
   type PushPermissionState,
 } from "@/lib/push-notification";
 
-import { safetyCountdown } from "@/lib/emergency-view";
+import { useSafetyCountdown } from "@/lib/use-safety-countdown";
+import { incomingCheckStatus } from "@/lib/emergency-view";
 
 import type { User } from "firebase/auth";
 
@@ -96,21 +97,26 @@ export function PhoneStage({
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(5);
 
-  // FN-06: Use the server issue timestamp so navigation cannot restart the timer.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!emergencyId) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [emergencyId]);
-  const safetyTimeRemaining = safetyCountdown(issueDetail?.issue.created_at, now);
+  const safetyTimeRemaining = useSafetyCountdown(
+    emergencyId && issueDetail?.issue.emergency_id === emergencyId
+      ? issueDetail.issue.created_at : undefined,
+  );
 
   // サーバー上の安否ステータス
   const currentResidentSafety = issueDetail?.resident_states?.[activePersona.userId] ?? "UNKNOWN";
   const isSafetyAnswered = currentResidentSafety === "SAFE" || currentResidentSafety === "NEED_HELP";
 
+  // FN-08: Show only confirmed incoming checks for this resident and emergency.
+  const checkStatus = incomingCheckStatus(issueDetail, activePersona.userId, emergencyId);
+  const hasConfirmedCheck = checkStatus === "approved" || checkStatus === "in_progress";
+
   // 自分の担当タスク
   const myTask = tasks.find((t) => t.resident_id === activePersona.userId);
+
+  // FN-07: Never display details left over from another task or resident.
+  const disclosedRoom = taskDetail?.task.task_id === myTask?.task_id &&
+    taskDetail?.task.resident_id === activePersona.userId && taskDetail?.is_disclosed
+    ? taskDetail.target_room_number : null;
 
   // タスク詳細取得（Progressive Disclosure の開示状態確認）
   const fetchTaskDetail = useCallback(async () => {
@@ -493,9 +499,16 @@ export function PhoneStage({
                       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                         <PageTitle
                           title="管理人に伝わりました"
-                          subtitle="状況が共有され、優先度の高い住戸として救護の手配を進めています。"
+                          subtitle={checkStatus === "in_progress"
+                            ? "近隣の方による安否確認が始まりました。"
+                            : checkStatus === "approved"
+                              ? "近隣の方が、あなたのお宅の安否確認への協力を承認しました。"
+                              : checkStatus === "triaging"
+                                ? "安否状況の確認・対応の検討中です。あなたへの対応はまだ確定していません。"
+                                : "被害状況を受け付けました。管理人による確認をお待ちください。"}
+
                         />
-                        <div
+                        {hasConfirmedCheck && <div
                           style={{
                             backgroundColor: "var(--color-danger-tint)",
                             borderRadius: 12,
@@ -504,24 +517,24 @@ export function PhoneStage({
                           }}
                         >
                           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-danger-text)" }}>
-                            助けが来るまで
+                            近隣の方による確認まで
                           </span>
                           <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
                             体力を温存し、無理に動かず安全な姿勢を保ってください。大きな音（壁や床を叩く等）で居場所を知らせることも有効です。
                           </p>
-                        </div>
+                        </div>}
 
-                        {/* C18 Timeline */}
-                        <div style={{ marginTop: 8 }}>
+                        {/* FN-08: Actual accepted/started checks only; no invented arrival time. */}
+                        {hasConfirmedCheck && <div style={{ marginTop: 8 }}>
                           <Timeline
                             items={[
-                              { time: "8:04", text: "被害状況を送信しました", status: "completed" },
-                              { time: "8:05", text: "管理人が確認・優先支援リストに登録", status: "completed" },
-                              { time: "8:07", text: "現地確認に向かう準備をしています", status: "in_progress" },
-                              { text: "管理人または救助隊が到着", status: "pending" },
+                              { text: "被害状況を送信しました", status: "completed" },
+                              { text: "近隣の方が安否確認への協力を承認しました", status: "completed" },
+                              { text: checkStatus === "in_progress" ? "安否確認を実施中です" : "安否確認の開始を待っています", status: checkStatus === "in_progress" ? "in_progress" : "pending" },
                             ]}
                           />
-                        </div>
+                        </div>}
+                        <PrivacyNote note="命に関わるときは、対応を待たずに119番へ通報してください。" />
 
                         <div style={{ marginTop: "auto", paddingTop: 20 }}>
                           <SecondaryButton onClick={() => setEmergencySubScreen("safety_answer")}>
@@ -633,8 +646,8 @@ export function PhoneStage({
                         {myTask &&
                           (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") &&
                           emergencySubScreen !== "reporting" && (() => {
-                            const isDisclosed = taskDetail?.is_disclosed && !!taskDetail?.target_room_number;
-                            const targetRoom = isDisclosed ? taskDetail.target_room_number! : "•••";
+                            const isDisclosed = !!disclosedRoom;
+                            const targetRoom = disclosedRoom || "•••";
 
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -756,14 +769,16 @@ export function PhoneStage({
                           </div>
                         )}
 
-                        {/* 5. 完了：R08 完了・開示の終了 */}
+                        {/* FN-07 / FN-08: R08 retains the authorized destination for its assignee. */}
                         {myTask && myTask.status === "COMPLETED" && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <PageTitle
                               title="確認ありがとうございました"
-                              subtitle="状況は管理人に送信されました。開示されていた部屋番号はマスキングされました。"
+                              subtitle={disclosedRoom
+                                ? "確認結果は管理人に送信されました。確認したお部屋を以下に表示しています。"
+                                : "確認結果は管理人に送信されました。確認先の部屋番号はまだ取得できていません。"}
                             />
-                            {/* Masked room number */}
+                            {/* FN-07: Use the current task’s authorized API detail. */}
                             <div
                               style={{
                                 textAlign: "center",
@@ -774,11 +789,11 @@ export function PhoneStage({
                               }}
                             >
                               <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                確認先住戸（開示終了）
+                                確認先住戸
                               </span>
                               <div style={{ marginTop: 4 }}>
                                 <span className="font-mono-num" style={{ fontSize: 32, fontWeight: 900, color: "var(--color-muted)" }}>
-                                  •••
+                                  {disclosedRoom || "•••"}
                                 </span>
                                 <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4, color: "var(--color-muted)" }}>号室</span>
                               </div>
@@ -801,10 +816,12 @@ export function PhoneStage({
                                 このタスクで扱われた情報
                               </span>
                               <div style={{ color: "var(--color-muted)" }}>
-                                • 使われた情報：同じ3階・無事の回答・在宅状況
+                                • 使われた情報：同じ階・無事の回答・在宅状況
                               </div>
                               <div style={{ color: "var(--color-muted)" }}>
-                                • 開示された情報：確認先の部屋番号（8:05〜8:07のみ、現在非表示）
+                                {disclosedRoom
+                                  ? "• 確認先の部屋番号は、確認を担当したあなたに表示しています"
+                                  : "• 確認先の部屋番号は、開示が許可された場合だけ表示します"}
                               </div>
                             </div>
 

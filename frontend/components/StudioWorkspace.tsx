@@ -9,7 +9,7 @@ import {
   GoogleAuthProvider,
   type User,
 } from "firebase/auth";
-import { CockpitPanel, type TriageAiResult } from "./CockpitPanel";
+import { CockpitPanel, type TriageAiResult, type TriageExecution } from "./CockpitPanel";
 import { PhoneStage } from "./PhoneStage";
 import {
   type Persona,
@@ -21,7 +21,6 @@ import {
   triggerEmergency,
   startTriage,
   getIssueDetail,
-  resetDatabase,
   setActivePersona as setGlobalActivePersona,
 } from "@/lib/api-client";
 import { applySafetyConfirmation } from "@/lib/emergency-view";
@@ -36,6 +35,8 @@ export function StudioWorkspace() {
   const [issueDetail, setIssueDetail] = useState<IssueDetailResponse | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [triageAiResult, setTriageAiResult] = useState<TriageAiResult | null>(null);
+  const [triageExecution, setTriageExecution] = useState<TriageExecution>({ count: 0, status: "idle" });
+  const triageInFlight = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<{ time: string; text: string }>>([
     {
@@ -129,6 +130,7 @@ export function StudioWorkspace() {
 
   // 1. 災害発生・緊急モード発令 (API-01)
   const handleTriggerEmergency = async () => {
+    if (triageInFlight.current) return;
     if (!user) {
       // ユーザーが未ログインの場合、Google ログインを要求
       const doLogin = confirm("本番 API Gateway を通過するため Google ログインが必要です。ログインしますか？");
@@ -160,6 +162,7 @@ export function StudioWorkspace() {
         emergency_type: selectedEmergencyType,
         instruction: defaultInstructions[selectedEmergencyType],
       });
+      setTriageExecution({ count: 0, status: "idle" });
       setEmergencyId(res.emergency_id);
       setIssueId(res.issue_id);
       addLog(`[API-01] ${disasterLabels[selectedEmergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
@@ -180,25 +183,33 @@ export function StudioWorkspace() {
 
   // 2. トリアージ開始 (API-08)
   const handleStartTriage = async () => {
-    if (!emergencyId || !issueId) return;
+    if (!user || !emergencyId || !issueId || isLoading || triageInFlight.current) return;
+    // FN-08: Lock synchronously so two clicks cannot create two requests.
+    triageInFlight.current = true;
+    const runNumber = triageExecution.count + 1;
+    setTriageExecution({ count: runNumber, status: "running" });
+    setTriageAiResult(null);
     setIsLoading(true);
     try {
-      addLog("[API-08] 安否確認を締め切り、Building Agent によるルールベース/LLM トリアージを開始します...");
+      addLog(`[API-08] ${runNumber}回目のトリアージを開始します。Building Agent が処理中です...`);
       const res = await startTriage(user, emergencyId, issueId);
       setTriageAiResult(res);
       addLog(`🤖 [Building Agent AI推論] モデル: ${res.agent_model}`);
       addLog(`💡 [AI推論判断根拠] ${res.ai_reasoning}`);
       addLog(
-        `[API-08] トリアージ完了: 未応答住戸 ${res.unresponsive_count}件, カレンダー外出除外 ${res.likely_away_count}件, 隣室確認Task作成 ${res.tasks_created}件`,
+        `[API-08] ${runNumber}回目のトリアージ完了: 未応答住戸 ${res.unresponsive_count}件, カレンダー外出除外 ${res.likely_away_count}件, 隣室確認Task作成 ${res.tasks_created}件`,
       );
       addLog(`🛡️ [Policy Engine] ${res.policy_gate}`);
 
       // 詳細再取得
       await refreshIssueDetail();
+      setTriageExecution({ count: runNumber, status: "completed" });
     } catch (err) {
+      setTriageExecution({ count: runNumber, status: "failed" });
       alert(`トリアージ開始に失敗しました: ${String(err)}`);
-      addLog(`[ERROR] トリアージ失敗: ${String(err)}`);
+      addLog(`[ERROR] ${runNumber}回目のトリアージ失敗: ${String(err)}`);
     } finally {
+      triageInFlight.current = false;
       setIsLoading(false);
     }
   };
@@ -214,27 +225,6 @@ export function StudioWorkspace() {
       if (persona) setIssueDetail((current) => applySafetyConfirmation(current, answer, persona.roomNumber));
     }
     await refreshIssueDetail();
-  };
-
-  // 4. データベース完全初期化（不要データ全削除 & 50戸再シード）
-  const handleResetDatabase = async () => {
-    if (!confirm("Firestoreの古い住戸・住民データを全削除し、厳密な50戸（SC-3仕様）に再シードします。よろしいですか？")) return;
-    setIsLoading(true);
-    try {
-      addLog("🧹 Firestore上の不要データを全削除し、50戸（101〜510）に再シード中...");
-      const res = await resetDatabase(user);
-      addLog(`✅ ${res.message} (住戸: ${res.units_count}戸, 住民: ${res.residents_count}名)`);
-      setEmergencyId(null);
-      setIssueId(null);
-      setIssueDetail(null);
-      setTasks([]);
-      setTriageAiResult(null);
-    } catch (err) {
-      alert(`初期化に失敗しました: ${String(err)}`);
-      addLog(`❌ [ERROR] 初期化失敗: ${String(err)}`);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -258,7 +248,7 @@ export function StudioWorkspace() {
         onLogout={handleLogout}
         onAddLog={addLog}
         triageAiResult={triageAiResult}
-        onResetDatabase={handleResetDatabase}
+        triageExecution={triageExecution}
       />
 
       {/* 2. 中央・右側：スマートフォン実機フレーム（一般住民の体験） */}

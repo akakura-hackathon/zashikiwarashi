@@ -263,6 +263,7 @@ class Task(BaseModel):
     estimated_seconds: int = 20
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    expires_at: datetime | None = None
 
 
 class TaskEvent(BaseModel):

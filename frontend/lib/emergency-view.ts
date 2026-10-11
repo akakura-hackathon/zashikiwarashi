@@ -8,6 +8,25 @@ export function safetyCountdown(createdAt: string | undefined, now: number): str
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+// FN-06: 協力依頼（打診）の返事期限カウントダウン。expires_at または作成時刻+60秒に基づく。
+export function taskCountdown(
+  expiresAt: string | undefined,
+  createdAt: string | undefined,
+  now: number,
+): string {
+  let deadline = Date.parse(expiresAt ?? "");
+  if (!Number.isFinite(deadline)) {
+    const created = Date.parse(createdAt ?? "");
+    if (Number.isFinite(created)) {
+      deadline = created + 60_000;
+    } else {
+      return "0:00";
+    }
+  }
+  const seconds = Math.max(0, Math.ceil((deadline - now) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 export function safetyRoomStatus(safety: SafetyStatus | undefined) {
   switch (safety) {
     case "SAFE": return "safe";

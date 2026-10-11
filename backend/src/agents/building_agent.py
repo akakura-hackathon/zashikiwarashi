@@ -166,6 +166,7 @@ class BuildingAgent:
                 status=TaskStatus.OFFERED,
                 estimated_seconds=20,
                 created_at=now,
+                expires_at=expires_at,
             )
             saved_task = await self.repo.create_task(building_id, emergency_id, task)
             await self.repo.append_task_event(

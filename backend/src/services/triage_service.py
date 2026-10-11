@@ -124,6 +124,7 @@ class TriageService:
                     estimated_seconds=20,
                     status=TaskStatus.OFFERED,
                     created_at=now,
+                    expires_at=expires_at,
                 )
                 await self.repo.create_task(building_id, emergency_id, new_task)
 

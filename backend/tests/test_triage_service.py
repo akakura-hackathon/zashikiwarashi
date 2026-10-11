@@ -85,6 +85,7 @@ async def test_sc3_triage_and_task_lifecycle():
     assert task_for_h is not None
     assert task_for_h.resident_id == "resident-i"
     assert task_for_h.status == TaskStatus.OFFERED
+    assert task_for_h.expires_at is not None
 
     # Resident K (504, outside building) should NOT have neighbor check task created
     task_for_k = next((t for t in tasks if t.target_resident_id == "resident-k"), None)

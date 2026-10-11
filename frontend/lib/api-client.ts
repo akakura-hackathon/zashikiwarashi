@@ -68,6 +68,20 @@ export type Task = {
   title: string;
   description: string;
   is_disclosed?: boolean;
+  created_at?: string;
+  expires_at?: string | null;
+};
+
+export type TaskEvent = {
+  event_id: string;
+  task_id: string;
+  actor_resident_id?: string | null;
+  event_type: string;
+  result?: string | null;
+  reason_code?: ReasonCode | null;
+  actor_type: string;
+  occurred_at: string;
+  expires_at?: string | null;
 };
 
 export type SafetyConfirmation = {
@@ -94,7 +108,7 @@ export type TaskDetailResponse = {
   target_floor?: number | null;
   target_unit_id?: string | null;
   is_disclosed: boolean;
-  latest_event?: unknown;
+  latest_event?: TaskEvent | null;
 };
 
 export type AuditEvent = {

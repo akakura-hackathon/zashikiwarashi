@@ -213,7 +213,7 @@ export function CockpitPanel({
               gap: "4px",
             }}
           >
-            <span>🚨 災害時検証</span>
+            <span>災害時検証</span>
           </button>
           <button
             type="button"
@@ -236,7 +236,7 @@ export function CockpitPanel({
               gap: "4px",
             }}
           >
-            <span>🛡️ Agentガバナンス検証</span>
+            <span>Agentガバナンス検証</span>
           </button>
         </div>
       </div>
@@ -247,7 +247,7 @@ export function CockpitPanel({
           {/* 2. 災害シミュレーション制御 */}
           <div className="cockpit-section">
         <div className="section-title">
-          <span>⚡ 災害シミュレーション</span>
+          <span>災害シミュレーション</span>
           <span style={{ fontSize: "0.72rem", fontWeight: 700, color: emergencyId ? "var(--color-danger)" : "var(--color-brand)" }}>
             {emergencyId ? "● 発令中" : "○ 平常時"}
           </span>
@@ -435,13 +435,13 @@ export function CockpitPanel({
       {/* 3. 操作ペルソナ切り替え */}
       <div className="cockpit-section">
         <div className="section-title">
-          <span>👤 実機ペルソナ切り替え</span>
+          <span>利用ペルソナの切り替え</span>
           <span className="font-mono-num" style={{ fontSize: "0.72rem", color: "var(--color-brand)", fontWeight: 700 }}>
             選択中: {activePersona.roomNumber}
           </span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {DEMO_PERSONAS.map((p) => {
+          {DEMO_PERSONAS.filter((p) => p.roomNumber !== "303" && p.roomNumber !== "504").map((p) => {
             const isSelected = p.userId === activePersona.userId;
             return (
               <button
@@ -479,7 +479,7 @@ export function CockpitPanel({
       {/* 4. 棟内50戸の安否集約 & C24 FloorMap */}
       <div className="cockpit-section">
         <div className="section-title">
-          <span>🏢 棟内50戸の安否集約 (API-03)</span>
+          <span>棟内50戸の安否状況</span>
           {emergencyId && (
             <span className="font-mono-num" style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
               Emg: {emergencyId.slice(0, 6)} / Issue: {issueId ? issueId.slice(0, 6) : "-"}
@@ -560,7 +560,7 @@ export function CockpitPanel({
   {activeTab === "governance" && (
     <div className="cockpit-section">
       <div className="section-title">
-        <span>🛡️ Agent ガバナンス検証 (FN-10)</span>
+        <span>攻撃リクエスト</span>
         <span style={{ fontSize: "0.7rem", color: "var(--color-brand)", fontWeight: 700 }}>G1〜G6 統制</span>
       </div>
       <div style={{ fontSize: "0.72rem", color: "var(--color-muted)", marginBottom: "6px" }}>

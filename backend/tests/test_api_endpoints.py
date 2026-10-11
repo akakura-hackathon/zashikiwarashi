@@ -231,3 +231,36 @@ def test_fn03_req15_free_text_parsing_and_clarification():
     assert data_short["needs_clarification"] is True
     assert "お怪我や閉じ込め" in data_short["clarification_question"]
 
+
+def test_get_active_emergency():
+    """FN-01 / API-08: リロード時のアクティブ緊急事態および最新Issueの復元エンドポイント検証"""
+    client = TestClient(app)
+    resident_headers = {"X-User-Id": "resident-i", "X-User-Role": "resident"}
+    admin_headers = {"X-User-Id": "admin-01", "X-User-Role": "admin"}
+
+    # 1. 緊急事態が未発令の状態では is_active=False
+    res_initial = client.get("/emergency/active", headers=resident_headers)
+    assert res_initial.status_code == 200
+    data_initial = res_initial.json()
+    assert data_initial["is_active"] is False
+    assert data_initial["emergency_id"] is None
+    assert data_initial["issue_id"] is None
+
+    # 2. 発令後の取得では is_active=True, emergency_id, issue_id が返る
+    res_trigger = client.post(
+        "/emergency/trigger",
+        json={"building_id": "bld-01", "instruction": "大地震発生。安否確認をお願いします。"},
+        headers=admin_headers,
+    )
+    assert res_trigger.status_code == 200
+    trigger_data = res_trigger.json()
+
+    res_active = client.get("/emergency/active", headers=resident_headers)
+    assert res_active.status_code == 200
+    data_active = res_active.json()
+    assert data_active["is_active"] is True
+    assert data_active["emergency_id"] == trigger_data["emergency_id"]
+    assert data_active["issue_id"] == trigger_data["issue_id"]
+    assert data_active["status"] == "ACTIVE"
+    assert "大地震発生" in data_active["instruction"]
+

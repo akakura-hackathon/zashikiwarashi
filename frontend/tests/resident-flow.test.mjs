@@ -34,10 +34,15 @@ function load(filename) {
   return compiled.exports;
 }
 const realApi = load('lib/api-client.ts');
-const api = { ...realApi, getTaskDetail: async () => null, getMyAuditEvents: async () => ({ audit_events: [] }) };
+const api = {
+  ...realApi,
+  getActiveEmergency: async () => ({ is_active: false }),
+  getTaskDetail: async () => null,
+  getMyAuditEvents: async () => ({ audit_events: [] }),
+};
 mocks.set('@/lib/api-client', api);
 mocks.set('@/lib/push-notification', {});
-const user = { uid: 'login-user', email: 'demo@example.com', isAnonymous: false };
+const user = { uid: 'login-user', email: 'demo@example.com', isAnonymous: false, getIdToken: async () => 'mock-token' };
 mocks.set('firebase/auth', {
   getAuth: () => ({}), onAuthStateChanged: (_, callback) => { callback(user); return () => {}; },
 });
@@ -640,6 +645,51 @@ test('FN-03 / REQ-15 damage free text textarea exists and agent clarification qu
     assert.match(renderedText, /代理人（Resident Agent）より確認/, '代理人の聞き返しバナーが存在すること');
     assert.match(renderedText, /どのような状況でしょうか？ お怪我や閉じ込めはありますか？/, '聞き返し質問が表示されること');
   } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+test('FN-01: StudioWorkspace がリロード・マウント時に getActiveEmergency でアクティブな災害とIssueを復元する', async () => {
+  let activeEmergencyCalled = false;
+  let issueDetailCalledWith = null;
+
+  api.getActiveEmergency = async () => {
+    activeEmergencyCalled = true;
+    return {
+      is_active: true,
+      emergency_id: 'em-restore-123',
+      issue_id: 'iss-restore-456',
+      emergency_type: 'EARTHQUAKE',
+      status: 'ACTIVE',
+      instruction: '震度5強地震',
+    };
+  };
+
+  const originalGetIssueDetail = api.getIssueDetail;
+  api.getIssueDetail = async (_user, issueId, persona, emergencyId) => {
+    issueDetailCalledWith = { issueId, emergencyId };
+    return {
+      issue: { issue_id: issueId, emergency_id: emergencyId, created_at: new Date().toISOString() },
+      tasks: [],
+      priority_targets: [],
+      current_states_summary: { SAFE: 2, NEED_HELP: 1, UNKNOWN: 47 },
+    };
+  };
+
+  let renderer;
+  try {
+    await act(async () => {
+      renderer = create(React.createElement(StudioWorkspace));
+    });
+
+    assert.equal(activeEmergencyCalled, true, 'getActiveEmergency が呼び出されること');
+    assert.deepEqual(
+      issueDetailCalledWith,
+      { issueId: 'iss-restore-456', emergencyId: 'em-restore-123' },
+      '復元された issueId と emergencyId で getIssueDetail が実行されること'
+    );
+  } finally {
+    api.getIssueDetail = originalGetIssueDetail;
     if (renderer) await act(async () => renderer.unmount());
   }
 });

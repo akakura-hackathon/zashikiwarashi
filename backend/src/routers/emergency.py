@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.agents.building_agent import BuildingAgent
+from src.agents.resident_agent import ResidentAgent
 from src.db.base import BaseRepository
 from src.db.factory import get_repository
 from src.dependencies.auth import get_current_user, require_admin
@@ -30,6 +31,7 @@ from src.models.schemas import (
     EmergencyTriageResponse,
     EmergencyTriggerRequest,
     EmergencyTriggerResponse,
+    StructuredNeedSchema,
 )
 
 router = APIRouter(prefix="", tags=["emergency"])
@@ -168,6 +170,34 @@ async def confirm_presence(
             detail=f"Emergency {req.emergency_id} is not active.",
         )
 
+    # FN-03 / REQ-15: 自由文メッセージを Resident Agent が解析・構造化
+    structured_need_schema = None
+    needs_clarification = False
+    clarification_question = None
+
+    resident = await repo.get_resident(building_id, resident_id)
+    unit = await repo.get_unit(building_id, resident.unit_id) if resident else None
+    floor = unit.floor if unit else 1
+
+    final_safety_status = req.safety_status
+    if req.message is not None:
+        agent = ResidentAgent(resident_id=resident_id, repo=repo, building_id=building_id)
+        need = agent.parse_user_free_text(req.message, floor)
+        structured_need_schema = StructuredNeedSchema(
+            resident_id=need.resident_id,
+            floor=need.floor,
+            category=need.category,
+            requires_assistance=need.requires_assistance,
+            can_stairs=need.can_stairs,
+            raw_message=need.raw_message,
+            needs_clarification=need.needs_clarification,
+            clarification_question=need.clarification_question,
+        )
+        needs_clarification = need.needs_clarification
+        clarification_question = need.clarification_question
+        if need.requires_assistance:
+            final_safety_status = SafetyStatus.NEED_HELP
+
     # 1. Update Presence Context (E-007)
     await repo.set_presence_context(
         building_id,
@@ -186,7 +216,7 @@ async def confirm_presence(
         ResidentEmergencyCurrentState(
             emergency_id=req.emergency_id,
             resident_id=resident_id,
-            safety_status=req.safety_status,
+            safety_status=final_safety_status,
             observed_at=now,
         ),
     )
@@ -198,7 +228,7 @@ async def confirm_presence(
             event_id=f"state-evt-{uuid.uuid4().hex[:12]}",
             emergency_id=req.emergency_id,
             resident_id=resident_id,
-            safety_status=req.safety_status,
+            safety_status=final_safety_status,
             occurred_at=now,
             source="SELF_REPORT",
         ),
@@ -207,9 +237,12 @@ async def confirm_presence(
     return ConfirmPresenceResponse(
         resident_id=resident_id,
         emergency_id=req.emergency_id,
-        safety_status=req.safety_status,
+        safety_status=final_safety_status,
         observed_at=now,
         message=req.message,
+        structured_need=structured_need_schema,
+        needs_clarification=needs_clarification,
+        clarification_question=clarification_question,
     )
 
 

@@ -184,3 +184,50 @@ def test_fn02_anonymous_gateway_session_cannot_use_demo_personas():
             json={"emergency_id": "em-demo", "safety_status": "SAFE"},
         )
         assert response.status_code == 401
+
+
+def test_fn03_req15_free_text_parsing_and_clarification():
+    client = TestClient(app)
+    admin = {"X-User-Id": "admin-01", "X-User-Role": "admin"}
+    resident_i = {"X-User-Id": "resident-i", "X-User-Role": "resident"}
+
+    trigger = client.post(
+        "/emergency/trigger", headers=admin, json={"building_id": "bld-01"}
+    ).json()
+    em_id = trigger["emergency_id"]
+
+    # 1. 自由文で負傷・脱出困難を入力 -> 救助要・EVACUATION に構造化
+    res_injury = client.post(
+        "/emergency/confirm-presence",
+        headers=resident_i,
+        json={
+            "emergency_id": em_id,
+            "safety_status": "NEED_HELP",
+            "message": "棚が倒れて足が痛くて動けません。ドアも変形しています。",
+        },
+    )
+    assert res_injury.status_code == 200
+    data_injury = res_injury.json()
+    assert data_injury["safety_status"] == "NEED_HELP"
+    assert data_injury["needs_clarification"] is False
+    assert data_injury["structured_need"] is not None
+    assert data_injury["structured_need"]["category"] == "EVACUATION"
+    assert data_injury["structured_need"]["requires_assistance"] is True
+    assert data_injury["structured_need"]["can_stairs"] is False
+    assert data_injury["structured_need"]["floor"] == 3
+
+    # 2. 短すぎる情報不足メッセージ（例:「水」） -> 聞き返し質問が返却される
+    res_short = client.post(
+        "/emergency/confirm-presence",
+        headers=resident_i,
+        json={
+            "emergency_id": em_id,
+            "safety_status": "NEED_HELP",
+            "message": "水",
+        },
+    )
+    assert res_short.status_code == 200
+    data_short = res_short.json()
+    assert data_short["needs_clarification"] is True
+    assert "お怪我や閉じ込め" in data_short["clarification_question"]
+

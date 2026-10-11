@@ -567,4 +567,82 @@ test('FN-06 taskCountdown and PhoneStage OFFERED countdown pill dynamically bind
   }
 });
 
+test('FN-03 / REQ-15 damage free text textarea exists and agent clarification question is displayed', async () => {
+  let renderer;
+  let sentMessage = null;
+
+  api.confirmPresence = async (_, req) => {
+    sentMessage = req.message;
+    if (req.message === '水') {
+      return {
+        resident_id: 'resident-i',
+        emergency_id: req.emergency_id,
+        safety_status: 'NEED_HELP',
+        observed_at: new Date().toISOString(),
+        message: req.message,
+        needs_clarification: true,
+        clarification_question: 'どのような状況でしょうか？ お怪我や閉じ込めはありますか？',
+      };
+    }
+    return {
+      resident_id: 'resident-i',
+      emergency_id: req.emergency_id,
+      safety_status: 'NEED_HELP',
+      observed_at: new Date().toISOString(),
+      message: req.message,
+      needs_clarification: false,
+    };
+  };
+
+  const detail = initial();
+  detail.resident_states['resident-i'] = 'UNKNOWN';
+  try {
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1], // resident-i
+        emergencyId: 'em-1',
+        tasks: [],
+        issueDetail: detail,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    // 1. 被害あり（ChoiceButton）をクリックして被害内容入力画面へ遷移
+    const choiceButtons = renderer.root.findAllByType(load('components/ui/Buttons.tsx').ChoiceButton);
+    const needHelpButton = choiceButtons.find((b) => b.props.title?.includes('被害あり'));
+    assert.ok(needHelpButton, '被害ありのChoiceButtonが存在すること');
+    await act(async () => {
+      needHelpButton.props.onClick();
+    });
+
+    // 2. textarea が存在し、自由文を入力できること
+    const textareas = renderer.root.findAllByType('textarea');
+    assert.equal(textareas.length, 1, '自由記述textareaが存在すること');
+    const textarea = textareas[0];
+
+    // 「水」を入力して送信
+    await act(async () => {
+      textarea.props.onChange({ target: { value: '水' } });
+    });
+
+    const primaryButton = button(renderer, '管理人に送る');
+    assert.ok(primaryButton, '管理人に送るボタンが存在すること');
+
+    await act(async () => {
+      await primaryButton.props.onClick();
+    });
+
+    assert.equal(sentMessage, '水');
+
+    // 3. Resident Agent からの聞き返しバナーが描画されること
+    const renderedText = text(renderer);
+    assert.match(renderedText, /代理人（Resident Agent）より確認/, '代理人の聞き返しバナーが存在すること');
+    assert.match(renderedText, /どのような状況でしょうか？ お怪我や閉じ込めはありますか？/, '聞き返し質問が表示されること');
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+
 

@@ -25,6 +25,7 @@ from src.models.domain import (
     TaskStatus,
     TaskType,
 )
+from src.observability import trace_span
 from src.services.triage_service import TriageResult, TriageService
 
 logger = logging.getLogger(__name__)
@@ -64,15 +65,25 @@ class BuildingAgent:
         1. LLM 有効時は Gemini による空間近接ペアリングを試行
         2. LLM エラー時またはオフライン環境時はルールベース TriageService へ自動フォールバック
         """
-        # ルールベースで集計およびフォールバック計画を計算
-        rule_result = await self.triage_service.execute_sc3_triage_result(
-            building_id=building_id,
-            emergency_id=emergency_id,
-            issue_id=issue_id,
-        )
+        with trace_span(
+            "BuildingAgent.execute_triage",
+            plan_id=issue_id,
+            attributes={
+                "building_id": building_id,
+                "emergency_id": emergency_id,
+                "agent_identity": self.identity.value,
+                "use_llm": use_llm,
+            },
+        ):
+            # ルールベースで集計およびフォールバック計画を計算
+            rule_result = await self.triage_service.execute_sc3_triage_result(
+                building_id=building_id,
+                emergency_id=emergency_id,
+                issue_id=issue_id,
+            )
 
-        if not use_llm:
-            return rule_result
+            if not use_llm:
+                return rule_result
 
         # Gemini LLM による推論（Google GenAI / ADK 連携）
         try:

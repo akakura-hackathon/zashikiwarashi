@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta
 from src.db.base import BaseRepository
 from src.models.domain import (
     ActorType,
+    EmergencyType,
     PresenceState,
     ReasonCode,
     SafetyStatus,
@@ -23,6 +24,37 @@ from src.models.domain import (
     TaskType,
 )
 from src.models.schemas import PriorityAlertTarget
+
+DISASTER_TASK_CONFIG: dict[EmergencyType, dict] = {
+    EmergencyType.EARTHQUAKE: {
+        "task_type": TaskType.NEIGHBOR_CHECK,
+        "title": "隣室の安否確認",
+        "description": "ご自身の安全確認後、近隣住戸のインターホン確認をお願いします。",
+        "estimated_seconds": 20,
+    },
+    EmergencyType.POWER_OUTAGE: {
+        "task_type": TaskType.SUPPLY_RELAY,
+        "title": "飲料水の階段リレー運搬",
+        "description": (
+            "全館停電・エレベーター停止のため、指定踊り場への物資リレー運搬を依頼します。"
+        ),
+        "estimated_seconds": 240,
+    },
+    EmergencyType.FIRE: {
+        "task_type": TaskType.EVACUATION_ESCORT,
+        "title": "西側非常階段への避難同行",
+        "description": "同一階の要配慮住戸の方と合流し、西側非常階段まで同行避難をお願いします。",
+        "estimated_seconds": 30,
+    },
+    EmergencyType.FLOOD: {
+        "task_type": TaskType.VERTICAL_EVACUATION,
+        "title": "上層階への垂直避難同行",
+        "description": (
+            "浸水警戒区域のため、上層階（6階以上）への垂直避難への同行支援を依頼します。"
+        ),
+        "estimated_seconds": 60,
+    },
+}
 
 
 @dataclass
@@ -37,17 +69,24 @@ class TriageResult:
 
 
 class TriageService:
-    """Core logic for safety check coordination in SC-3."""
+    """Core logic for safety check coordination across disaster scenarios (SC-1 to SC-4)."""
 
     def __init__(self, repo: BaseRepository) -> None:
         self.repo = repo
 
-    async def execute_sc3_triage(
-        self, building_id: str, emergency_id: str, issue_id: str
+    async def execute_triage(
+        self,
+        building_id: str,
+        emergency_id: str,
+        issue_id: str,
+        emergency_type: EmergencyType = EmergencyType.EARTHQUAKE,
     ) -> list[Task]:
-        """Triage unconfirmed units and generate neighbor check tasks."""
+        """4大災害シナリオ（地震・停電・火災・洪水）に応じたトリアージを実行しタスクを生成する。"""
         now = datetime.now(UTC)
         expires_at = now + timedelta(seconds=60)  # 60s timeout for approval (DESIGN §7.4 #6)
+        config = DISASTER_TASK_CONFIG.get(
+            emergency_type, DISASTER_TASK_CONFIG[EmergencyType.EARTHQUAKE]
+        )
 
         # 1. Fetch current status of all residents and units
         residents = await self.repo.list_residents(building_id)
@@ -110,7 +149,7 @@ class TriageService:
                 available_helpers.remove(closest_helper)
                 assigned_helpers.add(closest_helper)
 
-                # Create Neighbor Check Task (E-012)
+                # Create Disaster-specific Task (E-012)
                 task_id = f"task-{uuid.uuid4().hex[:12]}"
                 helper_unit = resident_unit_map[closest_helper]
                 new_task = Task(
@@ -120,8 +159,10 @@ class TriageService:
                     target_resident_id=target_id,
                     start_node_id=helper_unit.entrance_node_id if helper_unit else None,
                     destination_node_id=target_unit.entrance_node_id if target_unit else None,
-                    task_type=TaskType.NEIGHBOR_CHECK,
-                    estimated_seconds=20,
+                    task_type=config["task_type"],
+                    title=config["title"],
+                    description=config["description"],
+                    estimated_seconds=config["estimated_seconds"],
                     status=TaskStatus.OFFERED,
                     created_at=now,
                     expires_at=expires_at,
@@ -143,11 +184,31 @@ class TriageService:
 
         return tasks_created
 
-    async def execute_sc3_triage_result(
+    async def execute_sc3_triage(
         self, building_id: str, emergency_id: str, issue_id: str
+    ) -> list[Task]:
+        """後方互換用: 地震（SC-3）トリアージを実行する。"""
+        return await self.execute_triage(
+            building_id=building_id,
+            emergency_id=emergency_id,
+            issue_id=issue_id,
+            emergency_type=EmergencyType.EARTHQUAKE,
+        )
+
+    async def execute_triage_result(
+        self,
+        building_id: str,
+        emergency_id: str,
+        issue_id: str,
+        emergency_type: EmergencyType = EmergencyType.EARTHQUAKE,
     ) -> TriageResult:
-        """Triage unconfirmed units and return structured TriageResult."""
-        tasks = await self.execute_sc3_triage(building_id, emergency_id, issue_id)
+        """4大災害シナリオに応じたトリアージを実行し、構造化された TriageResult を返却する。"""
+        tasks = await self.execute_triage(
+            building_id=building_id,
+            emergency_id=emergency_id,
+            issue_id=issue_id,
+            emergency_type=emergency_type,
+        )
         current_states = await self.repo.list_current_states(building_id, emergency_id)
         residents = await self.repo.list_residents(building_id)
 
@@ -158,17 +219,25 @@ class TriageService:
             if ctx and ctx.presence_state == PresenceState.OUTSIDE_BUILDING:
                 likely_away += 1
 
+        config = DISASTER_TASK_CONFIG.get(
+            emergency_type, DISASTER_TASK_CONFIG[EmergencyType.EARTHQUAKE]
+        )
+        task_label = config["title"]
+        est_sec = config["estimated_seconds"]
+
         if tasks:
             task_summaries = [f"{t.resident_id} → {t.target_resident_id}" for t in tasks]
             reasoning = (
-                f"未応答{unresponsive}戸を分析。カレンダー不在判定({likely_away}戸)を低優先除外。"
-                f"同一階の安全回答者へ隣室確認({len(tasks)}件: {', '.join(task_summaries)})"
-                "を1:1重複なし・20秒でペアリングしました。"
+                f"【{emergency_type.value}対応】未応答{unresponsive}戸を分析。"
+                f"カレンダー不在判定({likely_away}戸)を低優先除外。"
+                f"空間近接の安全回答者へ{task_label}({len(tasks)}件: {', '.join(task_summaries)})"
+                f"を重複なし・所要目安{est_sec}秒でペアリングしました。"
             )
         else:
             reasoning = (
-                f"未応答{unresponsive}戸を分析。カレンダー不在判定({likely_away}戸)を除外。"
-                "同一階に割当可能な安全回答済みの住民がいません。"
+                f"【{emergency_type.value}対応】未応答{unresponsive}戸を分析。"
+                f"カレンダー不在判定({likely_away}戸)を除外。"
+                f"割当可能な安全回答済みの住民がいません。"
             )
 
         return TriageResult(
@@ -179,6 +248,17 @@ class TriageService:
             likely_away_count=likely_away,
             ai_reasoning=reasoning,
             agent_model="Building Agent (Vertex AI Gemini 2.5 Flash / Policy Engine)",
+        )
+
+    async def execute_sc3_triage_result(
+        self, building_id: str, emergency_id: str, issue_id: str
+    ) -> TriageResult:
+        """後方互換用: 地震（SC-3）トリアージ結果を返却する。"""
+        return await self.execute_triage_result(
+            building_id=building_id,
+            emergency_id=emergency_id,
+            issue_id=issue_id,
+            emergency_type=EmergencyType.EARTHQUAKE,
         )
 
     async def calculate_priority_alerts(

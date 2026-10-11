@@ -77,6 +77,7 @@ export type Task = {
   status: TaskStatus;
   title: string;
   description: string;
+  estimated_seconds?: number | null;
   is_disclosed?: boolean;
   created_at?: string;
   expires_at?: string | null;

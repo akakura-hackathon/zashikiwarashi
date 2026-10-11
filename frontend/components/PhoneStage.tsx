@@ -653,56 +653,72 @@ export function PhoneStage({
                           </div>
                         )}
 
-                        {/* 2. タスク打診中：R04 / R05 確認のお願い */}
-                        {myTask && myTask.status === "OFFERED" && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                            <PageTitle
-                              title="近くのお宅の確認をお願いできますか？"
-                              subtitle="インターホンを1回鳴らすだけです。約20秒。断っても理由は聞きません。"
-                            />
-                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                              <CountdownPill label="返事の期限 残り" timeRemaining={taskTimeRemaining} />
-                            </div>
+                        {/* 2. タスク打診中：R04 / R05 確認・協力のお願い */}
+                        {myTask && myTask.status === "OFFERED" && (() => {
+                          const taskTitle = myTask.title || "近くのお宅の確認をお願いできますか？";
+                          const taskDesc = myTask.description || "インターホンを1回鳴らすだけです。断っても理由は聞きません。";
+                          const estSeconds = myTask.estimated_seconds ?? 20;
+                          const estText = estSeconds >= 60 ? `約${Math.round(estSeconds / 60)}分` : `約${estSeconds}秒`;
+                          const reasonNote = myTask.task_type === "SUPPLY_RELAY"
+                            ? "部屋番号は協力すると表示されます。あなたに頼んだ理由：在宅かつ直近拘束がなく、階段移動が可能なため。"
+                            : myTask.task_type === "EVACUATION_ESCORT"
+                              ? "部屋番号は協力すると表示されます。あなたに頼んだ理由：同一階・同一避難動線上で自力避難が可能なため。"
+                              : myTask.task_type === "VERTICAL_EVACUATION"
+                                ? "部屋番号は協力すると表示されます。あなたに頼んだ理由：上方向への避難動線上に位置しているため。"
+                                : "部屋番号は協力すると表示されます。あなたに頼んだ理由：同じ階で無事と回答し、いちばん近いため。";
 
-                            <div
-                              style={{
-                                backgroundColor: "var(--color-canvas)",
-                                borderRadius: 12,
-                                padding: "14px 16px",
-                                border: "1px solid var(--color-line)",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 8,
-                                fontSize: 13.5,
-                              }}
-                            >
-                              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ color: "var(--color-muted)" }}>やること</span>
-                                <span style={{ fontWeight: 700 }}>インターホンを1回鳴らして応答を確認</span>
+                          return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                              <PageTitle
+                                title={taskTitle}
+                                subtitle={`${taskDesc} 所要${estText}。断っても理由は聞きません。`}
+                              />
+                              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                <CountdownPill label="返事の期限 残り" timeRemaining={taskTimeRemaining} />
                               </div>
-                              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ color: "var(--color-muted)" }}>場所</span>
-                                <span style={{ fontWeight: 700 }}>同じ3階の住戸</span>
+
+                              <div
+                                style={{
+                                  backgroundColor: "var(--color-canvas)",
+                                  borderRadius: 12,
+                                  padding: "14px 16px",
+                                  border: "1px solid var(--color-line)",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 8,
+                                  fontSize: 13.5,
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <span style={{ color: "var(--color-muted)" }}>やること</span>
+                                  <span style={{ fontWeight: 700 }}>{taskTitle}</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <span style={{ color: "var(--color-muted)" }}>場所</span>
+                                  <span style={{ fontWeight: 700 }}>
+                                    {activePersona.roomNumber ? `近隣（${activePersona.roomNumber[0]}階エリア）` : "近隣住戸・共用部"}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <span style={{ color: "var(--color-muted)" }}>所要時間</span>
+                                  <span style={{ fontWeight: 700 }}>{estText}</span>
+                                </div>
                               </div>
-                              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ color: "var(--color-muted)" }}>所要時間</span>
-                                <span style={{ fontWeight: 700 }}>約20秒</span>
+
+                              <PrivacyNote note={reasonNote} />
+
+                              {/* Actions (Max 2 Buttons) */}
+                              <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                                <PrimaryButton onClick={() => handleRespondTask("APPROVED")}>
+                                  協力する（{estText}）
+                                </PrimaryButton>
+                                <SecondaryButton onClick={() => handleRespondTask("DECLINED")}>
+                                  今は無理（理由は不要です）
+                                </SecondaryButton>
                               </div>
                             </div>
-
-                            <PrivacyNote note="部屋番号は協力すると表示されます。あなたに頼んだ理由：同じ階で無事と回答し、いちばん近いため。" />
-
-                            {/* Actions (Max 2 Buttons) */}
-                            <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                              <PrimaryButton onClick={() => handleRespondTask("APPROVED")}>
-                                協力する（約20秒）
-                              </PrimaryButton>
-                              <SecondaryButton onClick={() => handleRespondTask("DECLINED")}>
-                                今は無理（理由は不要です）
-                              </SecondaryButton>
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* 3. 承認後：R06 確認先・手順表示 */}
                         {myTask &&
@@ -714,7 +730,7 @@ export function PhoneStage({
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <PageTitle
-                                  title="確認先のお部屋"
+                                  title="確認・支援先のお部屋"
                                   subtitle="無理は禁物です。危険を感じたら直ちに引き返してください。"
                                 />
                                 {/* Big Room Number */}
@@ -728,7 +744,7 @@ export function PhoneStage({
                                   }}
                                 >
                                   <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                    確認対象住戸
+                                    対象住戸
                                   </span>
                                   <div style={{ marginTop: 4 }}>
                                     <span
@@ -751,25 +767,39 @@ export function PhoneStage({
                                     <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                                       1
                                     </span>
-                                    <span>{isDisclosed ? `${targetRoom}号室` : "確認先住戸"}の前へ向かいます</span>
+                                    <span>{isDisclosed ? `${targetRoom}号室` : "対象住戸"}の前へ向かいます</span>
                                   </div>
                                   <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                                     <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                                       2
                                     </span>
-                                    <span>インターホンを1回だけ鳴らします（不在時は深追い不要）</span>
+                                    <span>
+                                      {myTask.task_type === "SUPPLY_RELAY"
+                                        ? "指定の荷物を受け取り、指定踊り場まで運搬します"
+                                        : myTask.task_type === "EVACUATION_ESCORT"
+                                          ? "合流して西側非常階段まで同行避難します"
+                                          : myTask.task_type === "VERTICAL_EVACUATION"
+                                            ? "合流して上層階へ垂直避難します"
+                                            : "インターホンを1回だけ鳴らします（不在時は深追い不要）"}
+                                    </span>
                                   </div>
                                   <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                                     <span style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "var(--color-ink)", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                                       3
                                     </span>
-                                    <span>応答の有無をアプリで報告してください</span>
+                                    <span>
+                                      {myTask.task_type === "SUPPLY_RELAY"
+                                        ? "運搬完了をアプリで報告してください"
+                                        : myTask.task_type === "EVACUATION_ESCORT" || myTask.task_type === "VERTICAL_EVACUATION"
+                                          ? "同行・避難完了をアプリで報告してください"
+                                          : "応答の有無をアプリで報告してください"}
+                                    </span>
                                   </div>
                                 </div>
 
                                 <div style={{ marginTop: "auto", paddingTop: 16 }}>
                                   <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
-                                    {isDisclosed ? `${targetRoom}号室` : "確認先"}の前に着いた・報告する
+                                    {isDisclosed ? `${targetRoom}号室` : "現地"}に着いた・報告する
                                   </PrimaryButton>
                                 </div>
                               </div>

@@ -694,5 +694,63 @@ test('FN-01: StudioWorkspace がリロード・マウント時に getActiveEmerg
   }
 });
 
+test('Issue #34: 4大災害シナリオ（停電・火災・洪水・地震）の打診タスクが災害固有のタイトルと時間で表示される', async () => {
+  let renderer;
+  const originalGetTaskDetail = api.getTaskDetail;
+  try {
+    const supplyRelayTask = {
+      task_id: 'task-relay-1',
+      issue_id: 'iss-outage-1',
+      resident_id: 'resident-i',
+      target_resident_id: 'resident-h',
+      task_type: 'SUPPLY_RELAY',
+      title: '飲料水の階段リレー運搬',
+      description: '全館停電・エレベーター停止のため、指定踊り場への物資リレー運搬を依頼します。',
+      estimated_seconds: 240,
+      status: 'OFFERED',
+      created_at: new Date(Date.now() - 30_000).toISOString(),
+      expires_at: new Date(Date.now() + 30_000).toISOString(),
+    };
+
+    api.getTaskDetail = async () => ({
+      task: supplyRelayTask,
+      is_disclosed: false,
+      target_room_number: null,
+      latest_event: {
+        event_id: 'evt-relay-1',
+        task_id: supplyRelayTask.task_id,
+        event_type: 'OFFERED',
+        actor_type: 'BUILDING_AGENT',
+        occurred_at: supplyRelayTask.created_at,
+        expires_at: supplyRelayTask.expires_at,
+      },
+    });
+
+    const detail = initial();
+    detail.resident_states['resident-i'] = 'SAFE';
+    detail.tasks = [supplyRelayTask];
+
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-outage-1',
+        emergencyType: 'POWER_OUTAGE',
+        tasks: [supplyRelayTask],
+        issueDetail: detail,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const rendered = text(renderer);
+    assert.match(rendered, /飲料水の階段リレー運搬/, '停電シナリオのタスク名が表示されること');
+    assert.match(rendered, /約4分/, '推定所要時間が約4分と表示されること');
+    assert.match(rendered, /階段移動が可能なため/, '停電リレー運搬の依頼理由が表示されること');
+  } finally {
+    api.getTaskDetail = originalGetTaskDetail;
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
 
 

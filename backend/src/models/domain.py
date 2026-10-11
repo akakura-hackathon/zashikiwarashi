@@ -72,6 +72,9 @@ class MovementType(StrEnum):
 
 class IssueType(StrEnum):
     SAFETY_CHECK = "SAFETY_CHECK"
+    SUPPLY_DISTRIBUTION = "SUPPLY_DISTRIBUTION"
+    EVACUATION_GUIDANCE = "EVACUATION_GUIDANCE"
+    VERTICAL_EVACUATION = "VERTICAL_EVACUATION"
 
 
 class IssueStatus(StrEnum):
@@ -82,6 +85,9 @@ class IssueStatus(StrEnum):
 
 class TaskType(StrEnum):
     NEIGHBOR_CHECK = "NEIGHBOR_CHECK"
+    SUPPLY_RELAY = "SUPPLY_RELAY"
+    EVACUATION_ESCORT = "EVACUATION_ESCORT"
+    VERTICAL_EVACUATION = "VERTICAL_EVACUATION"
 
 
 class TaskStatus(StrEnum):
@@ -260,6 +266,8 @@ class Task(BaseModel):
     start_node_id: str | None = None
     destination_node_id: str | None = None
     task_type: TaskType = TaskType.NEIGHBOR_CHECK
+    title: str = Field(default="")
+    description: str = Field(default="")
     estimated_seconds: int = 20
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

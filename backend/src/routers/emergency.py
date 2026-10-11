@@ -14,6 +14,7 @@ from src.models.auth import CurrentUser
 from src.models.domain import (
     Emergency,
     EmergencyStatus,
+    EmergencyType,
     Issue,
     IssueStatus,
     IssueType,
@@ -133,12 +134,23 @@ async def trigger_emergency(
     )
     await repo.create_emergency(emergency)
 
-    # 2. Create Initial Safety Check Issue (E-011)
+    # 2. Create Initial Disaster Issue (E-011)
+    issue_type_map = {
+        EmergencyType.EARTHQUAKE: IssueType.SAFETY_CHECK,
+        EmergencyType.POWER_OUTAGE: IssueType.SUPPLY_DISTRIBUTION,
+        EmergencyType.FIRE: IssueType.EVACUATION_GUIDANCE,
+        EmergencyType.FLOOD: IssueType.VERTICAL_EVACUATION,
+    }
+    route_constraint_map = {
+        EmergencyType.FIRE: "西側非常階段",
+        EmergencyType.FLOOD: "上層階（6階以上）共用部",
+    }
     issue = Issue(
         issue_id=issue_id,
         emergency_id=emergency_id,
-        issue_type=IssueType.SAFETY_CHECK,
+        issue_type=issue_type_map.get(req.emergency_type, IssueType.SAFETY_CHECK),
         instruction=req.instruction,
+        route_constraint=route_constraint_map.get(req.emergency_type),
         status=IssueStatus.OPEN,
         created_by_admin_id=admin.uid,
         created_at=now,

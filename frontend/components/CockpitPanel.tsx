@@ -97,30 +97,31 @@ export function CockpitPanel({
     return { roomNo, floor, col, status };
   });
 
+  const [activeTab, setActiveTab] = React.useState<"disaster" | "governance">("disaster");
+
   return (
     <aside className="cockpit-sidebar">
       {/* 1. Header */}
       <div className="cockpit-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
           <img
             src="/icons/icon-192.png"
             alt="Zashikiwarashi"
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
+              width: 38,
+              height: 38,
+              borderRadius: 8,
               objectFit: "cover",
               flexShrink: 0,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.08)",
             }}
           />
-          <div>
-            <span className="cockpit-badge" style={{ marginBottom: 2 }}>ZASHIKIWARASHI STUDIO COCKPIT</span>
-            <h1 className="cockpit-title" style={{ margin: 0, fontSize: "1.25rem" }}>座敷わらし検証卓</h1>
-          </div>
+          <h1 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: "var(--color-ink)" }}>
+            Zashikiwarashi検証画面
+          </h1>
         </div>
-        <p className="cockpit-desc">
-          一般住民のスマホ画面（右）と、建物全体Multi-Agent（トリアージ・Policy Engine）の動作をリアルタイム検証します。
+        <p className="cockpit-desc" style={{ margin: "0 0 6px 0" }}>
+          ハッカソン用のデモとして、Zashikiwarashiの機能の検証をするための画面です。
         </p>
 
         {/* Auth status & Login */}
@@ -179,10 +180,72 @@ export function CockpitPanel({
             </>
           )}
         </div>
+
+        {/* タブ切り替え: 災害時検証 / Agentガバナンス検証 */}
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            backgroundColor: "#F1F3F5",
+            padding: "3px",
+            borderRadius: "10px",
+            marginTop: "10px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab("disaster")}
+            style={{
+              flex: 1,
+              padding: "7px 10px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: activeTab === "disaster" ? "#FFFFFF" : "transparent",
+              color: activeTab === "disaster" ? "var(--color-ink)" : "var(--color-muted)",
+              fontWeight: activeTab === "disaster" ? 700 : 500,
+              fontSize: "0.78rem",
+              cursor: "pointer",
+              boxShadow: activeTab === "disaster" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              transition: "all 0.15s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+            }}
+          >
+            <span>🚨 災害時検証</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("governance")}
+            style={{
+              flex: 1,
+              padding: "7px 10px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: activeTab === "governance" ? "#FFFFFF" : "transparent",
+              color: activeTab === "governance" ? "var(--color-ink)" : "var(--color-muted)",
+              fontWeight: activeTab === "governance" ? 700 : 500,
+              fontSize: "0.78rem",
+              cursor: "pointer",
+              boxShadow: activeTab === "governance" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              transition: "all 0.15s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+            }}
+          >
+            <span>🛡️ Agentガバナンス検証</span>
+          </button>
+        </div>
       </div>
 
-      {/* 2. 災害シミュレーション制御 */}
-      <div className="cockpit-section">
+      {/* タブ1: 災害時検証 */}
+      {activeTab === "disaster" && (
+        <>
+          {/* 2. 災害シミュレーション制御 */}
+          <div className="cockpit-section">
         <div className="section-title">
           <span>⚡ 災害シミュレーション</span>
           <span style={{ fontSize: "0.72rem", fontWeight: 700, color: emergencyId ? "var(--color-danger)" : "var(--color-brand)" }}>
@@ -369,91 +432,6 @@ export function CockpitPanel({
         </div>
       </div>
 
-      {/* 2.5 Agent ガバナンス・ガードレール検証 (FN-10 / Step 7) */}
-      <div className="cockpit-section">
-        <div className="section-title">
-          <span>🛡️ Agent ガバナンス検証 (FN-10)</span>
-          <span style={{ fontSize: "0.7rem", color: "var(--color-brand)", fontWeight: 700 }}>G1〜G6 統制</span>
-        </div>
-        <div style={{ fontSize: "0.72rem", color: "var(--color-muted)", marginBottom: "6px" }}>
-          Model Armor（G2）と IAP CEL（G4）による決定論的防御を実機検証します。
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <button
-            style={{
-              padding: "7px 10px",
-              borderRadius: "8px",
-              border: "1px solid var(--cockpit-border)",
-              backgroundColor: "#FFFFFF",
-              color: "var(--color-ink)",
-              fontSize: "0.74rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onClick={async () => {
-              if (onAddLog) onAddLog("🛡️ [G2 Model Armor] 敵対的プロンプトインジェクション攻撃を送信中...");
-              try {
-                const res = await testGuardrail(user, "PROMPT_INJECTION");
-                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
-              } catch (e) {
-                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
-              }
-            }}
-          >
-            🛡️ G2: プロンプトインジェクション遮断テスト
-          </button>
-          <button
-            style={{
-              padding: "7px 10px",
-              borderRadius: "8px",
-              border: "1px solid var(--cockpit-border)",
-              backgroundColor: "#FFFFFF",
-              color: "var(--color-ink)",
-              fontSize: "0.74rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onClick={async () => {
-              if (onAddLog) onAddLog("🛡️ [G4 IAP CEL] Resident Agent による権限外ツール（部屋番号開示）呼び出しを試行中...");
-              try {
-                const res = await testGuardrail(user, "IAP_FORBIDDEN_TOOL");
-                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
-              } catch (e) {
-                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
-              }
-            }}
-          >
-            🛡️ G4: IAP 権限外ツール呼出物理拒否テスト
-          </button>
-          <button
-            style={{
-              padding: "7px 10px",
-              borderRadius: "8px",
-              border: "1px solid var(--cockpit-border)",
-              backgroundColor: "#FFFFFF",
-              color: "var(--color-ink)",
-              fontSize: "0.74rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onClick={async () => {
-              if (onAddLog) onAddLog("🛡️ [G2 SDP Filter] 外向き通信（Egress）への生部屋番号漏洩をシミュレーション中...");
-              try {
-                const res = await testGuardrail(user, "SDP_ROOM_LEAK");
-                if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
-              } catch (e) {
-                if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
-              }
-            }}
-          >
-            🛡️ G2/G3: Outbound SDP 部屋番号漏洩遮断テスト
-          </button>
-        </div>
-      </div>
-
       {/* 3. 操作ペルソナ切り替え */}
       <div className="cockpit-section">
         <div className="section-title">
@@ -575,9 +553,98 @@ export function CockpitPanel({
           </div>
         </div>
       )}
+    </>
+  )}
 
-      {/* 6. Multi-Agent 通信 & Policy Engine 監査ログ */}
-      <div className="cockpit-section" style={{ flex: 1, minHeight: "180px" }}>
+  {/* タブ2: Agentガバナンス検証 */}
+  {activeTab === "governance" && (
+    <div className="cockpit-section">
+      <div className="section-title">
+        <span>🛡️ Agent ガバナンス検証 (FN-10)</span>
+        <span style={{ fontSize: "0.7rem", color: "var(--color-brand)", fontWeight: 700 }}>G1〜G6 統制</span>
+      </div>
+      <div style={{ fontSize: "0.72rem", color: "var(--color-muted)", marginBottom: "6px" }}>
+        Model Armor（G2）と IAP CEL（G4）による決定論的防御を実機検証します。
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <button
+          style={{
+            padding: "8px 10px",
+            borderRadius: "8px",
+            border: "1px solid var(--cockpit-border)",
+            backgroundColor: "#FFFFFF",
+            color: "var(--color-ink)",
+            fontSize: "0.74rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+          onClick={async () => {
+            if (onAddLog) onAddLog("🛡️ [G2 Model Armor] 敵対的プロンプトインジェクション攻撃を送信中...");
+            try {
+              const res = await testGuardrail(user, "PROMPT_INJECTION");
+              if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+            } catch (e) {
+              if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+            }
+          }}
+        >
+          🛡️ G2: プロンプトインジェクション遮断テスト
+        </button>
+        <button
+          style={{
+            padding: "8px 10px",
+            borderRadius: "8px",
+            border: "1px solid var(--cockpit-border)",
+            backgroundColor: "#FFFFFF",
+            color: "var(--color-ink)",
+            fontSize: "0.74rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+          onClick={async () => {
+            if (onAddLog) onAddLog("🛡️ [G4 IAP CEL] Resident Agent による権限外ツール（部屋番号開示）呼び出しを試行中...");
+            try {
+              const res = await testGuardrail(user, "IAP_FORBIDDEN_TOOL");
+              if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+            } catch (e) {
+              if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+            }
+          }}
+        >
+          🛡️ G4: IAP 権限外ツール呼出物理拒否テスト
+        </button>
+        <button
+          style={{
+            padding: "8px 10px",
+            borderRadius: "8px",
+            border: "1px solid var(--cockpit-border)",
+            backgroundColor: "#FFFFFF",
+            color: "var(--color-ink)",
+            fontSize: "0.74rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+          onClick={async () => {
+            if (onAddLog) onAddLog("🛡️ [G2 SDP Filter] 外向き通信（Egress）への生部屋番号漏洩をシミュレーション中...");
+            try {
+              const res = await testGuardrail(user, "SDP_ROOM_LEAK");
+              if (onAddLog) onAddLog(`✅ [${res.guardrail_layer}] ${res.message} (コード: ${res.violation_code})`);
+            } catch (e) {
+              if (onAddLog) onAddLog(`❌ [ERROR] ${String(e)}`);
+            }
+          }}
+        >
+          🛡️ G2/G3: Outbound SDP 部屋番号漏洩遮断テスト
+        </button>
+      </div>
+    </div>
+  )}
+
+  {/* 6. Multi-Agent 通信 & Policy Engine 監査ログ */}
+  <div className="cockpit-section" style={{ flex: 1, minHeight: "180px" }}>
         <div className="section-title">
           <span>📡 Multi-Agent 通信 & Policy Engine 判定ログ</span>
         </div>

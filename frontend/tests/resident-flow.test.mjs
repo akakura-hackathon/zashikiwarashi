@@ -752,5 +752,107 @@ test('Issue #34: 4大災害シナリオ（停電・火災・洪水・地震）�
   }
 });
 
+test('Issue #40: SC-1 停電シナリオの困りごと選択画面（S1_A2）と階段リレー運搬（S1_C3/S1_C4）画面の検証', async () => {
+  let renderer;
+  const originalGetTaskDetail = api.getTaskDetail;
+  try {
+    // 1. 困りごと入力画面の検証（S1_A2）
+    const detail = initial();
+    detail.resident_states['resident-i'] = 'UNKNOWN';
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-outage-2',
+        emergencyType: 'POWER_OUTAGE',
+        tasks: [],
+        issueDetail: detail,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    // 「困っている」をタップして困りごと詳細へ遷移
+    const needHelpBtn = button(renderer, '困っている（');
+    assert.ok(needHelpBtn, '停電時用の「困っている」選択ボタンが存在すること');
+    await act(async () => {
+      needHelpBtn.props.onClick();
+    });
+
+    const renderedNeed = text(renderer);
+    assert.match(renderedNeed, /停電時の困りごとを教えてください/, '停電時の困りごとタイトルが表示されること');
+    assert.match(renderedNeed, /飲み水・食料が足りない/, '飲み水・食料不足の選択肢が表示されること');
+    assert.match(renderedNeed, /階段を自力で昇降できない/, '階段昇降困難の選択肢が表示されること');
+    assert.match(renderedNeed, /薬が足りない・医療機器が使えない/, '薬・医療機器の選択肢が表示されること');
+    assert.match(renderedNeed, /暑さ・寒さで体調が不安/, '熱中症・体調不安の選択肢が表示されること');
+    assert.doesNotMatch(renderedNeed, /大型家具の転倒/, '地震向けの家具転倒選択肢は表示されないこと');
+
+    await act(async () => renderer.unmount());
+
+    // 2. 承認後運搬手順（S1_C3）と報告画面（S1_C4）の検証
+    const relayTask = {
+      task_id: 'task-relay-step',
+      issue_id: 'iss-outage-2',
+      resident_id: 'resident-i',
+      target_resident_id: 'resident-h',
+      task_type: 'SUPPLY_RELAY',
+      title: '飲料水の階段リレー運搬',
+      description: '指定踊り場への物資リレー運搬を依頼します。',
+      estimated_seconds: 240,
+      status: 'APPROVED',
+      created_at: new Date(Date.now() - 30_000).toISOString(),
+      expires_at: new Date(Date.now() + 30_000).toISOString(),
+    };
+
+    api.getTaskDetail = async () => ({
+      task: relayTask,
+      is_disclosed: true,
+      target_room_number: '101',
+      latest_event: {
+        event_id: 'evt-relay-2',
+        task_id: relayTask.task_id,
+        event_type: 'APPROVED',
+        actor_type: 'RESIDENT',
+        occurred_at: relayTask.created_at,
+      },
+    });
+
+    const detailWithTask = initial();
+    detailWithTask.resident_states['resident-i'] = 'SAFE';
+    detailWithTask.tasks = [relayTask];
+
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-outage-2',
+        emergencyType: 'POWER_OUTAGE',
+        tasks: [relayTask],
+        issueDetail: detailWithTask,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const renderedRelay = text(renderer);
+    assert.match(renderedRelay, /物資の受取場所と運搬先/, '物資受取場所タイトルが表示されること');
+    assert.match(renderedRelay, /101/, '受取場所として開示された部屋番号が表示されること');
+    assert.match(renderedRelay, /指定階（8階踊り場）の「ZASHIKI箱」へ運んで置きます/, '階段リレー運搬の手順案内が表示されること');
+
+    // 「報告する」ボタンを押して R07 へ
+    const reportBtns = renderer.root.findAll((el) => el.props && el.props.children && typeof el.props.children === 'string' && el.props.children.includes('報告する'));
+    assert.ok(reportBtns.length > 0, '踊り場到着報告ボタンが存在すること');
+    await act(async () => {
+      reportBtns[0].props.onClick();
+    });
+
+    const renderedReport = text(renderer);
+    assert.match(renderedReport, /踊り場に置けましたか？/, '階段リレーの完了報告タイトルが表示されること');
+    assert.match(renderedReport, /指定の踊り場に置いた/, '踊り場設置完了の選択肢が表示されること');
+    assert.match(renderedReport, /置けなかった（危険・途中で断念）/, 'リレー中断の選択肢が表示されること');
+  } finally {
+    api.getTaskDetail = originalGetTaskDetail;
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
 
 

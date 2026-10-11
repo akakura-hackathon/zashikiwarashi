@@ -207,3 +207,79 @@ def test_api_trigger_disaster_scenarios_and_route_constraints():
     )
     assert res_power_detail.status_code == 200
     assert res_power_detail.json()["issue"]["issue_type"] == "SUPPLY_DISTRIBUTION"
+
+
+@pytest.mark.asyncio
+async def test_sc1_power_outage_need_parsing_and_relay_flow(setup_test_db):
+    """SC-1 停電シナリオで住民Agentが困りごと（水・階段・熱中症）を
+    正確に構造化し、物資リレータスクが生成されることを検証。
+    """
+    repo = setup_test_db
+    from src.agents.resident_agent import ResidentAgent
+
+    agent = ResidentAgent(resident_id="res-1401", repo=repo, building_id="bld-01")
+
+    # 1. 水不足かつ階段歩行不可のメッセージ
+    msg_water = "14階で飲料水が切れました。足が悪く階段が降りられません。"
+    need1 = agent.parse_user_free_text(msg_water, floor=14)
+    assert need1.category == "WATER"
+    assert need1.can_stairs is False
+    assert need1.requires_assistance is True
+
+    # 2. 空調停止による熱中症リスク
+    msg_heat = "停電でエアコンが止まり、部屋が暑くて熱中症が心配です。"
+    need2 = agent.parse_user_free_text(msg_heat, floor=8)
+    assert need2.category == "HEAT_RELIEF"
+    assert need2.requires_assistance is True
+
+    # 3. 停電トリアージタスク生成
+    building_agent = BuildingAgent(repo)
+    emergency = Emergency(
+        emergency_id="em-sc1-test",
+        building_id="bld-01",
+        emergency_type=EmergencyType.POWER_OUTAGE,
+        status=EmergencyStatus.ACTIVE,
+        triggered_by="admin-01",
+    )
+    await repo.create_emergency(emergency)
+    issue = Issue(
+        issue_id="iss-sc1-test",
+        emergency_id="em-sc1-test",
+        building_id="bld-01",
+        issue_type=IssueType.SUPPLY_DISTRIBUTION,
+        title="物資支援・階段リレー",
+        description="EV全基停止に伴う飲料水の階段リレー運搬",
+        instruction="全館停電発生。物資支援開始。",
+        created_by_admin_id="admin-01",
+    )
+    await repo.create_issue("bld-01", issue)
+
+    from src.models.domain import ResidentEmergencyCurrentState
+    await repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="em-sc1-test",
+            resident_id="resident-i",
+            safety_status=SafetyStatus.SAFE,
+        ),
+    )
+    await repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="em-sc1-test",
+            resident_id="resident-h",
+            safety_status=SafetyStatus.UNKNOWN,
+        ),
+    )
+
+    triage_result = await building_agent.execute_triage(
+        building_id="bld-01",
+        emergency_id="em-sc1-test",
+        issue_id="iss-sc1-test",
+        use_llm=False,
+    )
+    tasks = triage_result.created_tasks
+    assert len(tasks) > 0
+    assert tasks[0].task_type == TaskType.SUPPLY_RELAY
+    assert tasks[0].title == "飲料水の階段リレー運搬"
+    assert tasks[0].estimated_seconds == 240

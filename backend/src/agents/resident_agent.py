@@ -179,10 +179,17 @@ class ResidentAgent:
         ):
             clean_text = text.strip()
 
-            injury_keywords = ["怪我", "けが", "足", "痛い", "血", "動けない", "挟ま"]
+            injury_keywords = ["怪我", "けが", "足が痛", "痛い", "血", "動けない", "挟ま", "骨折"]
             is_injury = any(k in clean_text for k in injury_keywords)
             is_trapped = any(k in clean_text for k in ["閉じ込め", "ドアが開かない", "出られない"])
-            is_water = any(k in clean_text for k in ["水", "飲料水", "喉"])
+            is_water = any(k in clean_text for k in ["水", "飲料水", "喉", "食料", "飲み水"])
+            stair_keywords = [
+                "階段", "昇降", "降りられない", "階段不可", "エレベーター停止", "EV停止", "足が悪",
+            ]
+            is_stair_diff = any(k in clean_text for k in stair_keywords)
+            medical_keywords = ["薬", "医療", "呼吸器", "電源", "バッテリー"]
+            is_medical = any(k in clean_text for k in medical_keywords)
+            is_heat = any(k in clean_text for k in ["熱中症", "暑い", "エアコン", "空調"])
 
             # 自由文が短すぎて情報不足の場合（聞き返し R3）
             if len(clean_text) <= 2 and not is_injury and not is_trapped:
@@ -204,13 +211,29 @@ class ResidentAgent:
                 category = "EVACUATION"
             elif is_water:
                 category = "WATER"
+            elif is_medical:
+                category = "MEDICAL"
+            elif is_heat:
+                category = "HEAT_RELIEF"
+            elif is_stair_diff:
+                category = "STAIRS_ASSIST"
+
+            requires_assistance = (
+                is_injury
+                or is_trapped
+                or is_water
+                or is_stair_diff
+                or is_medical
+                or is_heat
+            )
+            can_stairs = not (is_injury or is_stair_diff)
 
             return StructuredNeed(
                 resident_id=self.resident_id,
                 floor=floor,
                 category=category,
-                requires_assistance=is_injury or is_trapped,
-                can_stairs=not is_injury,
+                requires_assistance=requires_assistance,
+                can_stairs=can_stairs,
                 raw_message=clean_text,
                 needs_clarification=False,
                 clarification_question=None,

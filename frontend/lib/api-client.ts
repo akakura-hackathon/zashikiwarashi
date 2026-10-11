@@ -96,14 +96,21 @@ export type TaskDetailResponse = {
 };
 
 export type AuditEvent = {
-  audit_id: string;
+  audit_event_id: string;
   emergency_id: string;
-  event_name: string;
-  actor_id: string;
   actor_type: string;
-  target_resident_id?: string | null;
-  description: string;
-  created_at: string;
+  actor_id: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  data_used?: string[];
+  data_disclosed?: string[];
+  occurred_at: string;
+  // Optional backwards-compatibility fields
+  audit_id?: string;
+  event_name?: string;
+  created_at?: string;
+  description?: string;
 };
 
 export class ApiError extends Error {

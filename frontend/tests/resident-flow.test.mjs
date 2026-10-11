@@ -393,3 +393,50 @@ test('FN-01/FN-08 reset button is removed and triage shows progress and numbered
     assert.doesNotMatch(text(renderer), /4回目のトリアージが完了しました|Firestore 50戸初期化/);
   } finally { if (renderer) await act(async () => renderer.unmount()); }
 });
+
+test('FN-09 audit log tab displays backend schema with data_used and data_disclosed', async () => {
+  let renderer;
+  const mockAuditEvent = {
+    audit_event_id: 'aud-test-123',
+    emergency_id: 'em-1',
+    actor_type: 'RESIDENT',
+    actor_id: 'resident-i',
+    action: 'DISCLOSE_ROOM_NUMBER_ON_APPROVAL',
+    target_type: 'TASK',
+    target_id: 'task-check-302',
+    data_used: ['resident_approval', 'task_id'],
+    data_disclosed: ['unit_room_number:302'],
+    occurred_at: '2026-10-11T08:15:30.000Z',
+  };
+  api.getMyAuditEvents = async () => ({ audit_events: [mockAuditEvent] });
+  try {
+    const persona = { id: 'resident-i', userId: 'resident-i', role: 'resident', unitId: 'unit-301', roomNumber: '301', name: '住民I (301号室)', isHelperCandidate: true };
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: persona,
+        user,
+        emergencyId: null,
+        tasks: [],
+        issueDetail: null,
+        onActionComplete: async () => {},
+        isLoading: false,
+      }));
+    });
+    // Tab 2: 記録 (history) をクリック
+    const historyTabBtn = renderer.root.findAllByType('button').find((n) => contents(n).includes('記録'));
+    assert.ok(historyTabBtn, '記録タブボタンが存在すること');
+    await act(async () => {
+      historyTabBtn.props.onClick();
+    });
+    const renderedText = text(renderer);
+    assert.match(renderedText, /情報の利用記録/, '画面タイトルが表示されること');
+    assert.match(renderedText, /協力承認に伴う部屋番号の限定開示/, 'actionが日本語化されて表示されること');
+    assert.match(renderedText, /本人（resident-i）/, '操作主体が表示されること');
+    assert.match(renderedText, /本人の協力承認/, 'data_usedのラベルが表示されること');
+    assert.match(renderedText, /302号室/, 'data_disclosedの部屋番号が表示されること');
+    assert.match(renderedText, /08:15/, 'occurred_atの時刻が表示されること');
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+

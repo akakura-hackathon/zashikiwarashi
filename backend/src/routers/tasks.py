@@ -6,7 +6,7 @@ from src.db.base import BaseRepository
 from src.db.factory import get_repository
 from src.dependencies.auth import get_current_user
 from src.models.auth import CurrentUser
-from src.models.domain import SafetyStatus
+from src.models.domain import PresenceState, SafetyStatus
 from src.models.schemas import (
     IssueDetailResponse,
     TaskDetailResponse,
@@ -80,19 +80,35 @@ async def get_issue_progress(
         summary[st.safety_status] = summary.get(st.safety_status, 0) + 1
         resident_states[st.resident_id] = st.safety_status
 
-    # 4. Priority targets for management triage (computed on-the-fly, DESIGN §6.3 D)
+    # 4. Priority targets and Likely Away units for management triage (DESIGN §6.3 D)
     priority_targets = []
     room_states = {}
+    likely_away_count = 0
+    likely_away_rooms: list[str] = []
+
     if user.role == "admin":
         # FN-08: Resolve rooms from repository data, never from demo labels.
         residents = await repo.list_residents(building_id)
         units = {u.unit_id: u for u in await repo.list_units(building_id)}
+        resident_to_room: dict[str, str] = {}
         for resident in residents:
             unit = units.get(resident.unit_id)
             if unit:
+                resident_to_room[resident.resident_id] = unit.room_number
                 room_states[unit.room_number] = resident_states.get(
                     resident.resident_id, SafetyStatus.UNKNOWN
                 )
+
+        # Cat 3 在館コンテキストから外出中（終日外出予定など）の住戸を抽出
+        presence_contexts = await repo.list_presence_contexts(building_id)
+        for ctx in presence_contexts:
+            if ctx.presence_state == PresenceState.OUTSIDE_BUILDING:
+                if resident_states.get(ctx.resident_id) == SafetyStatus.UNKNOWN:
+                    room_no = resident_to_room.get(ctx.resident_id)
+                    if room_no:
+                        likely_away_rooms.append(room_no)
+        likely_away_count = len(likely_away_rooms)
+
         triage_svc = TriageService(repo)
         priority_targets = await triage_svc.calculate_priority_alerts(
             building_id, actual_emergency_id
@@ -105,6 +121,8 @@ async def get_issue_progress(
         resident_states=resident_states,
         room_states=room_states,
         priority_targets=priority_targets,
+        likely_away_count=likely_away_count,
+        likely_away_rooms=likely_away_rooms,
     )
 
 

@@ -145,6 +145,8 @@ def test_fn08_room_map_tracks_resident_answers_and_emergency_reset():
     initial = client.get(path, headers=admin).json()
     assert len(initial["room_states"]) == 50
     assert set(initial["room_states"].values()) == {"UNKNOWN"}
+    assert initial["likely_away_count"] == 1
+    assert "504" in initial["likely_away_rooms"]
     assert initial["issue"]["created_at"]
     for safety in ("SAFE", "NEED_HELP", "SAFE"):
         response = client.post(
@@ -157,10 +159,15 @@ def test_fn08_room_map_tracks_resident_answers_and_emergency_reset():
         assert detail["resident_states"]["resident-i"] == safety
         assert detail["current_states_summary"][safety] == 1
         assert detail["current_states_summary"]["UNKNOWN"] == 49
-    assert client.get(path, headers=resident).json()["room_states"] == {}
+    resident_view = client.get(path, headers=resident).json()
+    assert resident_view["room_states"] == {}
+    assert resident_view["likely_away_rooms"] == []
+    assert resident_view["likely_away_count"] == 0
     new = client.post("/emergency/trigger", headers=admin, json={"building_id": "bld-01"}).json()
     reset = client.get(f"/issues/{new['issue_id']}", headers=admin).json()
     assert set(reset["room_states"].values()) == {"UNKNOWN"}
+    assert reset["likely_away_count"] == 1
+    assert "504" in reset["likely_away_rooms"]
 
 
 def test_fn02_anonymous_gateway_session_cannot_use_demo_personas():

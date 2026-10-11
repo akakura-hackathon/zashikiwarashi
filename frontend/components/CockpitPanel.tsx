@@ -79,9 +79,10 @@ export function CockpitPanel({
   );
   const summary = issueDetail?.current_states_summary ?? {};
   const safeCount = summary["SAFE"] ?? 0;
-  const unknownCount = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
   const needHelpCount = summary["NEED_HELP"] ?? 0;
-  const outsideCount = summary["OUTSIDE_BUILDING"] ?? 0;
+  const outsideCount = issueDetail?.likely_away_count ?? summary["OUTSIDE_BUILDING"] ?? 0;
+  const rawUnknown = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
+  const unknownCount = Math.max(0, rawUnknown - (summary["OUTSIDE_BUILDING"] ? 0 : outsideCount));
 
   const priorityTargets: PriorityAlertTarget[] = issueDetail?.priority_targets ?? [];
 
@@ -91,7 +92,9 @@ export function CockpitPanel({
     const col = i % 10 + 1;
     const roomNo = `${floor}${String(col).padStart(2, "0")}`;
     const safety = issueDetail?.room_states?.[roomNo];
-    return { roomNo, floor, col, status: safetyRoomStatus(safety) };
+    const isLikelyAway = issueDetail?.likely_away_rooms?.includes(roomNo);
+    const status = isLikelyAway && (safety === "UNKNOWN" || !safety) ? "away" : safetyRoomStatus(safety);
+    return { roomNo, floor, col, status };
   });
 
   return (

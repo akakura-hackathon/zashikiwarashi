@@ -211,6 +211,15 @@ class FirestoreRepository(BaseRepository):
         )
         return PresenceContext.model_validate(doc.to_dict()) if doc.exists else None
 
+    async def list_presence_contexts(self, building_id: str) -> list[PresenceContext]:
+        query = (
+            self.db.collection("buildings")
+            .document(building_id)
+            .collection("presence_contexts")
+        )
+        docs = [d async for d in query.stream()]
+        return [PresenceContext.model_validate(d.to_dict()) for d in docs]
+
     # --- Cat 4 ---
     async def create_emergency(self, emergency: Emergency) -> None:
         doc_ref = (

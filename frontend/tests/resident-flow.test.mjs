@@ -440,3 +440,53 @@ test('FN-09 audit log tab displays backend schema with data_used and data_disclo
   }
 });
 
+test('FN-08 CockpitPanel binds likely_away presence to outsideCount and away room status', async () => {
+  let renderer;
+  const { CockpitPanel } = load('components/CockpitPanel.tsx');
+  const mockIssueDetail = {
+    issue: { issue_id: 'issue-1', emergency_id: 'em-1', created_at: new Date().toISOString() },
+    tasks: [],
+    priority_targets: [],
+    current_states_summary: { UNKNOWN: 50 },
+    room_states: { '504': 'UNKNOWN' },
+    likely_away_count: 1,
+    likely_away_rooms: ['504'],
+  };
+  try {
+    const adminPersona = { id: 'admin', userId: 'admin', role: 'admin', roomNumber: '000', name: '防災センター (管理人)', isHelperCandidate: false };
+    await act(async () => {
+      renderer = create(React.createElement(CockpitPanel, {
+        activePersona: adminPersona,
+        onSelectPersona: () => {},
+        selectedEmergencyType: 'EARTHQUAKE',
+        onSelectEmergencyType: () => {},
+        emergencyId: 'em-1',
+        issueId: 'issue-1',
+        issueDetail: mockIssueDetail,
+        triageAiResult: null,
+        triageExecution: { count: 0, status: 'idle' },
+        onTriggerEmergency: async () => {},
+        onStartTriage: async () => {},
+        onRefresh: async () => {},
+        isLoading: false,
+        logs: [],
+        user,
+        onLogin: async () => {},
+        onLogout: async () => {},
+      }));
+    });
+    const renderedText = text(renderer);
+    assert.match(renderedText, /カレンダー外出中/, 'カレンダー外出中のラベルが存在すること');
+    assert.match(renderedText, /1 戸/, '外出可能性カウントが1戸と表示されること');
+    assert.match(renderedText, /49 戸/, '未応答カウントが在宅未応答49戸として表示されること');
+    // FloorMap の rooms を検証
+    const floorMap = renderer.root.findByType(load('components/ui/FloorMap.tsx').FloorMap);
+    assert.ok(floorMap, 'FloorMapが存在すること');
+    const room504 = floorMap.props.rooms.find((r) => r.roomNo === '504');
+    assert.ok(room504, '504号室が存在すること');
+    assert.equal(room504.status, 'away', '504号室がawayステータスであること');
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+

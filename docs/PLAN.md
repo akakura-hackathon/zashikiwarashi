@@ -232,7 +232,10 @@ MVP のコア機能（FN-01〜FN-11）の実装完了後、提出および実運
 
 | Issue | タイトル | 概要 | 優先度 |
 | :--- | :--- | :--- | :--- |
-| [#34](https://github.com/akakura-hackathon/zashikiwarashi/issues/34) | 4大災害シナリオ（停電・火災・洪水）の専用データ・個別トリアージ対応 | SC-1（停電/熱中症）、SC-2（火災/煙避難）、SC-4（洪水/垂直避難）固有のデータ・指示文連動の拡充 | **中** |
+| [#34](https://github.com/akakura-hackathon/zashikiwarashi/issues/34) | 4大災害シナリオ（停電・火災・洪水）の専用データ・個別トリアージ対応 | SC-1（停電/熱中症）、SC-2（火災/煙避難）、SC-4（洪水/垂直避難）固有のデータ・指示文連動の拡充（マージ済・ユースケース別 Issue へ詳細分割） | **完了** |
+| [#40](https://github.com/akakura-hackathon/zashikiwarashi/issues/40) | [Feature/SC-1] 停電・EV全基停止シナリオの専用機能（困りごと送信・物資リレー・タスク進行）の一気通貫対応 | 困りごと選択肢（水・階段・薬・熱中症）、物資リレーNeed構造化、階段リレー分割タスク・受渡場所開示・完了報告 | **高** |
+| [#41](https://github.com/akakura-hackathon/zashikiwarashi/issues/41) | [Feature/SC-2] 火災・煙感知シナリオの専用機能（避難状況送信・同フロア避難同行・西側階段誘導）の一気通貫対応 | 避難状況選択肢（階段不可・煙・けが・逃げ道遮断）、西側階段動線支援者マッチング、合流場所開示・地上退避完了報告 | **高** |
+| [#42](https://github.com/akakura-hackathon/zashikiwarashi/issues/42) | [Feature/SC-4] 洪水・内水氾濫シナリオの専用機能（垂直避難状況送信・上方向同行・上層階退避）の一気通貫対応 | 垂直避難状況選択肢（上階階段不可・浸水・暗闇・介助者）、低層階から上階への同方向動線マッチング、合流開示・6F退避完了報告 | **高** |
 | [#35](https://github.com/akakura-hackathon/zashikiwarashi/issues/35) | 本番GCP環境デプロイ（Cloud Run & API Gateway） | `deploy.yml` による Cloud Run / API Gateway への本番コンテナデプロイと疎通確認 | **中** |
 | [#36](https://github.com/akakura-hackathon/zashikiwarashi/issues/36) | 実機Web Push通知（FCM HTTP v1 / APNs実通信）の接続 | 画面内モック通知に加え、実端末スマホへFCM HTTP v1でプッシュ通知を届けるインフラ実連携 | **低 (余力)** |
 | [#37](https://github.com/akakura-hackathon/zashikiwarashi/issues/37) | 提出資料の作成とデモ通しリハーサル（締切: 10/15） | ハッカソン審査基準（新規性・自律性・実装品質）に沿った README.md、デモ動画撮影、通しリハーサル | **高** |

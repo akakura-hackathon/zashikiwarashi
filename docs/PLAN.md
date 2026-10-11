@@ -56,6 +56,7 @@
 | EXT-06 | Resident Agent 同士の直接調整（A2A） | DESIGN.md §5.8 R6 | FN-03・FN-10 の完了後、余力があれば MVP で実装する |
 | EXT-07 | Agent の評価ゲートとアラート（G8 Gen AI Evaluation・O4 Cloud Monitoring）、Policy Engine の ext_authz 化（G5） | ARCHITECTURE.md §3.4.3 | FN-10・FN-11 の完了後、余力があれば MVP で実装する |
 | EXT-08 | BigQuery Agent Analytics（O3）・Online Monitors（O5） | ARCHITECTURE.md §3.4.3 | 本番運用で効く機能。図と提出資料に書くだけ |
+| EXT-09 | 音声入力（C7）・画面読み上げ（C1）機能 | UI_DESIGN_SPEC.md §1, §3 | ハッカソンMVPではアクセシビリティのコア体験（視認性・1画面1問い・タップ領域）を優先し、音声入出力は設計済み拡張候補として位置づける |
 
 > 旧 E5「住民がセルフ緊急モードにする」は、災害以外を対象外としたため廃止した（FUCHIUE_REVIEW 指摘3）。
 

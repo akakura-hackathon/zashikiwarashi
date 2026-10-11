@@ -490,3 +490,81 @@ test('FN-08 CockpitPanel binds likely_away presence to outsideCount and away roo
   }
 });
 
+test('FN-06 taskCountdown and PhoneStage OFFERED countdown pill dynamically bind to expires_at', async () => {
+  const { taskCountdown } = load('lib/emergency-view.ts');
+  const now = 1700000000000;
+
+  // 1. taskCountdown unit tests
+  // expires_at is 45 seconds from now
+  const expiresAt45s = new Date(now + 45_000).toISOString();
+  assert.equal(taskCountdown(expiresAt45s, undefined, now), '0:45');
+
+  // expires_at is 90 seconds from now
+  const expiresAt90s = new Date(now + 90_000).toISOString();
+  assert.equal(taskCountdown(expiresAt90s, undefined, now), '1:30');
+
+  // expires_at is in the past -> clamps to 0:00
+  const expiresAtPast = new Date(now - 10_000).toISOString();
+  assert.equal(taskCountdown(expiresAtPast, undefined, now), '0:00');
+
+  // Fallback to created_at + 60s
+  const createdAt20sAgo = new Date(now - 20_000).toISOString();
+  assert.equal(taskCountdown(undefined, createdAt20sAgo, now), '0:40');
+
+  // Neither provided -> 0:00
+  assert.equal(taskCountdown(undefined, undefined, now), '0:00');
+
+  // 2. Component rendering test in PhoneStage
+  let renderer;
+  const mockTask = {
+    task_id: 'task-test-offered',
+    issue_id: 'issue-1',
+    resident_id: 'resident-i',
+    target_resident_id: 'resident-h',
+    task_type: 'NEIGHBOR_CHECK',
+    status: 'OFFERED',
+    created_at: new Date(Date.now() - 30_000).toISOString(),
+    expires_at: new Date(Date.now() + 30_000).toISOString(), // 30s remaining
+  };
+  api.getTaskDetail = async () => ({
+    task: mockTask,
+    is_disclosed: false,
+    target_room_number: null,
+    latest_event: {
+      event_id: 'evt-1',
+      task_id: mockTask.task_id,
+      event_type: 'OFFERED',
+      actor_type: 'BUILDING_AGENT',
+      occurred_at: mockTask.created_at,
+      expires_at: mockTask.expires_at,
+    },
+  });
+
+  const detail = initial();
+  detail.resident_states['resident-i'] = 'SAFE';
+  detail.tasks = [mockTask];
+
+  try {
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1], // resident-i
+        emergencyId: 'em-1',
+        tasks: detail.tasks,
+        issueDetail: detail,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const { CountdownPill } = load('components/ui/StatusAndInput.tsx');
+    const pills = renderer.root.findAllByType(CountdownPill);
+    const taskPill = pills.find((p) => p.props.label === '返事の期限 残り');
+    assert.ok(taskPill, '返事の期限 残りのCountdownPillが存在すること');
+    // 30秒残り（0:30）またはその近傍で描画されること（固定の "0:45" ではないこと）
+    assert.match(taskPill.props.timeRemaining, /^0:(29|30|31)$/, '動的な残り時間（約0:30）が反映されていること');
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+

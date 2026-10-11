@@ -22,6 +22,7 @@ import {
 } from "@/lib/push-notification";
 
 import { useSafetyCountdown } from "@/lib/use-safety-countdown";
+import { useTaskCountdown } from "@/lib/use-task-countdown";
 import { incomingCheckStatus } from "@/lib/emergency-view";
 
 import type { User } from "firebase/auth";
@@ -112,6 +113,12 @@ export function PhoneStage({
 
   // 自分の担当タスク
   const myTask = tasks.find((t) => t.resident_id === activePersona.userId);
+
+  // FN-06: 打診の返事期限カウントダウン
+  const taskTimeRemaining = useTaskCountdown(
+    myTask?.expires_at ?? taskDetail?.latest_event?.expires_at,
+    myTask?.created_at,
+  );
 
   // FN-07: Never display details left over from another task or resident.
   const disclosedRoom = taskDetail?.task.task_id === myTask?.task_id &&
@@ -587,7 +594,7 @@ export function PhoneStage({
                               subtitle="インターホンを1回鳴らすだけです。約20秒。断っても理由は聞きません。"
                             />
                             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                              <CountdownPill label="返事の期限 残り" timeRemaining="0:45" />
+                              <CountdownPill label="返事の期限 残り" timeRemaining={taskTimeRemaining} />
                             </div>
 
                             <div

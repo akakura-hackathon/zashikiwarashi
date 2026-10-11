@@ -40,7 +40,6 @@ import {
 } from "./ui/Buttons";
 import {
   CheckRow,
-  StatusPill,
   CountdownPill,
   ProgressBar,
 } from "./ui/StatusAndInput";
@@ -331,10 +330,6 @@ export function PhoneStage({
                 {activePersona.name}
               </span>
             </div>
-            <StatusPill
-              label="RESIDENT 住民"
-              variant="brand"
-            />
           </div>
 
           {/* ================================================================

@@ -1192,11 +1192,6 @@ export function PhoneStage({
               )}
             </div>
           )}
-
-          {/* Bottom Home Indicator Bar */}
-          <div className="home-indicator-bar">
-            <div className={`home-indicator ${showLockScreen ? "dark" : ""}`} />
-          </div>
         </div>
       </div>
     </main>

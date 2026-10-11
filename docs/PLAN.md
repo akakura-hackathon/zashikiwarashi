@@ -57,6 +57,7 @@
 | EXT-07 | Agent の評価ゲートとアラート（G8 Gen AI Evaluation・O4 Cloud Monitoring）、Policy Engine の ext_authz 化（G5） | ARCHITECTURE.md §3.4.3 | FN-10・FN-11 の完了後、余力があれば MVP で実装する |
 | EXT-08 | BigQuery Agent Analytics（O3）・Online Monitors（O5） | ARCHITECTURE.md §3.4.3 | 本番運用で効く機能。図と提出資料に書くだけ |
 | EXT-09 | 音声入力（C7）・画面読み上げ（C1）機能 | UI_DESIGN_SPEC.md §1, §3 | ハッカソンMVPではアクセシビリティのコア体験（視認性・1画面1問い・タップ領域）を優先し、音声入出力は設計済み拡張候補として位置づける |
+| EXT-10 | PWA オフラインキャッシュ・Service Worker | DESIGN.md §9, UI_DESIGN_SPEC.md §11 | ハッカソンMVPでは審査卓と住民スマホを1画面で比較検証できるStudio Architectureを最優先。Service Workerによるオフラインキャッシュ基盤は設計済み拡張候補として位置づける |
 
 > 旧 E5「住民がセルフ緊急モードにする」は、災害以外を対象外としたため廃止した（FUCHIUE_REVIEW 指摘3）。
 
@@ -203,11 +204,12 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 - [x] Terraform で作れない部分は `infra/gcloud/` のスクリプトにし、`deploy.yml` から実行する（`infra/gcloud/setup_agent_governance.sh`）
 - [x] 完了の目安: **Agent ガバナンス（G1〜G6）のユニットテスト（`tests/test_agent_governance.py`）が全件パスし、画面から実機検証できる**
 
-### ステップ 8: Agent Observability と監査ログ（10/8 - 10/9）（FN-11）
+### ステップ 8: Agent Observability と監査ログ（10/8 - 10/9）（FN-11）✅
 
-- [ ] Agent Runtime・Cloud Run の両方で ADK のトレースを Cloud Trace に出し、plan_id で Agent をまたいで追えるようにする（O1）
-- [ ] プロンプトと応答の本文を記録しない設定にする（`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`）
-- [ ] Agent Gateway・IAP・Model Armor の判定ログを監査 sink でログバケットへ送る（O2・G7。ハッカソン中は保持ロックをかけない）
+- [x] Agent Runtime・Cloud Run の両方で ADK のトレースを Cloud Trace に出し、plan_id で Agent をまたいで追えるようにする（O1）（PR #31）
+- [x] プロンプトと応答の本文を記録しない設定にする（`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT`）（PR #31）
+- [x] Agent Gateway・IAP・Model Armor の判定ログを監査 sink でログバケットへ送る（O2・G7。ハッカソン中は保持ロックをかけない）（PR #31）
+- [x] 完了の目安: **`trace_span` により `plan_id` がコンテキスト伝搬され、`test_observability.py` が全件パスする**
 
 ### ステップ G: Agent Gateway の検証（9/29 - 10/1。ステップ 1 の直後から並行）
 
@@ -223,6 +225,17 @@ GitHub Actions が GCP に認証するための土台だけは、Actions が動�
 - [ ] デモ動画の撮影・編集
 - [ ] 提出資料の最終整備（README.md の概要・セットアップ手順、構成図、デモ動画）
 - [ ] 提出
+
+### 未実装機能・残タスク（GitHub Issue 枠組み）
+
+MVP のコア機能（FN-01〜FN-11）の実装完了後、提出および実運用に向けて残るタスクを以下の GitHub Issue として管理・追跡する。
+
+| Issue | タイトル | 概要 | 優先度 |
+| :--- | :--- | :--- | :--- |
+| [#34](https://github.com/akakura-hackathon/zashikiwarashi/issues/34) | 4大災害シナリオ（停電・火災・洪水）の専用データ・個別トリアージ対応 | SC-1（停電/熱中症）、SC-2（火災/煙避難）、SC-4（洪水/垂直避難）固有のデータ・指示文連動の拡充 | **中** |
+| [#35](https://github.com/akakura-hackathon/zashikiwarashi/issues/35) | 本番GCP環境デプロイ（Cloud Run & API Gateway） | `deploy.yml` による Cloud Run / API Gateway への本番コンテナデプロイと疎通確認 | **中** |
+| [#36](https://github.com/akakura-hackathon/zashikiwarashi/issues/36) | 実機Web Push通知（FCM HTTP v1 / APNs実通信）の接続 | 画面内モック通知に加え、実端末スマホへFCM HTTP v1でプッシュ通知を届けるインフラ実連携 | **低 (余力)** |
+| [#37](https://github.com/akakura-hackathon/zashikiwarashi/issues/37) | 提出資料の作成とデモ通しリハーサル（締切: 10/15） | ハッカソン審査基準（新規性・自律性・実装品質）に沿った README.md、デモ動画撮影、通しリハーサル | **高** |
 
 ### 余力があれば（機能凍結 10/11 まで）
 

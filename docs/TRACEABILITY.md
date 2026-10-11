@@ -49,6 +49,7 @@
 | EXT-07 評価ゲート・アラート・ext_authz | ― | NFR-03 | ARCHITECTURE §3.4.3（G5・G8・O4） | ― | ― | AG-04, AG-05 | SC-1〜4 |
 | EXT-08 BigQuery Agent Analytics・Online Monitors | ― | PRV-03 | ARCHITECTURE §3.4.3（O3・O5） | ― | ― | ― | ― |
 | EXT-09 音声入力（C7）・画面読み上げ（C1） | ― | ― | UI_DESIGN_SPEC.md §1, §3 | ― | ― | ― | ― |
+| EXT-10 PWA オフラインキャッシュ・Service Worker | ― | ― | DESIGN.md §9, UI_DESIGN_SPEC.md §11 | ― | ― | ― | ― |
 
 - REQ-12（嗜好・人格プロフィールを生成しない）は全機能の制約。特定の機能には割り当てない。
 - NFR-05（デモの再現性優先）は全機能の制約。

@@ -121,6 +121,11 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "CORS_ALLOW_ORIGINS"
         value = jsonencode(["https://${var.project_id}.web.app", "https://${var.project_id}.firebaseapp.com", "http://localhost:3000"])
       }
+      # FN-11 / PRV-03: Cloud Trace でプロンプト・応答の生メッセージ本文を記録しない
+      env {
+        name  = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"
+        value = "NO_CONTENT"
+      }
     }
   }
 

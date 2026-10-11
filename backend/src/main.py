@@ -2,11 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import get_settings
+from src.observability import init_tracer
 from src.routers import audit, chat, emergency, governance, health, me, push, tasks
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    init_tracer(project_id=settings.google_cloud_project)
     app = FastAPI(title="zashikiwarashi backend", version="0.1.0")
 
     app.add_middleware(

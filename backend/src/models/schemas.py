@@ -83,6 +83,8 @@ class IssueDetailResponse(BaseModel):
     resident_states: dict[str, SafetyStatus] = Field(default_factory=dict)
     room_states: dict[str, SafetyStatus] = Field(default_factory=dict)
     priority_targets: list[PriorityAlertTarget] = Field(default_factory=list)
+    likely_away_count: int = 0
+    likely_away_rooms: list[str] = Field(default_factory=list)
 
 
 # --- API-04: POST /tasks/{taskId}/respond ---

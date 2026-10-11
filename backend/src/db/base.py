@@ -78,6 +78,11 @@ class BaseRepository(ABC):
         self, building_id: str, resident_id: str
     ) -> PresenceContext | None: ...
 
+    @abstractmethod
+    async def list_presence_contexts(
+        self, building_id: str
+    ) -> list[PresenceContext]: ...
+
     # --- Cat 4: Emergency Dynamic States ---
     @abstractmethod
     async def create_emergency(self, emergency: Emergency) -> None: ...

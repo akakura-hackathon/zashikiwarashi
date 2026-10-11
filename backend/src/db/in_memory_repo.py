@@ -111,6 +111,9 @@ class InMemoryRepository(BaseRepository):
     ) -> PresenceContext | None:
         return self.presence_contexts.get(building_id, {}).get(resident_id)
 
+    async def list_presence_contexts(self, building_id: str) -> list[PresenceContext]:
+        return list(self.presence_contexts.get(building_id, {}).values())
+
     # --- Cat 4 ---
     async def create_emergency(self, emergency: Emergency) -> None:
         self.emergencies.setdefault(emergency.building_id, {})[emergency.emergency_id] = emergency

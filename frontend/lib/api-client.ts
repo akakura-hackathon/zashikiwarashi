@@ -84,6 +84,8 @@ export type IssueDetailResponse = {
   resident_states?: Record<string, SafetyStatus>;
   room_states?: Record<string, SafetyStatus>;
   priority_targets: PriorityAlertTarget[];
+  likely_away_count?: number;
+  likely_away_rooms?: string[];
 };
 
 export type TaskDetailResponse = {

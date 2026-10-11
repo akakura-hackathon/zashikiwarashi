@@ -10,7 +10,7 @@ interface AppBarProps {
 export const AppBar: React.FC<AppBarProps> = ({
   variant = "home",
   onBack,
-  showReadAloud = true,
+  showReadAloud = false,
   onReadAloud,
 }) => {
   const [reading, setReading] = useState(false);

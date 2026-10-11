@@ -21,6 +21,7 @@ import {
   triggerEmergency,
   startTriage,
   getIssueDetail,
+  getActiveEmergency,
   setActivePersona as setGlobalActivePersona,
 } from "@/lib/api-client";
 import { applySafetyConfirmation } from "@/lib/emergency-view";
@@ -63,6 +64,34 @@ export function StudioWorkspace() {
       }
     });
   }, [addLog]);
+
+  // FN-01: ログイン後または画面リロード時にアクティブな緊急事態・Issueを自動復元
+  useEffect(() => {
+    if (!user || emergencyId || issueId) return;
+    let cancelled = false;
+    const restoreActiveEmergency = async () => {
+      try {
+        const active = await getActiveEmergency(user);
+        if (cancelled) return;
+        if (active.is_active && active.emergency_id && active.issue_id) {
+          setEmergencyId(active.emergency_id);
+          setIssueId(active.issue_id);
+          if (active.emergency_type) {
+            setSelectedEmergencyType(active.emergency_type);
+          }
+          addLog(
+            `アクティブな災害セッション (${active.emergency_type ?? "緊急事態"}) を自動復元しました。`
+          );
+        }
+      } catch (err) {
+        console.error("Failed to restore active emergency:", err);
+      }
+    };
+    void restoreActiveEmergency();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, emergencyId, issueId, addLog]);
 
   const handleLogin = async () => {
     try {

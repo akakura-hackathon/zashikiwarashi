@@ -139,6 +139,11 @@ class BaseRepository(ABC):
     ) -> Issue | None: ...
 
     @abstractmethod
+    async def list_issues(
+        self, building_id: str, emergency_id: str
+    ) -> list[Issue]: ...
+
+    @abstractmethod
     async def update_issue(self, building_id: str, issue: Issue) -> None: ...
 
     @abstractmethod

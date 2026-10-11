@@ -184,6 +184,9 @@ class InMemoryRepository(BaseRepository):
     async def get_issue(self, building_id: str, emergency_id: str, issue_id: str) -> Issue | None:
         return self.issues.get(emergency_id, {}).get(issue_id)
 
+    async def list_issues(self, building_id: str, emergency_id: str) -> list[Issue]:
+        return list(self.issues.get(emergency_id, {}).values())
+
     async def update_issue(self, building_id: str, issue: Issue) -> None:
         self.issues.setdefault(issue.emergency_id, {})[issue.issue_id] = issue
 

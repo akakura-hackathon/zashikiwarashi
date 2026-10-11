@@ -44,6 +44,17 @@ class EmergencyTriggerResponse(BaseModel):
     triggered_at: datetime
 
 
+class ActiveEmergencyResponse(BaseModel):
+    is_active: bool
+    emergency_id: str | None = None
+    issue_id: str | None = None
+    emergency_type: EmergencyType | None = None
+    status: EmergencyStatus | None = None
+    instruction: str | None = None
+    triggered_at: datetime | None = None
+    created_at: datetime | None = None
+
+
 # --- API-02: POST /emergency/confirm-presence ---
 
 

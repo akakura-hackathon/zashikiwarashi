@@ -18,6 +18,16 @@ export type Me = {
 
 export type EmergencyType = "EARTHQUAKE" | "POWER_OUTAGE" | "FIRE" | "FLOOD";
 export type EmergencyStatus = "ACTIVE" | "CLOSED";
+export type ActiveEmergencyResponse = {
+  is_active: boolean;
+  emergency_id?: string | null;
+  issue_id?: string | null;
+  emergency_type?: EmergencyType | null;
+  status?: string | null;
+  instruction?: string;
+  triggered_at?: string | null;
+  created_at?: string | null;
+};
 export type SafetyStatus = "SAFE" | "NEED_HELP" | "OUTSIDE_BUILDING" | "UNKNOWN";
 export type TaskStatus =
   | "PENDING"
@@ -257,6 +267,16 @@ export function resetDatabase(
   return apiFetch(user, "/admin/reset-database", {
     method: "POST",
   }, DEMO_PERSONAS[0]); // 管理人権限で実行
+}
+
+// API-08 / FN-01: アクティブ緊急事態および最新Issue取得（画面リロード復元用）
+export function getActiveEmergency(
+  user: User | null,
+  persona?: Persona,
+): Promise<ActiveEmergencyResponse> {
+  return apiFetch(user, "/emergency/active", {
+    method: "GET",
+  }, persona);
 }
 
 // API-01: 緊急モード発令 (Admin)

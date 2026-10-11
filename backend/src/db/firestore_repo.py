@@ -381,6 +381,17 @@ class FirestoreRepository(BaseRepository):
         )
         return Issue.model_validate(doc.to_dict()) if doc.exists else None
 
+    async def list_issues(self, building_id: str, emergency_id: str) -> list[Issue]:
+        query = (
+            self.db.collection("buildings")
+            .document(building_id)
+            .collection("emergencies")
+            .document(emergency_id)
+            .collection("issues")
+        )
+        docs = [d async for d in query.stream()]
+        return [Issue.model_validate(d.to_dict()) for d in docs]
+
     async def update_issue(self, building_id: str, issue: Issue) -> None:
         await self.create_issue(building_id, issue)
 

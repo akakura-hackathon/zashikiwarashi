@@ -25,6 +25,7 @@ from src.models.domain import (
     SourceType,
 )
 from src.models.schemas import (
+    ActiveEmergencyResponse,
     ConfirmPresenceRequest,
     ConfirmPresenceResponse,
     EmergencyTriageRequest,
@@ -60,6 +61,38 @@ async def reset_database(
         "residents_count": len(residents),
         "message": "Firestoreの不要データを全削除し、厳密な50戸（SC-3仕様）に再シードしました。",
     }
+
+
+@router.get(
+    "/emergency/active",
+    response_model=ActiveEmergencyResponse,
+    summary="API-08 / FN-01: アクティブな緊急事態および最新Issueの取得（画面復元用）",
+)
+async def get_active_emergency(
+    user: CurrentUser = Depends(get_current_user),
+    repo: BaseRepository = Depends(get_repository),
+) -> ActiveEmergencyResponse:
+    """現在進行中のアクティブな緊急事態および最新Issueを取得し、
+    ブラウザリロード時の画面復元を可能にする (FN-01)。
+    """
+    building_id = user.building_id or "bld-01"
+    emergency = await repo.get_active_emergency(building_id)
+    if not emergency:
+        return ActiveEmergencyResponse(is_active=False)
+
+    issues = await repo.list_issues(building_id, emergency.emergency_id)
+    latest = issues[-1] if issues else None
+
+    return ActiveEmergencyResponse(
+        is_active=True,
+        emergency_id=emergency.emergency_id,
+        issue_id=latest.issue_id if latest else None,
+        emergency_type=emergency.emergency_type,
+        status=emergency.status,
+        instruction=latest.instruction if latest else "",
+        triggered_at=emergency.triggered_at,
+        created_at=latest.created_at if latest else emergency.triggered_at,
+    )
 
 
 @router.post(

@@ -88,6 +88,10 @@ export function PhoneStage({
     gasSmell: false,
   });
 
+  // FN-03 / REQ-15: 自由文メッセージと代理人（Resident Agent）からの聞き返し質問
+  const [damageFreeText, setDamageFreeText] = useState("");
+  const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
+
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
 
@@ -193,7 +197,13 @@ export function PhoneStage({
         `[API-02] ${activePersona.name} が安否回答を送信しました (status=${safetyStatus})`,
         answer,
       );
-      setEmergencySubScreen("default");
+      if (answer.needs_clarification && answer.clarification_question) {
+        setClarificationQuestion(answer.clarification_question);
+        setEmergencySubScreen("damage_detail");
+      } else {
+        setClarificationQuestion(null);
+        setEmergencySubScreen("default");
+      }
     } catch (err) {
       alert(`安否回答に失敗しました: ${String(err)}`);
     } finally {
@@ -382,6 +392,28 @@ export function PhoneStage({
                           title="被害の内容を教えてください"
                           subtitle="管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。"
                         />
+                        {/* FN-03 / REQ-15: Resident Agent からの聞き返しバナー */}
+                        {clarificationQuestion && (
+                          <div
+                            style={{
+                              backgroundColor: "#FFF8E1",
+                              border: "1px solid #FFE082",
+                              borderRadius: 10,
+                              padding: "10px 14px",
+                              fontSize: 13,
+                              color: "#6D4C41",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                              <span>💬 代理人（Resident Agent）より確認</span>
+                            </div>
+                            <div>{clarificationQuestion}</div>
+                          </div>
+                        )}
+
                         <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
                           <CheckRow
                             label="けがをしている"
@@ -416,18 +448,53 @@ export function PhoneStage({
                             }
                           />
                         </div>
+
+                        {/* FN-03 / REQ-15: 自由記述入力エリア */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                          <label style={{ fontSize: 13, fontWeight: 700, color: "var(--color-ink)" }}>
+                            詳しい状況・必要なこと（自由記述）
+                          </label>
+                          <textarea
+                            value={damageFreeText}
+                            onChange={(e) => setDamageFreeText(e.target.value)}
+                            placeholder="例: 棚が倒れて足を挟まれ動けません / 飲料水が必要です"
+                            rows={3}
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 8,
+                              border: "1px solid var(--color-line)",
+                              fontSize: 13,
+                              resize: "vertical",
+                              boxSizing: "border-box",
+                              fontFamily: "inherit",
+                            }}
+                          />
+                        </div>
+
                         <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
                           <PrimaryButton
                             disabled={isSendingSafety}
-                            onClick={() =>
-                              handleConfirmPresence(
-                                "NEED_HELP",
-                                `被害あり: ${Object.entries(damageItems)
-                                  .filter(([, v]) => v)
-                                  .map(([k]) => k)
-                                  .join(", ") || "支援希望"}`,
-                              )
-                            }
+                            onClick={() => {
+                              const checkedLabels = Object.entries(damageItems)
+                                .filter(([, v]) => v)
+                                .map(([k]) => {
+                                  if (k === "injury") return "けがをしている";
+                                  if (k === "trapped") return "部屋から出られない";
+                                  if (k === "broken") return "家具・設備の破損";
+                                  if (k === "gasSmell") return "ガス・水漏れのにおい";
+                                  return k;
+                                });
+                              const parts = [];
+                              if (checkedLabels.length > 0) {
+                                parts.push(`【被害項目】${checkedLabels.join("、")}`);
+                              }
+                              if (damageFreeText.trim()) {
+                                parts.push(damageFreeText.trim());
+                              }
+                              const finalMsg = parts.join("\n") || "被害があります。支援が必要です。";
+                              handleConfirmPresence("NEED_HELP", finalMsg);
+                            }}
                           >
                             {isSendingSafety ? "送信中…" : "管理人に送る"}
                           </PrimaryButton>

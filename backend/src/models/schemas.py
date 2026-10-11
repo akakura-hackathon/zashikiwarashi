@@ -53,12 +53,26 @@ class ConfirmPresenceRequest(BaseModel):
     message: str | None = None
 
 
+class StructuredNeedSchema(BaseModel):
+    resident_id: str
+    floor: int
+    category: str  # "SAFETY_CHECK", "EVACUATION", "WATER", "MEDICAL", "UNKNOWN"
+    requires_assistance: bool
+    can_stairs: bool
+    raw_message: str
+    needs_clarification: bool = False
+    clarification_question: str | None = None
+
+
 class ConfirmPresenceResponse(BaseModel):
     resident_id: str
     emergency_id: str
     safety_status: SafetyStatus
     observed_at: datetime
     message: str | None = None
+    structured_need: StructuredNeedSchema | None = None
+    needs_clarification: bool = False
+    clarification_question: str | None = None
 
 
 # --- API-03: GET /issues/{issueId} ---

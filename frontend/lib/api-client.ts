@@ -84,11 +84,26 @@ export type TaskEvent = {
   expires_at?: string | null;
 };
 
+export type StructuredNeed = {
+  resident_id: string;
+  floor: number;
+  category: string;
+  requires_assistance: boolean;
+  can_stairs: boolean;
+  raw_message: string;
+  needs_clarification?: boolean;
+  clarification_question?: string | null;
+};
+
 export type SafetyConfirmation = {
   resident_id: string;
   emergency_id: string;
   safety_status: SafetyStatus;
   observed_at: string;
+  message?: string | null;
+  structured_need?: StructuredNeed | null;
+  needs_clarification?: boolean;
+  clarification_question?: string | null;
 };
 
 export type IssueDetailResponse = {

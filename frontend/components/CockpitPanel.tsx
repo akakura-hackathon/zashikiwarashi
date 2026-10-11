@@ -306,10 +306,10 @@ export function CockpitPanel({
                 gap: 6,
               }}
             >
-              {selectedEmergencyType === "POWER_OUTAGE" && "⚡ 落雷・全館停電発生・発令 (API-01)"}
-              {selectedEmergencyType === "EARTHQUAKE" && "🚨 震度5強 地震発生・発令 (API-01)"}
-              {selectedEmergencyType === "FIRE" && "🔥 火災警報鳴動・発令 (API-01)"}
-              {selectedEmergencyType === "FLOOD" && "🌊 浸水警戒・洪水発令 (API-01)"}
+              {selectedEmergencyType === "POWER_OUTAGE" && "落雷 全館停電発生"}
+              {selectedEmergencyType === "EARTHQUAKE" && "震度5強 地震発生"}
+              {selectedEmergencyType === "FIRE" && "火災発生 警報鳴動"}
+              {selectedEmergencyType === "FLOOD" && "洪水発生 浸水警戒"}
             </button>
           </>
           ) : (
@@ -561,10 +561,9 @@ export function CockpitPanel({
     <div className="cockpit-section">
       <div className="section-title">
         <span>攻撃リクエスト</span>
-        <span style={{ fontSize: "0.7rem", color: "var(--color-brand)", fontWeight: 700 }}>G1〜G6 統制</span>
       </div>
       <div style={{ fontSize: "0.72rem", color: "var(--color-muted)", marginBottom: "6px" }}>
-        Model Armor（G2）と IAP CEL（G4）による決定論的防御を実機検証します。
+        攻撃リクエストに対して、Model ArmorなどのAgent ガバナンス機能を検証します。
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         <button
@@ -589,7 +588,7 @@ export function CockpitPanel({
             }
           }}
         >
-          🛡️ G2: プロンプトインジェクション遮断テスト
+          プロンプトインジェクション遮断テスト
         </button>
         <button
           style={{
@@ -613,7 +612,7 @@ export function CockpitPanel({
             }
           }}
         >
-          🛡️ G4: IAP 権限外ツール呼出物理拒否テスト
+          IAP 権限外ツール呼出物理拒否テスト
         </button>
         <button
           style={{
@@ -637,7 +636,7 @@ export function CockpitPanel({
             }
           }}
         >
-          🛡️ G2/G3: Outbound SDP 部屋番号漏洩遮断テスト
+          Outbound SDP 部屋番号漏洩遮断テスト
         </button>
       </div>
     </div>

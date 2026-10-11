@@ -934,37 +934,106 @@ export function PhoneStage({
                           </div>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {auditEvents.map((evt) => (
-                              <div
-                                key={evt.audit_id}
-                                style={{
-                                  backgroundColor: "#FFFFFF",
-                                  border: "1px solid var(--color-line)",
-                                  borderRadius: 12,
-                                  padding: "12px 14px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 4,
-                                }}
-                              >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                                    {evt.event_name}
-                                  </span>
-                                  <span className="font-mono-num" style={{ fontSize: 12, color: "var(--color-muted)" }}>
-                                    {evt.created_at.slice(11, 16)}
-                                  </span>
-                                </div>
-                                <div style={{ fontSize: 12.5, color: "var(--color-muted)" }}>
-                                  主体: {evt.actor_type} ({evt.actor_id})
-                                </div>
-                                {evt.description && (
-                                  <div style={{ fontSize: 12.5, color: "var(--color-ink)", lineHeight: 1.5 }}>
-                                    {evt.description}
+                            {auditEvents.map((evt) => {
+                              const eventId = evt.audit_event_id || evt.audit_id || "";
+                              const rawTime = evt.occurred_at || evt.created_at || "";
+                              const timeStr = rawTime.length >= 16 ? rawTime.slice(11, 16) : rawTime;
+
+                              const formatAction = (actionName: string) => {
+                                switch (actionName) {
+                                  case "DISCLOSE_ROOM_NUMBER_ON_APPROVAL":
+                                    return "協力承認に伴う部屋番号の限定開示";
+                                  case "APPROVE_TASK":
+                                    return "協力依頼の承認";
+                                  case "DECLINE_TASK":
+                                    return "協力依頼の辞退（理由不要）";
+                                  case "EVALUATE_TASK":
+                                    return "Agentによるタスク実行可否の評価";
+                                  case "REPORT_SAFETY":
+                                    return "安否・在館の一次回答";
+                                  default:
+                                    return actionName || "情報の取り扱い記録";
+                                }
+                              };
+
+                              const formatActor = (actorType: string, actorId: string) => {
+                                switch (actorType) {
+                                  case "RESIDENT":
+                                    return `本人（${actorId}）`;
+                                  case "RESIDENT_AGENT":
+                                    return `Resident Agent（${actorId}）`;
+                                  case "BUILDING_AGENT":
+                                    return "Building Agent（全体調整）";
+                                  case "ADMIN":
+                                    return "管理人";
+                                  case "SYSTEM":
+                                    return "システム（Policy Engine）";
+                                  default:
+                                    return `${actorType || "システム"} (${actorId || "自律制御"})`;
+                                }
+                              };
+
+                              return (
+                                <div
+                                  key={eventId}
+                                  style={{
+                                    backgroundColor: "#FFFFFF",
+                                    border: "1px solid var(--color-line)",
+                                    borderRadius: 12,
+                                    padding: "14px 16px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                                      {formatAction(evt.action || evt.event_name || "")}
+                                    </span>
+                                    <span className="font-mono-num" style={{ fontSize: 12, color: "var(--color-muted)" }}>
+                                      {timeStr}
+                                    </span>
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  <div style={{ fontSize: 12.5, color: "var(--color-muted)" }}>
+                                    操作主体: {formatActor(evt.actor_type, evt.actor_id)}
+                                  </div>
+
+                                  {/* data_used（使われた情報） */}
+                                  {evt.data_used && evt.data_used.length > 0 && (
+                                    <div style={{ fontSize: 12, color: "var(--color-ink)", display: "flex", flexDirection: "column", gap: 3 }}>
+                                      <span style={{ fontWeight: 700, color: "var(--color-muted)", fontSize: 11 }}>使われた情報:</span>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                        {evt.data_used.map((d, i) => (
+                                          <span key={i} style={{ backgroundColor: "var(--color-canvas)", padding: "2px 8px", borderRadius: 4, fontSize: 11.5 }}>
+                                            {d === "resident_approval" ? "本人の協力承認" : d === "task_id" ? "タスク識別子" : d}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* data_disclosed（開示された情報） */}
+                                  {evt.data_disclosed && evt.data_disclosed.length > 0 && (
+                                    <div style={{ fontSize: 12, color: "var(--color-brand)", display: "flex", flexDirection: "column", gap: 3 }}>
+                                      <span style={{ fontWeight: 700, color: "var(--color-muted)", fontSize: 11 }}>開示された情報:</span>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                        {evt.data_disclosed.map((d, i) => (
+                                          <span key={i} style={{ backgroundColor: "var(--color-brand-tint)", color: "var(--color-brand)", padding: "2px 8px", borderRadius: 4, fontSize: 11.5, fontWeight: 700 }}>
+                                            {d.startsWith("unit_room_number:") ? `${d.replace("unit_room_number:", "")}号室` : d}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {evt.description && (
+                                    <div style={{ fontSize: 12.5, color: "var(--color-ink)", lineHeight: 1.5 }}>
+                                      {evt.description}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

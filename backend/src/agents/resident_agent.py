@@ -160,19 +160,23 @@ class ResidentAgent:
             }
 
     def _get_genai_client(self):
-        """Google GenAI クライアントを環境変数に応じて初期化する。"""
+        """Google GenAI クライアントを環境設定に応じて初期化する。"""
         import os
 
         from google import genai
 
-        api_key = os.environ.get("GEMINI_API_KEY")
+        from src.config import get_settings
+
+        settings = get_settings()
+        api_key = settings.gemini_api_key or os.environ.get("GEMINI_API_KEY")
         if api_key:
             return genai.Client(api_key=api_key)
 
-        project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-        use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("true", "1")
-        if use_vertex or project:
-            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+        project = settings.google_cloud_project or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        if project:
+            location = settings.google_cloud_location or os.environ.get(
+                "GOOGLE_CLOUD_LOCATION", "us-central1"
+            )
             return genai.Client(vertexai=True, project=project, location=location)
 
         return None

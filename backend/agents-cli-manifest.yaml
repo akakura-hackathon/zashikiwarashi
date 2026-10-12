@@ -1,0 +1,11 @@
+name: 'zashikiwarashi'
+acli_version: '1.9.0'
+agent_directory: 'src'
+region: 'us-central1'
+language: 'python'
+framework: 'google-adk'
+create_params:
+  root_agent_name: 'building_coordinator_agent'
+  deployment_target: 'agent_runtime'
+  session_type: 'none'
+  agent_gateway: false

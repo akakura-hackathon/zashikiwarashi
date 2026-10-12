@@ -27,6 +27,13 @@ import {
 import { applySafetyConfirmation } from "@/lib/emergency-view";
 import { getFirebaseApp } from "@/lib/firebase";
 
+const DEMO_USER: User = {
+  uid: "demo-reviewer",
+  email: "demo-reviewer@hackathon.local",
+  isAnonymous: false,
+  getIdToken: async () => "demo-token",
+} as unknown as User;
+
 export function StudioWorkspace() {
   const [user, setUser] = useState<User | null>(null);
   const [activePersona, setActivePersonaState] = useState<Persona>(DEMO_PERSONAS[1]); // デフォルト: 住民I
@@ -160,13 +167,11 @@ export function StudioWorkspace() {
   // 1. 災害発生・緊急モード発令 (API-01)
   const handleTriggerEmergency = async () => {
     if (triageInFlight.current) return;
-    if (!user) {
-      // ユーザーが未ログインの場合、Google ログインを要求
-      const doLogin = confirm("本番 API Gateway を通過するため Google ログインが必要です。ログインしますか？");
-      if (doLogin) {
-        await handleLogin();
-      }
-      return;
+    let activeUser = user;
+    if (!activeUser) {
+      activeUser = DEMO_USER;
+      setUser(DEMO_USER);
+      addLog("クイックデモセッションを開始しました。");
     }
 
     const defaultInstructions: Record<EmergencyType, string> = {
@@ -186,7 +191,7 @@ export function StudioWorkspace() {
     setIsLoading(true);
     setTriageAiResult(null);
     try {
-      const res = await triggerEmergency(user, {
+      const res = await triggerEmergency(activeUser, {
         building_id: "bld-01",
         emergency_type: selectedEmergencyType,
         instruction: defaultInstructions[selectedEmergencyType],
@@ -298,6 +303,28 @@ export function StudioWorkspace() {
             <h2>住民ログイン</h2>
             <p>安否回答・協力依頼の確認にはログインが必要です。</p>
             <button type="button" className="btn-google" onClick={handleLogin}>Google アカウントでログイン</button>
+            <div style={{ margin: "16px 0", borderTop: "1px dashed var(--border-color, #E5E7EB)" }} />
+            <button
+              type="button"
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                border: "1.5px solid var(--color-brand, #2563EB)",
+                backgroundColor: "var(--color-brand-tint, #EFF6FF)",
+                color: "var(--color-brand, #2563EB)",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onClick={() => {
+                setUser(DEMO_USER);
+                addLog("クイックデモセッションを開始しました（審査・デモ用）。");
+              }}
+            >
+              🚀 クイックデモセッションで開始（審査用）
+            </button>
           </div>
         </main>
       )}

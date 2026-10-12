@@ -201,13 +201,15 @@ flowchart TD
 
 ### 5.1 Agent一覧
 
-| ID | Agent | 役割 | 実行方式（MVP） |
+| ID | Agent | 役割 | 実行方式（実機デプロイ仕様） |
 | :--- | :--- | :--- | :--- |
-| AG-01 | **Resident Agent** | 各住民の世帯プロファイル・在館コンテキストを参照し、割り当てられたTaskを評価（E-013 `EVALUATED`）して応答する。住民のプライバシー代理人として、逆提案・開示の最小化・本人との対話を自分で判断する（§5.8） | Agent Runtime上の単一デプロイで全住民を扱い、セッションを `user_id=resident_id` で分けてContext切替。論理上は住民ごとに独立したAgentとして振る舞う。Agent Identity を持ち、Firestore へは直接アクセスせず、自分の住民のデータもツールサービス経由で読む。呼び出し・外向き通信はすべて Agent Gateway を通る |
-| AG-02 | **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画（Issue配下のTask・援助Task）を策定するCoordinator | Agent Runtime上の単一インスタンス。Agent Identity を持ち、外への呼び出しはすべて Agent Gateway を通る |
-| AG-03 | **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | 抽象化は Resident Agent に内蔵するコード（抽象トークンだけを返す）。漏れの検出は Agent Gateway 上の Model Armor の SDP フィルタ（Sensitive Data Protection の検査テンプレート）が行い、検出したら遮断する（ARCHITECTURE.md §3.4.3 G2） |
-| AG-04 | **Policy Engine** | 児童保護・未承認アクション遮断などの安全ルールを決定論的に強制 | ツールサービス（Cloud Run、MCP サーバー）と API の書き込み経路に内蔵するコード |
-| AG-05 | **Agent Gateway** | Agent への入力と、Agent から他の Agent・ツールへの呼び出しをすべて通す関所。Agent Identity ごとに呼べる宛先・ツールを制限し、Model Armor で入出力を検査する | Agent Gateway（Ingress / Egress）＋ Agent Registry ＋ Agent Identity ＋ Model Armor。構成は ARCHITECTURE.md §3.4 |
+| AG-01 | **Resident Agent** | 各住民の世帯プロファイル・身体制約（高齢・歩行困難）を保護し、打診されたTaskを評価（E-013 `EVALUATED`）して応答。承認管理と Progressive Disclosure を司るプライバシー代理人 | **独立した Agent Runtime インスタンス**（サービス名: `resident-agent` / ID: `895240234399170560`）。全住民の代理人としてコンテキストを `user_id=resident_id` で切り替え。専用API（`/agents/resident/{id}/evaluate-task`, `/agents/resident/{id}/disclose-location`）を提供。Model Armor によるリアルタイムプロンプト検査（G2）を通過した通信のみ処理 |
+| AG-02 | **Building Agent** | 建物全体の空間グラフ・全Resident Agentの抽象状態を俯瞰し、全体最適の協力計画（Issue配下のTask）を自律策定するCoordinator | **独立した Agent Runtime インスタンス**（サービス名: `building-coordinator-agent` / ID: `4267310455392829440`）。Vertex AI Gemini 2.5 Flash Native 推論（ADK）。Agent Gateway / Model Armor を介して Resident Agent のランタイムと通信 |
+| AG-03 | **Privacy Gateway** | すべてのAgent外向き通信を検査・抽象化するアウトバウンドフィルタ | 抽象化は Resident Agent に内蔵するコード（未承認時は抽象トークンのみ返却）。漏れおよびプロンプト攻撃の検出は Google Cloud Model Armor 実機テンプレート（`zashikiwarashi-guardrails`）がリアルタイム検査・遮断（ARCHITECTURE.md §3.4.3 G2） |
+| AG-04 | **Policy Engine** | 児童保護・未承認アクション遮断・Progressive Disclosure などの安全ルールを決定論的に強制 | API / ツールサービス内の決定論的コード。承認状態（`APPROVED`）がない限り部屋番号の返却を物理的に遮断 |
+| AG-05 | **Agent Gateway** | Agent への入力と、Agent 間の通信（Building ⇄ Resident）をすべて通す関所。Model Armor による検査と認可を強制 | Agent Gateway ＋ Model Armor（us-central1 テンプレート `zashikiwarashi-guardrails`）。構成は ARCHITECTURE.md §3.4 |
+
+> 2体のエージェント（AG-01 と AG-02）はそれぞれ独立した Agent Runtime（Reasoning Engines）として稼働し、Google Cloud コンソール「Agent Platform > デプロイ」画面で個別のインスタンスとして管理・監視される。Agent 間の通信はすべて Gateway / Model Armor を介して行われる。
 
 > Agent 単位の権限（どの Agent が何を呼べるか）は AG-05、データ単位のルール（承認・開示・Child Safety）は AG-04 が強制する。どちらも LLM の判断に依存しない（§1 原則4）。
 
@@ -805,6 +807,8 @@ SC-3 の実装に必要な値だけを先に決める。他のシナリオで必
 | API-06 | `GET /tasks/{taskId}` | 本人の Task の詳細。部屋番号などは `APPROVED` 後にだけ返す（Policy Engine が判定し、開示を E-016 に記録） | 住民アプリ | E-012、E-013、E-002、E-016 追記 |
 | API-07 | `GET /me/audit-events` | 本人に関わる監査イベントの閲覧（REQ-10） | 住民アプリ | E-016 |
 | API-08 | `POST /emergencies/{emergencyId}/triage` | 安否確認を締め切り、トリアージ（未応答住戸の分類と隣室確認 Task の作成）を開始する。Building Agent を Agent Gateway の Ingress 経由で呼ぶ（LLM 失敗時はルールベース） | 管理人Webコンソール | E-011 status 更新、E-012 作成、E-013 追記 |
+| API-09A | `POST /agents/resident/{residentId}/evaluate-task` | 打診されたTaskの身体負荷・世帯制約を評価（過大タスク拒否・逆提案）。Resident Agent 専用エンドポイント | Building Agent / Agent Gateway | E-013（EVALUATED 判定） |
+| API-09B | `POST /agents/resident/{residentId}/disclose-location` | Progressive Disclosure 制御（本人承認時のみ部屋番号開示、未承認時は抽象トークンのみ返却） | Resident Agent / クライアント | E-016（開示監査記録） |
 | API-10 | `POST /push/test-sleep` | スリープ画面プッシュ通知テスト（FCM HTTP v1 / APNs 経由、指定秒数後配信） | 住民アプリ | なし（FCMメッセージ送信） |
 
 - API-02 の本文は `{emergency_id, safety_status: SAFE | NEED_HELP, message?}`。message（自由文）がある場合は Agent Gateway の Ingress 経由で Resident Agent に渡す（§5.8 R3）。

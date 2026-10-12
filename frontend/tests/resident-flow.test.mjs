@@ -854,5 +854,112 @@ test('Issue #40: SC-1 停電シナリオの困りごと選択画面（S1_A2）�
   }
 });
 
+test('Issue #41: SC-2 火災シナリオの避難状況選択（S2_E1）と避難同行タスク（S2_F2/S2_F3）画面の検証', async () => {
+  const originalGetTaskDetail = api.getTaskDetail;
+  let renderer;
+  const user = { uid: 'u-resident-i', getIdToken: async () => 'test-token' };
+
+  try {
+    // 1. 避難状況・被害選択画面（S2_E1）の検証
+    const detailWithoutTask = initial();
+    detailWithoutTask.resident_states['resident-i'] = 'UNKNOWN';
+
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-fire-1',
+        emergencyType: 'FIRE',
+        tasks: [],
+        issueDetail: detailWithoutTask,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    // 「手伝い・同行が必要」を押して S2_E1 被害画面へ
+    const needHelpButton = button(renderer, '避難に手助け・同行が必要');
+    assert.ok(needHelpButton, '火災用同行支援要請ボタンが存在すること');
+    await act(async () => {
+      needHelpButton.props.onClick();
+    });
+
+    const renderedNeed = text(renderer);
+    assert.match(renderedNeed, /避難の状況を教えてください/, '火災避難の状況タイトルが表示されること');
+    assert.match(renderedNeed, /階段を自力で降りられない（避難同行が必要）/, '階段歩行困難・避難同行の選択肢が表示されること');
+    assert.match(renderedNeed, /煙が充満している・火が見える/, '煙充満・火災視認の選択肢が表示されること');
+    assert.match(renderedNeed, /けがをしている・動けない/, 'けが・動けない選択肢が表示されること');
+    assert.match(renderedNeed, /逃げ道・ドアが遮断されている/, '避難経路遮断の選択肢が表示されること');
+
+    await act(async () => renderer.unmount());
+
+    // 2. 承認後同行手順（S2_F2）と報告画面（S2_F3）の検証
+    const escortTask = {
+      task_id: 'task-fire-escort',
+      issue_id: 'iss-fire-1',
+      resident_id: 'resident-i',
+      target_resident_id: 'resident-h',
+      task_type: 'EVACUATION_ESCORT',
+      title: '西側非常階段への避難同行',
+      description: '同一階の要配慮住戸の方と合流し、西側非常階段まで同行避難をお願いします。',
+      estimated_seconds: 30,
+      status: 'APPROVED',
+      created_at: new Date(Date.now() - 10_000).toISOString(),
+      expires_at: new Date(Date.now() + 20_000).toISOString(),
+    };
+
+    api.getTaskDetail = async () => ({
+      task: escortTask,
+      is_disclosed: true,
+      target_room_number: '805',
+      latest_event: {
+        event_id: 'evt-escort-1',
+        task_id: escortTask.task_id,
+        event_type: 'APPROVED',
+        actor_type: 'RESIDENT',
+        occurred_at: escortTask.created_at,
+      },
+    });
+
+    const detailWithTask = initial();
+    detailWithTask.resident_states['resident-i'] = 'SAFE';
+    detailWithTask.tasks = [escortTask];
+
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-fire-1',
+        emergencyType: 'FIRE',
+        tasks: [escortTask],
+        issueDetail: detailWithTask,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const renderedEscort = text(renderer);
+    assert.match(renderedEscort, /合流場所と避難ルート/, '合流場所タイトルが表示されること');
+    assert.match(renderedEscort, /805/, '合流先として開示された部屋番号が表示されること');
+    assert.match(renderedEscort, /合流場所（西側非常階段ルート上）/, '西側非常階段ルートの表示があること');
+    assert.match(renderedEscort, /姿勢を低く保ち、エレベーターは絶対に使用しないでください/, '煙・EV禁止の警告が表示されること');
+
+    // 「報告する」ボタンを押して S2_F3 へ
+    const reportBtn = button(renderer, '報告');
+    assert.ok(reportBtn, '避難開始・報告ボタンが存在すること');
+    await act(async () => {
+      reportBtn.props.onClick();
+    });
+
+    const renderedReport = text(renderer);
+    assert.match(renderedReport, /地上集合場所に到着しましたか？/, '避難同行の完了報告タイトルが表示されること');
+    assert.match(renderedReport, /同行して地上（西側駐車場）へ到着した/, '同行退避完了の選択肢が表示されること');
+    assert.match(renderedReport, /相手の部屋に応答がなく、先行して避難した/, '相手不在時の先行避難選択肢が表示されること');
+    assert.match(renderedReport, /煙や火災で合流できず、自身を優先して避難した/, '煙による避難断念の選択肢が表示されること');
+  } finally {
+    api.getTaskDetail = originalGetTaskDetail;
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+
 
 

@@ -301,3 +301,85 @@ def test_get_active_emergency():
     assert data_active["status"] == "ACTIVE"
     assert "大地震発生" in data_active["instruction"]
 
+
+def test_random_seed_and_disaster_weighted_distribution():
+    """Issue #50: ランダムシード生成および災害種別に応じた重み付け安否分布シミュレーションの検証"""
+    client = TestClient(app)
+    admin_headers = {"X-User-Id": "admin-01", "X-User-Role": "admin"}
+
+    # 1. FLOOD (洪水): 低層階（1F/2F）への被害偏重シミュレーション
+    res_flood = client.post(
+        "/emergency/trigger",
+        json={
+            "building_id": "bld-01",
+            "emergency_type": "FLOOD",
+            "instruction": "大雨による冠水警報",
+            "random_seed": True,
+        },
+        headers=admin_headers,
+    )
+    assert res_flood.status_code == 200
+    issue_flood_id = res_flood.json()["issue_id"]
+
+    res_issue = client.get(f"/issues/{issue_flood_id}", headers=admin_headers)
+    assert res_issue.status_code == 200
+    data_issue = res_issue.json()
+    # 6 non-persona + 4 manual personas = 10 UNKNOWN
+    assert data_issue["current_states_summary"]["UNKNOWN"] == 10
+    assert data_issue["current_states_summary"]["SAFE"] == 38
+
+    # 2. FIRE (火災): 上層階（4F/5F）への影響シミュレーション
+    res_fire = client.post(
+        "/emergency/trigger",
+        json={
+            "building_id": "bld-01",
+            "emergency_type": "FIRE",
+            "instruction": "火災警報発令",
+            "random_seed": True,
+        },
+        headers=admin_headers,
+    )
+    assert res_fire.status_code == 200
+
+
+def test_simulate_step_advances_safety():
+    """Issue #50: 時間経過による未回答住戸の自律回答シミュレーション (simulate-step) の検証"""
+    client = TestClient(app)
+    admin_headers = {"X-User-Id": "admin-01", "X-User-Role": "admin"}
+    resident_headers = {"X-User-Id": "resident-i", "X-User-Role": "resident"}
+
+    # 発災
+    res_trigger = client.post(
+        "/emergency/trigger",
+        json={"building_id": "bld-01", "instruction": "地震発生"},
+        headers=admin_headers,
+    )
+    assert res_trigger.status_code == 200
+    em_id = res_trigger.json()["emergency_id"]
+
+    # 住民からの simulate-step 呼び出しは 403 Forbidden
+    res_forbidden = client.post(
+        f"/emergencies/{em_id}/simulate-step",
+        headers=resident_headers,
+    )
+    assert res_forbidden.status_code == 403
+
+    # 管理者からの simulate-step 呼び出し
+    res_step = client.post(
+        f"/emergencies/{em_id}/simulate-step",
+        headers=admin_headers,
+    )
+    assert res_step.status_code == 200
+    data_step = res_step.json()
+    assert 1 <= data_step["updated_count"] <= 2
+    assert len(data_step["updated_residents"]) == data_step["updated_count"]
+    # 手動ペルソナは自動ステップで更新されない
+    manual_ids = {"resident-i", "resident-h", "resident-j", "resident-k"}
+    for uid in data_step["updated_residents"]:
+        assert uid not in manual_ids
+
+    # SAFE数が増加し、UNKNOWN数が減少していることを確認
+    assert data_step["safe_count"] == 38 + data_step["updated_count"]
+    assert data_step["unknown_count"] == 10 - data_step["updated_count"]
+
+

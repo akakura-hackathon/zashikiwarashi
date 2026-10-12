@@ -21,6 +21,7 @@ from src.models.domain import (
     IssueType,
     PresenceContext,
     PresenceState,
+    Resident,
     ResidentEmergencyCurrentState,
     ResidentEmergencyStateEvent,
     SafetyStatus,
@@ -34,6 +35,7 @@ from src.models.schemas import (
     EmergencyTriageResponse,
     EmergencyTriggerRequest,
     EmergencyTriggerResponse,
+    SimulateStepResponse,
     StructuredNeedSchema,
 )
 
@@ -95,6 +97,43 @@ async def get_active_emergency(
         triggered_at=emergency.triggered_at,
         created_at=latest.created_at if latest else emergency.triggered_at,
     )
+
+
+def _get_resident_floor(resident_id: str) -> int:
+    """Extract floor number from resident_id (e.g. res-205 -> 2, resident-i -> 3)."""
+    persona_floors = {
+        "resident-i": 3,
+        "resident-h": 3,
+        "resident-j": 3,
+        "resident-k": 5,
+    }
+    if resident_id in persona_floors:
+        return persona_floors[resident_id]
+    if resident_id.startswith("res-") and len(resident_id) >= 5:
+        room_part = resident_id[4:]
+        if room_part.isdigit():
+            return int(room_part[0])
+    return 3
+
+
+def _weighted_sample_residents(
+    residents: list[Resident],
+    weights_by_floor: dict[int, float],
+    rng: random.Random,
+) -> list[str]:
+    """Sort resident IDs using Efraimidis-Spirakis weighted sampling algorithm."""
+    scored: list[tuple[float, str]] = []
+    for r in residents:
+        floor = _get_resident_floor(r.resident_id)
+        weight = max(weights_by_floor.get(floor, 1.0), 0.01)
+        u = rng.random()
+        # Avoid log(0)
+        u = max(u, 1e-9)
+        # Key: u^(1/w). Higher score means earlier selection.
+        score = u ** (1.0 / weight)
+        scored.append((score, r.resident_id))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [r_id for _, r_id in scored]
 
 
 @router.post(
@@ -179,13 +218,41 @@ async def trigger_emergency(
 
     if req.simulate_distribution:
         # Deterministic seed distribution for demo reproducibility (NFR-05 / SC-3)
+        # or weighted random distribution per disaster type (Issue #50)
         other_residents = sorted(
             [r for r in target_residents if r.resident_id not in manual_resident_ids],
             key=lambda r: r.resident_id,
         )
-        rng = random.Random(req.seed if req.seed is not None else 42)
-        shuffled_ids = [r.resident_id for r in other_residents]
-        rng.shuffle(shuffled_ids)
+
+        if req.random_seed:
+            chosen_seed = random.randint(1, 10_000_000)
+            rng = random.Random(chosen_seed)
+        else:
+            chosen_seed = req.seed if req.seed is not None else 42
+            rng = random.Random(chosen_seed)
+
+        # Backward compatibility for default demo earthquake seed:
+        # If random_seed is False and seed is 42 (or None) and earthquake, use uniform shuffle
+        is_default_demo_eq = (
+            not req.random_seed
+            and (req.seed is None or req.seed == 42)
+            and req.emergency_type == EmergencyType.EARTHQUAKE
+        )
+        if is_default_demo_eq:
+            shuffled_ids = [r.resident_id for r in other_residents]
+            rng.shuffle(shuffled_ids)
+        else:
+            # Floor-weighted distribution per disaster type:
+            # FLOOD: Lower floors (1F > 2F > 3F > 4F > 5F)
+            # FIRE / POWER_OUTAGE: Upper floors (5F > 4F > 3F > 2F > 1F)
+            # EARTHQUAKE: Uniform
+            if req.emergency_type == EmergencyType.FLOOD:
+                weights = {1: 4.0, 2: 2.5, 3: 1.0, 4: 0.5, 5: 0.2}
+            elif req.emergency_type in (EmergencyType.FIRE, EmergencyType.POWER_OUTAGE):
+                weights = {5: 3.5, 4: 2.5, 3: 1.5, 2: 1.0, 1: 0.8}
+            else:
+                weights = {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0}
+            shuffled_ids = _weighted_sample_residents(other_residents, weights, rng)
 
         # 46 units: 2 NEED_HELP, 6 UNKNOWN, 38 SAFE
         need_help_ids = set(shuffled_ids[:2])
@@ -383,3 +450,92 @@ async def triage_emergency(
             "Policy Engine G4: Progressive Disclosure (未承認住戸の部屋番号をマスク) を強制適用"
         ),
     )
+
+
+@router.post(
+    "/emergencies/{emergency_id}/simulate-step",
+    response_model=SimulateStepResponse,
+    summary="[Feature/Demo] 時間経過シミュレーション: 未回答住戸の自律安否更新 (Issue #50)",
+)
+async def simulate_step(
+    emergency_id: str,
+    admin: CurrentUser = Depends(require_admin),
+    repo: BaseRepository = Depends(get_repository),
+) -> SimulateStepResponse:
+    """時間の経過に伴い、未回答（UNKNOWN）の一般住戸のうち
+    1〜2戸が無事（SAFE）に回答する動的変動をシミュレートする (Issue #50)。
+    """
+    building_id = admin.building_id or "bld-01"
+    now = datetime.now(UTC)
+
+    # 1. 現在の全住民状態を取得
+    states = await repo.list_current_states(building_id, emergency_id)
+    if not states:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Emergency {emergency_id} states not found.",
+        )
+
+    manual_resident_ids = {"resident-i", "resident-h", "resident-j", "resident-k"}
+
+    # 手動ペルソナ以外の UNKNOWN 住戸を抽出
+    unknown_states = [
+        s for s in states
+        if s.safety_status == SafetyStatus.UNKNOWN and s.resident_id not in manual_resident_ids
+    ]
+
+    updated_ids: list[str] = []
+    if unknown_states:
+        # 1〜2戸を選択して SAFE に更新
+        update_count = min(len(unknown_states), random.choice([1, 2]))
+        selected_to_update = random.sample(unknown_states, update_count)
+
+        for s in selected_to_update:
+            s.safety_status = SafetyStatus.SAFE
+            s.observed_at = now
+            updated_ids.append(s.resident_id)
+            # 履歴イベントも追加
+            await repo.append_state_event(
+                building_id,
+                ResidentEmergencyStateEvent(
+                    event_id=f"state-evt-{uuid.uuid4().hex[:12]}",
+                    emergency_id=emergency_id,
+                    resident_id=s.resident_id,
+                    safety_status=SafetyStatus.SAFE,
+                    occurred_at=now,
+                    source="SIMULATED_STEP",
+                ),
+            )
+
+        # batch_set_current_states で更新
+        await repo.batch_set_current_states(building_id, states)
+
+    # 最新サマリー計算
+    safe_cnt = sum(1 for s in states if s.safety_status == SafetyStatus.SAFE)
+    need_help_cnt = sum(1 for s in states if s.safety_status == SafetyStatus.NEED_HELP)
+    unknown_cnt = sum(1 for s in states if s.safety_status == SafetyStatus.UNKNOWN)
+
+    summary_map = {
+        "SAFE": safe_cnt,
+        "NEED_HELP": need_help_cnt,
+        "UNKNOWN": unknown_cnt,
+    }
+    msg = (
+        f"{len(updated_ids)} 戸の安否回答（無事）を受領しました。"
+        if updated_ids
+        else "未回答の一般住戸はありません。"
+    )
+
+    return SimulateStepResponse(
+        emergency_id=emergency_id,
+        advanced_resident_ids=updated_ids,
+        current_states_summary=summary_map,
+        updated_count=len(updated_ids),
+        updated_residents=updated_ids,
+        safe_count=safe_cnt,
+        need_help_count=need_help_cnt,
+        unknown_count=unknown_cnt,
+        total_count=len(states),
+        message=msg,
+    )
+

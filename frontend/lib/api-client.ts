@@ -280,6 +280,19 @@ export function getActiveEmergency(
   }, persona);
 }
 
+export type SimulateStepResponse = {
+  emergency_id: string;
+  advanced_resident_ids: string[];
+  current_states_summary: Record<string, number>;
+  updated_count: number;
+  updated_residents: string[];
+  safe_count: number;
+  need_help_count: number;
+  unknown_count: number;
+  total_count: number;
+  message: string;
+};
+
 // API-01: 緊急モード発令 (Admin)
 export function triggerEmergency(
   user: User | null,
@@ -287,12 +300,25 @@ export function triggerEmergency(
     building_id: string;
     emergency_type?: EmergencyType;
     instruction?: string;
+    random_seed?: boolean;
+    seed?: number;
+    simulate_distribution?: boolean;
   },
 ): Promise<{ emergency_id: string; issue_id: string; status: EmergencyStatus; triggered_at: string }> {
   return apiFetch(user, "/emergency/trigger", {
     method: "POST",
     body: JSON.stringify(req),
   }, DEMO_PERSONAS[0]); // 管理人権限で実行
+}
+
+// Issue #50: 時間経過による未回答住戸の自律回答シミュレーション (Admin)
+export function simulateEmergencyStep(
+  user: User | null,
+  emergencyId: string,
+): Promise<SimulateStepResponse> {
+  return apiFetch<SimulateStepResponse>(user, `/emergencies/${emergencyId}/simulate-step`, {
+    method: "POST",
+  }, DEMO_PERSONAS[0]);
 }
 
 // API-02: 在館・安否の1タップ応答

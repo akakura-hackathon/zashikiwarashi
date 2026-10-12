@@ -37,6 +37,7 @@ class EmergencyTriggerRequest(BaseModel):
     instruction: str = "震度5強の地震が発生しました。各戸の安否確認を実施します。"
     simulate_distribution: bool = True
     seed: int | None = 42
+    random_seed: bool = False
 
 
 class EmergencyTriggerResponse(BaseModel):
@@ -55,6 +56,19 @@ class ActiveEmergencyResponse(BaseModel):
     instruction: str | None = None
     triggered_at: datetime | None = None
     created_at: datetime | None = None
+
+
+class SimulateStepResponse(BaseModel):
+    emergency_id: str
+    advanced_resident_ids: list[str] = Field(default_factory=list)
+    current_states_summary: dict[str, int] = Field(default_factory=dict)
+    updated_count: int = 0
+    updated_residents: list[str] = Field(default_factory=list)
+    safe_count: int = 0
+    need_help_count: int = 0
+    unknown_count: int = 0
+    total_count: int = 0
+    message: str = ""
 
 
 # --- API-02: POST /emergency/confirm-presence ---

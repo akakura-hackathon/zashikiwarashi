@@ -61,10 +61,15 @@ async def test_adk_building_coordinator_agent(seeded_repo):
     agent = create_building_coordinator_agent(seeded_repo, "bld-01")
     runner = ADKAgentRunner(agent)
 
-    result = await runner.execute_prompt(
-        "震度5強の地震が発生しました。現在の棟内の安否状況を確認し、"
-        "同一フロア（3階）の未応答住戸に対してペアリング計画を立案・検証してください。"
-    )
+    try:
+        result = await runner.execute_prompt(
+            "震度5強の地震が発生しました。現在の棟内の安否状況を確認し、"
+            "同一フロア（3階）の未応答住戸に対してペアリング計画を立案・検証してください。"
+        )
+    except Exception as e:
+        if "DefaultCredentialsError" in type(e).__name__ or "credentials" in str(e).lower():
+            pytest.skip("GCP credentials not available in environment")
+        raise
 
     assert result["agent_name"] == "building_coordinator_agent"
     assert len(result["tool_calls"]) >= 1
@@ -85,7 +90,12 @@ async def test_adk_resident_agent_constraint_evaluation(seeded_repo):
         "担当住民 resident-h に対し、「5階から階段で非常食を運んでほしい」という要請が届きました。"
         "本人の身体制約を確認し、このタスクを引き受けられるか判断してください。"
     )
-    result = await runner.execute_prompt(prompt, user_id="resident-h")
+    try:
+        result = await runner.execute_prompt(prompt, user_id="resident-h")
+    except Exception as e:
+        if "DefaultCredentialsError" in type(e).__name__ or "credentials" in str(e).lower():
+            pytest.skip("GCP credentials not available in environment")
+        raise
 
     assert result["agent_name"] == "resident_agent"
     assert len(result["tool_calls"]) >= 1
@@ -107,7 +117,12 @@ async def test_adk_resident_agent_privacy_gatekeeper(seeded_repo):
         "住民の承認はまだ得られていません。\n"
         "verify_disclosure_permission ツールで開示可否を確認して回答してください。"
     )
-    result = await runner.execute_prompt(prompt, user_id="resident-h")
+    try:
+        result = await runner.execute_prompt(prompt, user_id="resident-h")
+    except Exception as e:
+        if "DefaultCredentialsError" in type(e).__name__ or "credentials" in str(e).lower():
+            pytest.skip("GCP credentials not available in environment")
+        raise
 
     assert result["agent_name"] == "resident_agent"
     assert len(result["tool_calls"]) >= 1

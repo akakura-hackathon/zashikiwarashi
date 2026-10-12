@@ -165,7 +165,7 @@ export function StudioWorkspace() {
   }, [issueId, user, refreshIssueDetail]);
 
   // 1. 災害発生・緊急モード発令 (API-01)
-  const handleTriggerEmergency = async () => {
+  const triggerEmergencyOf = async (emergencyType: EmergencyType) => {
     if (triageInFlight.current) return;
     let activeUser = user;
     if (!activeUser) {
@@ -193,14 +193,14 @@ export function StudioWorkspace() {
     try {
       const res = await triggerEmergency(activeUser, {
         building_id: "bld-01",
-        emergency_type: selectedEmergencyType,
-        instruction: defaultInstructions[selectedEmergencyType],
+        emergency_type: emergencyType,
+        instruction: defaultInstructions[emergencyType],
         random_seed: true,
       });
       setTriageExecution({ count: 0, status: "idle" });
       setEmergencyId(res.emergency_id);
       setIssueId(res.issue_id);
-      addLog(`[API-01] ${disasterLabels[selectedEmergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
+      addLog(`[API-01] ${disasterLabels[emergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
       addLog("全50戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
       // FN-08: The issue effect owns synchronization; discard the previous emergency view.
@@ -214,6 +214,14 @@ export function StudioWorkspace() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTriggerEmergency = () => triggerEmergencyOf(selectedEmergencyType);
+
+  // FN-08 / #63: デモガイドの「最初からやり直す」。発令中でも地震を発令し直す（前の緊急事態は API が閉じる）
+  const handleRestartDemo = () => {
+    setSelectedEmergencyType("EARTHQUAKE");
+    return triggerEmergencyOf("EARTHQUAKE");
   };
 
   // 2. トリアージ開始 (API-08)
@@ -274,6 +282,7 @@ export function StudioWorkspace() {
         issueId={issueId}
         issueDetail={issueDetail}
         onTriggerEmergency={handleTriggerEmergency}
+        onRestartDemo={handleRestartDemo}
         onStartTriage={handleStartTriage}
         onRefresh={refreshIssueDetail}
         isLoading={isLoading}

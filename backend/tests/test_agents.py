@@ -159,3 +159,153 @@ async def test_building_agent_triage_fallback(seeded_repo):
     assert res.unresponsive_count >= 1
     assert len(res.created_tasks) >= 1
     assert res.created_tasks[0].status == TaskStatus.OFFERED
+
+
+@pytest.mark.asyncio
+async def test_building_agent_gemini_inference_success(seeded_repo, monkeypatch):
+    """FN-04: Building Agent が Gemini 2.5 Flash からの空間推論出力を検証してタスクを生成する."""
+    import json
+    from unittest.mock import AsyncMock, MagicMock
+
+    now = datetime.now(UTC)
+    await seeded_repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="emg-sc3",
+            resident_id="resident-i",
+            safety_status=SafetyStatus.SAFE,
+            observed_at=now,
+        ),
+    )
+    await seeded_repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="emg-sc3",
+            resident_id="resident-h",
+            safety_status=SafetyStatus.UNKNOWN,
+            observed_at=now,
+        ),
+    )
+
+    # Gemini API クライアントのモック化
+    mock_response = MagicMock()
+    mock_response.text = json.dumps({
+        "pairing": [
+            {
+                "assigned_resident_id": "resident-i",
+                "target_resident_id": "resident-h",
+                "floor": 3
+            }
+        ],
+        "reasoning": (
+            "301号室のresident-iさんは302号室のresident-hさんと同一フロアの真隣であり、"
+            "20秒以内で隣室インターホン確認が可能です。"
+        )
+    })
+
+    mock_client = MagicMock()
+    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+    building_agent = BuildingAgent(repo=seeded_repo)
+    monkeypatch.setattr(building_agent, "_get_genai_client", lambda: mock_client)
+
+    res = await building_agent.execute_triage(
+        building_id="bld-01",
+        emergency_id="emg-sc3",
+        issue_id="issue-sc3",
+        use_llm=True,
+    )
+
+    assert "Gemini 2.5 Flash" in res.agent_model
+    assert "真隣であり" in res.ai_reasoning
+    assert len(res.created_tasks) == 1
+    assert res.created_tasks[0].resident_id == "resident-i"
+    assert res.created_tasks[0].target_resident_id == "resident-h"
+
+
+@pytest.mark.asyncio
+async def test_building_agent_gemini_guards_invalid_assignment(
+    seeded_repo, monkeypatch
+):
+    """FN-04 & FN-10: Gemini が不正な住民を出力した場合、Policy Engine が遮断する."""
+    import json
+    from unittest.mock import AsyncMock, MagicMock
+
+    now = datetime.now(UTC)
+    await seeded_repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="emg-sc3",
+            resident_id="resident-i",
+            safety_status=SafetyStatus.SAFE,
+            observed_at=now,
+        ),
+    )
+    await seeded_repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="emg-sc3",
+            resident_id="resident-h",
+            safety_status=SafetyStatus.UNKNOWN,
+            observed_at=now,
+        ),
+    )
+
+    # 不正な住民ID（存在しない悪意あるID）を返すモック
+    mock_response = MagicMock()
+    mock_response.text = json.dumps({
+        "pairing": [
+            {
+                "assigned_resident_id": "malicious-unknown-resident",
+                "target_resident_id": "resident-h",
+                "floor": 3
+            }
+        ],
+        "reasoning": "不正な割り当て"
+    })
+
+    mock_client = MagicMock()
+    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+    building_agent = BuildingAgent(repo=seeded_repo)
+    monkeypatch.setattr(building_agent, "_get_genai_client", lambda: mock_client)
+
+    res = await building_agent.execute_triage(
+        building_id="bld-01",
+        emergency_id="emg-sc3",
+        issue_id="issue-sc3",
+        use_llm=True,
+    )
+
+    # 不正なIDは Policy Engine で遮断され、ルールベースの正当な割り当てにフォールバックすること
+    assert len(res.created_tasks) == 1
+    assert res.created_tasks[0].resident_id == "resident-i"
+    assert res.created_tasks[0].target_resident_id == "resident-h"
+
+
+@pytest.mark.asyncio
+async def test_resident_agent_r3_gemini_nlu(seeded_repo, monkeypatch):
+    """FN-03 R3: Resident Agent が Gemini 2.5 Flash により自由文の意図を自律推論して構造化する."""
+    import json
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock_response = MagicMock()
+    mock_response.text = json.dumps({
+        "category": "EVACUATION",
+        "requires_assistance": True,
+        "can_stairs": False,
+        "needs_clarification": False,
+        "clarification_question": None
+    })
+
+    mock_client = MagicMock()
+    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+    agent_i = ResidentAgent(resident_id="resident-i", repo=seeded_repo, building_id="bld-01")
+    monkeypatch.setattr(agent_i, "_get_genai_client", lambda: mock_client)
+
+    need = await agent_i.parse_user_free_text_llm("棚が倒れて足が挟まり自力で歩けません", floor=3)
+    assert need.category == "EVACUATION"
+    assert need.requires_assistance is True
+    assert need.can_stairs is False
+    assert need.needs_clarification is False

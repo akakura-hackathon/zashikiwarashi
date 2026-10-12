@@ -9,6 +9,7 @@ Implements:
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from src.db.base import BaseRepository
 from src.models.domain import (
@@ -68,11 +69,80 @@ class TriageResult:
     agent_model: str = "Building Agent (Vertex AI Gemini 2.5 Flash)"
 
 
+@dataclass
+class ResidentCandidate:
+    resident_id: str
+    unit_id: str
+    room_number: str
+    floor: int
+    elderly_count: int = 0
+    mobility_difficulty_count: int = 0
+
+
+@dataclass
+class TriageCandidateClassification:
+    safe_helpers: list[ResidentCandidate] = field(default_factory=list)
+    unconfirmed_targets: list[ResidentCandidate] = field(default_factory=list)
+    likely_away: list[ResidentCandidate] = field(default_factory=list)
+    safe_helpers_by_floor: dict[int, list[ResidentCandidate]] = field(default_factory=dict)
+    unconfirmed_targets_by_floor: dict[int, list[ResidentCandidate]] = field(default_factory=dict)
+    resident_unit_map: dict[str, Any] = field(default_factory=dict)
+
+
 class TriageService:
     """Core logic for safety check coordination across disaster scenarios (SC-1 to SC-4)."""
 
     def __init__(self, repo: BaseRepository) -> None:
         self.repo = repo
+
+    async def classify_candidates(
+        self, building_id: str, emergency_id: str
+    ) -> TriageCandidateClassification:
+        """住民・住戸・在館コンテキストからトリアージ対象者・支援可能者・不在者を分類する。"""
+        residents = await self.repo.list_residents(building_id)
+        current_states = await self.repo.list_current_states(building_id, emergency_id)
+        state_map = {s.resident_id: s.safety_status for s in current_states}
+
+        units = await self.repo.list_units(building_id)
+        unit_map = {u.unit_id: u for u in units}
+        resident_unit_map = {r.resident_id: unit_map.get(r.unit_id) for r in residents}
+
+        classification = TriageCandidateClassification(resident_unit_map=resident_unit_map)
+
+        for resident in residents:
+            r_id = resident.resident_id
+            unit = resident_unit_map.get(r_id)
+            if not unit:
+                continue
+
+            # 世帯プロファイルから要配慮情報を取得
+            profile = await self.repo.get_household_profile(building_id, unit.unit_id)
+            elderly = profile.elderly_count if profile else 0
+            mobility = profile.mobility_difficulty_count if profile else 0
+
+            cand = ResidentCandidate(
+                resident_id=r_id,
+                unit_id=unit.unit_id,
+                room_number=unit.room_number,
+                floor=unit.floor,
+                elderly_count=elderly,
+                mobility_difficulty_count=mobility,
+            )
+
+            status = state_map.get(r_id, SafetyStatus.UNKNOWN)
+            ctx = await self.repo.get_presence_context(building_id, r_id)
+            presence = ctx.presence_state if ctx else PresenceState.UNKNOWN
+
+            if presence == PresenceState.OUTSIDE_BUILDING:
+                classification.likely_away.append(cand)
+            elif status == SafetyStatus.SAFE:
+                classification.safe_helpers.append(cand)
+                classification.safe_helpers_by_floor.setdefault(unit.floor, []).append(cand)
+            elif status == SafetyStatus.UNKNOWN:
+                classification.unconfirmed_targets.append(cand)
+                classification.unconfirmed_targets_by_floor.setdefault(unit.floor, []).append(cand)
+
+        return classification
 
     async def execute_triage(
         self,
@@ -88,75 +158,44 @@ class TriageService:
             emergency_type, DISASTER_TASK_CONFIG[EmergencyType.EARTHQUAKE]
         )
 
-        # 1. Fetch current status of all residents and units
-        residents = await self.repo.list_residents(building_id)
-        current_states = await self.repo.list_current_states(building_id, emergency_id)
-        state_map = {s.resident_id: s.safety_status for s in current_states}
+        # 1. 候補者の分類
+        classification = await self.classify_candidates(building_id, emergency_id)
+        resident_unit_map = classification.resident_unit_map
 
-        # Units map: unit_id -> Unit
-        units = await self.repo.list_units(building_id)
-        unit_map = {u.unit_id: u for u in units}
-        resident_unit_map = {r.resident_id: unit_map.get(r.unit_id) for r in residents}
-
-        # 2. Classify candidates: Safe helpers vs. Unconfirmed targets
-        safe_helpers_by_floor: dict[int, list[str]] = {}
-        unconfirmed_targets_by_floor: dict[int, list[str]] = {}
-
-        for resident in residents:
-            r_id = resident.resident_id
-            unit = resident_unit_map.get(r_id)
-            if not unit:
-                continue
-
-            status = state_map.get(r_id, SafetyStatus.UNKNOWN)
-            ctx = await self.repo.get_presence_context(building_id, r_id)
-            presence = ctx.presence_state if ctx else PresenceState.UNKNOWN
-
-            if status == SafetyStatus.SAFE:
-                # Helper candidate if SAFE and in building
-                if presence != PresenceState.OUTSIDE_BUILDING:
-                    safe_helpers_by_floor.setdefault(unit.floor, []).append(r_id)
-            elif status == SafetyStatus.UNKNOWN:
-                # Unconfirmed: Only target if NOT outside building (Likely Away filtered out)
-                if presence != PresenceState.OUTSIDE_BUILDING:
-                    unconfirmed_targets_by_floor.setdefault(unit.floor, []).append(r_id)
-
-        # 3. Match nearest safe helper to unconfirmed target on same floor (1:1, no duplicates)
+        # 2. 同一フロア・空間近接による1:1マッチング（重複なし）
         tasks_created: list[Task] = []
         assigned_helpers: set[str] = set()
 
-        for floor, target_resident_ids in unconfirmed_targets_by_floor.items():
-            helpers = safe_helpers_by_floor.get(floor, [])
-            available_helpers = [h for h in helpers if h not in assigned_helpers]
+        for floor, targets in classification.unconfirmed_targets_by_floor.items():
+            helpers = classification.safe_helpers_by_floor.get(floor, [])
+            available_helpers = [h for h in helpers if h.resident_id not in assigned_helpers]
 
-            for target_id in target_resident_ids:
+            for target in targets:
                 if not available_helpers:
                     break
 
-                target_unit = resident_unit_map[target_id]
-                target_room = int(target_unit.room_number) if target_unit else 0
+                target_room = int(target.room_number) if target.room_number.isdigit() else 0
 
-                # Find closest helper by room number distance
+                # 部屋番号の差で最も近い支援者を探索
                 closest_helper = min(
                     available_helpers,
                     key=lambda h: abs(
-                        int(resident_unit_map[h].room_number) - target_room
-                        if resident_unit_map.get(h)
-                        else 999
+                        int(h.room_number) - target_room if h.room_number.isdigit() else 999
                     ),
                 )
 
                 available_helpers.remove(closest_helper)
-                assigned_helpers.add(closest_helper)
+                assigned_helpers.add(closest_helper.resident_id)
 
                 # Create Disaster-specific Task (E-012)
                 task_id = f"task-{uuid.uuid4().hex[:12]}"
-                helper_unit = resident_unit_map[closest_helper]
+                helper_unit = resident_unit_map[closest_helper.resident_id]
+                target_unit = resident_unit_map[target.resident_id]
                 new_task = Task(
                     task_id=task_id,
                     issue_id=issue_id,
-                    resident_id=closest_helper,
-                    target_resident_id=target_id,
+                    resident_id=closest_helper.resident_id,
+                    target_resident_id=target.resident_id,
                     start_node_id=helper_unit.entrance_node_id if helper_unit else None,
                     destination_node_id=target_unit.entrance_node_id if target_unit else None,
                     task_type=config["task_type"],
@@ -173,7 +212,7 @@ class TriageService:
                 event = TaskEvent(
                     event_id=f"evt-{uuid.uuid4().hex[:12]}",
                     task_id=task_id,
-                    actor_resident_id=closest_helper,
+                    actor_resident_id=closest_helper.resident_id,
                     event_type=TaskEventType.OFFERED,
                     actor_type=ActorType.BUILDING_AGENT,
                     occurred_at=now,

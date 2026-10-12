@@ -96,6 +96,14 @@ export function PhoneStage({
     heatCold: false,      // 暑さ・寒さで体調が不安
   });
 
+  // SC-2: 火災時の避難状況・被害項目（S2_E1）
+  const [fireItems, setFireItems] = useState({
+    stairsUnable: false,  // 階段を自力で降りられない（避難同行が必要）
+    smokeFire: false,     // 煙が充満している・火が見える
+    injury: false,        // けがをしている・動けない
+    blocked: false,       // 逃げ道・ドアが遮断されている
+  });
+
   // FN-03 / REQ-15: 自由文メッセージと代理人（Resident Agent）からの聞き返し質問
   const [damageFreeText, setDamageFreeText] = useState("");
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
@@ -337,18 +345,36 @@ export function PhoneStage({
               ================================================================ */}
           {showLockScreen ? (() => {
             const isOutage = emergencyType === "POWER_OUTAGE";
+            const isFire = emergencyType === "FIRE";
+            const isFlood = emergencyType === "FLOOD";
             const lockTitle = isOutage
               ? "停電が発生しました（EV全基停止）"
-              : emergencyType === "FIRE"
-                ? "火災報知器が作動しました"
-                : emergencyType === "FLOOD"
+              : isFire
+                ? "火災報知器が作動しました（全館避難）"
+                : isFlood
                   ? "大雨洪水警戒情報が発令されました"
                   : "地震が発生しました（震度5強）";
             const lockMsg = isOutage
               ? "ご自宅にいらっしゃいますか？ 状況を教えてください"
-              : "ご自身とお部屋は無事ですか？";
-            const primaryBtn = isOutage ? "在宅・問題なし" : "無事";
-            const secondaryBtn = isOutage ? "困っている" : "被害あり";
+              : isFire
+                ? "西側非常階段から避難できますか？ 状況を教えてください"
+                : isFlood
+                  ? "垂直避難（上階への移動）は可能ですか？"
+                  : "ご自身とお部屋は無事ですか？";
+            const primaryBtn = isOutage
+              ? "在宅・問題なし"
+              : isFire
+                ? "自力避難できる"
+                : isFlood
+                  ? "垂直避難できる"
+                  : "無事";
+            const secondaryBtn = isOutage
+              ? "困っている"
+              : isFire
+                ? "同行が必要"
+                : isFlood
+                  ? "手伝いが必要"
+                  : "被害あり";
 
             return (
               <LockNotification
@@ -408,13 +434,22 @@ export function PhoneStage({
                         -------------------------------------------------------- */}
                     {emergencySubScreen === "damage_detail" && (() => {
                       const isOutage = emergencyType === "POWER_OUTAGE";
-                      const pageTitle = isOutage ? "停電時の困りごとを教えてください" : "被害の内容を教えてください";
+                      const isFire = emergencyType === "FIRE";
+                      const pageTitle = isOutage
+                        ? "停電時の困りごとを教えてください"
+                        : isFire
+                          ? "避難の状況を教えてください"
+                          : "被害の内容を教えてください";
                       const pageSubtitle = isOutage
                         ? "エレベーター停止に伴う困りごとを管理人に届けます。命に関わるときは迷わず119番通報してください。"
-                        : "管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。";
+                        : isFire
+                          ? "西側非常階段からの避難方針のもと、同一フロアの支援可能者や管理人に届きます。命に関わるときは迷わず119番通報してください。"
+                          : "管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。";
                       const placeholder = isOutage
                         ? "例: 14階で水が切れました / 足が悪く階段が降りられません"
-                        : "例: 棚が倒れて足を挟まれ動けません / 飲料水が必要です";
+                        : isFire
+                          ? "例: 廊下に煙が少し漂っています / 足腰に不安があり一人で階段を降りられません"
+                          : "例: 棚が倒れて足を挟まれ動けません / 飲料水が必要です";
 
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -477,6 +512,41 @@ export function PhoneStage({
                                   checked={outageItems.heatCold}
                                   onChange={(checked) =>
                                     setOutageItems({ ...outageItems, heatCold: checked })
+                                  }
+                                />
+                              </>
+                            ) : isFire ? (
+                              <>
+                                <CheckRow
+                                  label="階段を自力で降りられない（避難同行が必要）"
+                                  sublabel="足腰の不安、車椅子、階段移動介助が必要など"
+                                  checked={fireItems.stairsUnable}
+                                  onChange={(checked) =>
+                                    setFireItems({ ...fireItems, stairsUnable: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="煙が充満している・火が見える"
+                                  sublabel="廊下や室内への煙の侵入、炎の確認など"
+                                  checked={fireItems.smokeFire}
+                                  onChange={(checked) =>
+                                    setFireItems({ ...fireItems, smokeFire: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="けがをしている・動けない"
+                                  sublabel="やけど、打撲、煙を吸い込んだなど"
+                                  checked={fireItems.injury}
+                                  onChange={(checked) =>
+                                    setFireItems({ ...fireItems, injury: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="逃げ道・ドアが遮断されている"
+                                  sublabel="煙や熱で玄関から出られないなど"
+                                  checked={fireItems.blocked}
+                                  onChange={(checked) =>
+                                    setFireItems({ ...fireItems, blocked: checked })
                                   }
                                 />
                               </>
@@ -555,23 +625,45 @@ export function PhoneStage({
                                         if (k === "heatCold") return "暑さ・熱中症リスク";
                                         return k;
                                       })
-                                  : Object.entries(damageItems)
-                                      .filter(([, v]) => v)
-                                      .map(([k]) => {
-                                        if (k === "injury") return "けがをしている";
-                                        if (k === "trapped") return "部屋から出られない";
-                                        if (k === "broken") return "家具・設備の破損";
-                                        if (k === "gasSmell") return "ガス・水漏れのにおい";
-                                        return k;
-                                      });
+                                  : isFire
+                                    ? Object.entries(fireItems)
+                                        .filter(([, v]) => v)
+                                        .map(([k]) => {
+                                          if (k === "stairsUnable") return "階段歩行困難・避難同行要";
+                                          if (k === "smokeFire") return "煙充満・火災視認";
+                                          if (k === "injury") return "けが・体調不良";
+                                          if (k === "blocked") return "逃げ道・ドア遮断";
+                                          return k;
+                                        })
+                                    : Object.entries(damageItems)
+                                        .filter(([, v]) => v)
+                                        .map(([k]) => {
+                                          if (k === "injury") return "けがをしている";
+                                          if (k === "trapped") return "部屋から出られない";
+                                          if (k === "broken") return "家具・設備の破損";
+                                          if (k === "gasSmell") return "ガス・水漏れのにおい";
+                                          return k;
+                                        });
                                 const parts = [];
                                 if (checkedLabels.length > 0) {
-                                  parts.push(isOutage ? `【困りごと】${checkedLabels.join("、")}` : `【被害項目】${checkedLabels.join("、")}`);
+                                  parts.push(
+                                    isOutage
+                                      ? `【困りごと】${checkedLabels.join("、")}`
+                                      : isFire
+                                        ? `【避難状況】${checkedLabels.join("、")}`
+                                        : `【被害項目】${checkedLabels.join("、")}`
+                                  );
                                 }
                                 if (damageFreeText.trim()) {
                                   parts.push(damageFreeText.trim());
                                 }
-                                const finalMsg = parts.join("\n") || (isOutage ? "停電により困りごとがあります。支援が必要です。" : "被害があります。支援が必要です。");
+                                const finalMsg =
+                                  parts.join("\n") ||
+                                  (isOutage
+                                    ? "停電により困りごとがあります。支援が必要です。"
+                                    : isFire
+                                      ? "火災避難に手助け・同行が必要です。"
+                                      : "被害があります。支援が必要です。");
                                 handleConfirmPresence("NEED_HELP", finalMsg);
                               }}
                             >
@@ -590,18 +682,37 @@ export function PhoneStage({
                         -------------------------------------------------------- */}
                     {(!isSafetyAnswered || emergencySubScreen === "safety_answer") && emergencySubScreen !== "damage_detail" && (() => {
                       const isOutage = emergencyType === "POWER_OUTAGE";
-                      const r02Title = isOutage ? "ご自宅にいらっしゃいますか？ 状況を教えてください" : "ご自身とお部屋は無事ですか？";
+                      const isFire = emergencyType === "FIRE";
+                      const r02Title = isOutage
+                        ? "ご自宅にいらっしゃいますか？ 状況を教えてください"
+                        : isFire
+                          ? "避難できますか？ 状況を教えてください"
+                          : "ご自身とお部屋は無事ですか？";
                       const r02Subtitle = isOutage
                         ? "エレベーターが全基停止しています。回答は全体の把握に使われ、部屋番号は外部に公開されません。"
-                        : "回答は建物全体の把握に使われ、部屋番号は外部に公開されません。";
-                      const choice1Title = isOutage ? "在宅・問題なし（特別な手助けは不要）" : "無事（けがはなく、部屋から出られる）";
+                        : isFire
+                          ? "6階で火災が発生し、西側非常階段からの避難指示が出ています。"
+                          : "回答は建物全体の把握に使われ、部屋番号は外部に公開されません。";
+                      const choice1Title = isOutage
+                        ? "在宅・問題なし（特別な手助けは不要）"
+                        : isFire
+                          ? "自力避難できる（同行支援は不要）"
+                          : "無事（けがはなく、部屋から出られる）";
                       const choice1Desc = isOutage
                         ? "自室で待機可能で、水や階段昇降の特別な手助けは不要です。"
-                        : "自身で身の安全が確保できており、特別な手助けは不要です。";
-                      const choice2Title = isOutage ? "困っている（水・階段・薬・体調など）" : "被害あり（けが・閉じ込め・部屋の損傷など）";
+                        : isFire
+                          ? "西側非常階段から地上へ向かって単独で避難可能です。"
+                          : "自身で身の安全が確保できており、特別な手助けは不要です。";
+                      const choice2Title = isOutage
+                        ? "困っている（水・階段・薬・体調など）"
+                        : isFire
+                          ? "避難に手助け・同行が必要"
+                          : "被害あり（けが・閉じ込め・部屋の損傷など）";
                       const choice2Desc = isOutage
                         ? "飲料水の不足や階段昇降困難、熱中症リスクなど支援が必要です。"
-                        : "家具の転倒、けが、室内に閉じ込められているなど支援が必要です。";
+                        : isFire
+                          ? "階段の歩行に不安がある、煙が充満しているなど同行が必要です。"
+                          : "家具の転倒、けが、室内に閉じ込められているなど支援が必要です。";
 
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -651,56 +762,104 @@ export function PhoneStage({
                     })()}
 
                     {/* --------------------------------------------------------
-                        R10: 被害あり送信後の待機タイムライン画面
+                        R10: 被害あり送信後の待機タイムライン画面（SC-2: 避難同行待機 S2_E2）
                         -------------------------------------------------------- */}
-                    {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && emergencySubScreen === "default" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                        <PageTitle
-                          title="管理人に伝わりました"
-                          subtitle={checkStatus === "in_progress"
+                    {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && emergencySubScreen === "default" && (() => {
+                      const isFire = emergencyType === "FIRE";
+                      const helpTitle = isFire ? "避難同行の手配状況" : "管理人に伝わりました";
+                      const helpSubtitle = isFire
+                        ? (checkStatus === "in_progress"
+                            ? "同行支援の方があなたのお部屋（ドア前）へ向かっています。"
+                            : checkStatus === "approved"
+                              ? "同じフロアの方が避難同行を承認しました（移動目安 約30秒）。"
+                              : checkStatus === "triaging"
+                                ? "同一フロアの自力避難可能者とマッチング中です。"
+                                : "避難同行の要請を受け付けました。同一フロアの支援可能者を探しています。")
+                        : (checkStatus === "in_progress"
                             ? "近隣の方による安否確認が始まりました。"
                             : checkStatus === "approved"
                               ? "近隣の方が、あなたのお宅の安否確認への協力を承認しました。"
                               : checkStatus === "triaging"
                                 ? "安否状況の確認・対応の検討中です。あなたへの対応はまだ確定していません。"
-                                : "被害状況を受け付けました。管理人による確認をお待ちください。"}
+                                : "被害状況を受け付けました。管理人による確認をお待ちください。");
 
-                        />
-                        {hasConfirmedCheck && <div
-                          style={{
-                            backgroundColor: "var(--color-danger-tint)",
-                            borderRadius: 12,
-                            padding: "14px 16px",
-                            border: "1px solid rgba(194, 59, 46, 0.3)",
-                          }}
-                        >
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-danger-text)" }}>
-                            近隣の方による確認まで
-                          </span>
-                          <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
-                            体力を温存し、無理に動かず安全な姿勢を保ってください。大きな音（壁や床を叩く等）で居場所を知らせることも有効です。
-                          </p>
-                        </div>}
-
-                        {/* FN-08: Actual accepted/started checks only; no invented arrival time. */}
-                        {hasConfirmedCheck && <div style={{ marginTop: 8 }}>
-                          <Timeline
-                            items={[
-                              { text: "被害状況を送信しました", status: "completed" },
-                              { text: "近隣の方が安否確認への協力を承認しました", status: "completed" },
-                              { text: checkStatus === "in_progress" ? "安否確認を実施中です" : "安否確認の開始を待っています", status: checkStatus === "in_progress" ? "in_progress" : "pending" },
-                            ]}
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                          <PageTitle
+                            title={helpTitle}
+                            subtitle={helpSubtitle}
                           />
-                        </div>}
-                        <PrivacyNote note="命に関わるときは、対応を待たずに119番へ通報してください。" />
+                          {isFire ? (
+                            <div
+                              style={{
+                                backgroundColor: "#FFF8E1",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                                border: "1px solid #FFE082",
+                              }}
+                            >
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "#B78103" }}>
+                                ⚠️ 煙への注意・待機時の心得
+                              </span>
+                              <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
+                                煙が充満してきた場合は無理に廊下に出ず、濡れタオル等で口と鼻を覆い、姿勢を低くして待機してください。30秒以上来ない場合や危険が迫った場合は無理をせず即座に通報・避難してください。
+                              </p>
+                            </div>
+                          ) : hasConfirmedCheck && (
+                            <div
+                              style={{
+                                backgroundColor: "var(--color-danger-tint)",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                                border: "1px solid rgba(194, 59, 46, 0.3)",
+                              }}
+                            >
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-danger-text)" }}>
+                                近隣の方による確認まで
+                              </span>
+                              <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
+                                体力を温存し、無理に動かず安全な姿勢を保ってください。大きな音（壁や床を叩く等）で居場所を知らせることも有効です。
+                              </p>
+                            </div>
+                          )}
 
-                        <div style={{ marginTop: "auto", paddingTop: 20 }}>
-                          <SecondaryButton onClick={() => setEmergencySubScreen("safety_answer")}>
-                            状況が変わったので更新する
-                          </SecondaryButton>
+                          {/* Timeline */}
+                          {(isFire || hasConfirmedCheck) && (
+                            <div style={{ marginTop: 8 }}>
+                              <Timeline
+                                items={isFire ? [
+                                  { text: "同行要請を送信しました", status: "completed" },
+                                  {
+                                    text: checkStatus === "approved" || checkStatus === "in_progress"
+                                      ? "同じフロアの方が避難同行を承認しました（約30秒）"
+                                      : "同じフロアの避難可能者を探しています",
+                                    status: checkStatus === "approved" || checkStatus === "in_progress" ? "completed" : "pending",
+                                  },
+                                  {
+                                    text: checkStatus === "in_progress" ? "合流して西側階段へ移動中" : "合流を待機中",
+                                    status: checkStatus === "in_progress" ? "in_progress" : "pending",
+                                  },
+                                ] : [
+                                  { text: "被害状況を送信しました", status: "completed" },
+                                  { text: "近隣の方が安否確認への協力を承認しました", status: "completed" },
+                                  {
+                                    text: checkStatus === "in_progress" ? "安否確認を実施中です" : "安否確認の開始を待っています",
+                                    status: checkStatus === "in_progress" ? "in_progress" : "pending",
+                                  },
+                                ]}
+                              />
+                            </div>
+                          )}
+                          <PrivacyNote note={isFire ? "火の手が迫った場合は、支援を待たずに直ちに避難・119番通報してください。" : "命に関わるときは、対応を待たずに119番へ通報してください。"} />
+
+                          <div style={{ marginTop: "auto", paddingTop: 20 }}>
+                            <SecondaryButton onClick={() => setEmergencySubScreen("safety_answer")}>
+                              状況が変わったので更新する
+                            </SecondaryButton>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* --------------------------------------------------------
                         R03〜R08: 無事回答後の各ステップ
@@ -823,12 +982,25 @@ export function PhoneStage({
                             const isDisclosed = !!disclosedRoom;
                             const targetRoom = disclosedRoom || "•••";
                             const isRelay = myTask.task_type === "SUPPLY_RELAY";
+                            const isEscort = myTask.task_type === "EVACUATION_ESCORT";
 
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <PageTitle
-                                  title={isRelay ? "物資の受取場所と運搬先" : "確認・支援先のお部屋"}
-                                  subtitle={isRelay ? "無理は禁物です。荷物が重い場合や危険を感じたら中断してください。" : "無理は禁物です。危険を感じたら直ちに引き返してください。"}
+                                  title={
+                                    isEscort
+                                      ? "合流場所と避難ルート"
+                                      : isRelay
+                                        ? "物資の受取場所と運搬先"
+                                        : "確認・支援先のお部屋"
+                                  }
+                                  subtitle={
+                                    isEscort
+                                      ? "無理は禁物です。煙が濃い場合や危険を感じたら直ちに自身を優先し避難してください。"
+                                      : isRelay
+                                        ? "無理は禁物です。荷物が重い場合や危険を感じたら中断してください。"
+                                        : "無理は禁物です。危険を感じたら直ちに引き返してください。"
+                                  }
                                 />
                                 {/* Big Room Number / Location */}
                                 <div
@@ -841,7 +1013,7 @@ export function PhoneStage({
                                   }}
                                 >
                                   <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                    {isRelay ? "物資の受取場所" : "対象住戸"}
+                                    {isEscort ? "合流場所（西側非常階段ルート上）" : isRelay ? "物資の受取場所" : "対象住戸"}
                                   </span>
                                   <div style={{ marginTop: 4 }}>
                                     <span
@@ -856,6 +1028,22 @@ export function PhoneStage({
                                     </span>
                                     <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4 }}>号室ドア前</span>
                                   </div>
+                                  {isEscort && (
+                                    <div
+                                      style={{
+                                        display: "inline-block",
+                                        fontSize: 12,
+                                        color: "#C62828",
+                                        backgroundColor: "#FFEBEE",
+                                        padding: "4px 12px",
+                                        borderRadius: 8,
+                                        marginTop: 8,
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      ⚠️ 姿勢を低く保ち、エレベーターは絶対に使用しないでください
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Steps list */}
@@ -865,9 +1053,11 @@ export function PhoneStage({
                                       1
                                     </span>
                                     <span>
-                                      {isRelay
-                                        ? (isDisclosed ? `${targetRoom}号室ドア前に置かれた物資を受け取ります（非対面）` : "受取場所ドア前へ向かいます")
-                                        : (isDisclosed ? `${targetRoom}号室の前へ向かいます` : "対象住戸の前へ向かいます")}
+                                      {isEscort
+                                        ? (isDisclosed ? `${targetRoom}号室ドア前へ向かいます（西側階段ルート上）` : "合流場所ドア前へ向かいます")
+                                        : isRelay
+                                          ? (isDisclosed ? `${targetRoom}号室ドア前に置かれた物資を受け取ります（非対面）` : "受取場所ドア前へ向かいます")
+                                          : (isDisclosed ? `${targetRoom}号室の前へ向かいます` : "対象住戸の前へ向かいます")}
                                     </span>
                                   </div>
                                   <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -875,10 +1065,10 @@ export function PhoneStage({
                                       2
                                     </span>
                                     <span>
-                                      {isRelay
-                                        ? "指定階（8階踊り場）の「ZASHIKI箱」へ運んで置きます"
-                                        : myTask.task_type === "EVACUATION_ESCORT"
-                                          ? "合流して西側非常階段まで同行避難します"
+                                      {isEscort
+                                        ? "合流して西側非常階段へ向かいます（エレベーター使用禁止・手すり側通行）"
+                                        : isRelay
+                                          ? "指定階（8階踊り場）の「ZASHIKI箱」へ運んで置きます"
                                           : myTask.task_type === "VERTICAL_EVACUATION"
                                             ? "合流して上層階へ垂直避難します"
                                             : "インターホンを1回だけ鳴らします（不在時は深追い不要）"}
@@ -889,18 +1079,24 @@ export function PhoneStage({
                                       3
                                     </span>
                                     <span>
-                                      {isRelay
-                                        ? "置き終えたら「踊り場に置いた」ボタンを押して報告してください"
-                                        : myTask.task_type === "EVACUATION_ESCORT" || myTask.task_type === "VERTICAL_EVACUATION"
-                                          ? "同行・避難完了をアプリで報告してください"
-                                          : "応答の有無をアプリで報告してください"}
+                                      {isEscort
+                                        ? "地上集合場所（西側駐車場）到着後、避難完了を報告してください"
+                                        : isRelay
+                                          ? "置き終えたら「踊り場に置いた」ボタンを押して報告してください"
+                                          : myTask.task_type === "VERTICAL_EVACUATION"
+                                            ? "同行・避難完了をアプリで報告してください"
+                                            : "応答の有無をアプリで報告してください"}
                                     </span>
                                   </div>
                                 </div>
 
                                 <div style={{ marginTop: "auto", paddingTop: 16 }}>
                                   <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
-                                    {isRelay ? "指定の踊り場に着いた・報告する" : (isDisclosed ? `${targetRoom}号室に着いた・報告する` : "現地に着いた・報告する")}
+                                    {isEscort
+                                      ? "合流した・地上集合場所へ向かう（報告へ）"
+                                      : isRelay
+                                        ? "指定の踊り場に着いた・報告する"
+                                        : (isDisclosed ? `${targetRoom}号室に着いた・報告する` : "現地に着いた・報告する")}
                                   </PrimaryButton>
                                 </div>
                               </div>
@@ -912,57 +1108,113 @@ export function PhoneStage({
                           (myTask.status === "APPROVED" || myTask.status === "IN_PROGRESS") &&
                           emergencySubScreen === "reporting" && (() => {
                             const isRelay = myTask.task_type === "SUPPLY_RELAY";
+                            const isEscort = myTask.task_type === "EVACUATION_ESCORT";
 
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <PageTitle
-                                  title={isRelay ? "踊り場に置けましたか？" : "応答はありましたか？"}
-                                  subtitle={isRelay ? "運搬と引き継ぎの状況を選んでください。" : "確認できた状況を選んでください。"}
+                                  title={
+                                    isEscort
+                                      ? "地上集合場所に到着しましたか？"
+                                      : isRelay
+                                        ? "踊り場に置けましたか？"
+                                        : "応答はありましたか？"
+                                  }
+                                  subtitle={
+                                    isEscort
+                                      ? "合流および地上への退避状況を選んでください。"
+                                      : isRelay
+                                        ? "運搬と引き継ぎの状況を選んでください。"
+                                        : "確認できた状況を選んでください。"
+                                  }
                                 />
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
-                                  <ChoiceButton
-                                    title={isRelay ? "指定の踊り場に置いた" : "応答があった"}
-                                    description={isRelay ? "無事に指定踊り場のZASHIKI箱に物資を置きました。" : "声や返答があり、無事であることが確認できました。"}
-                                    accentColor="brand"
-                                    onClick={() => handleReportTask("TARGET_RESPONDED")}
-                                    icon={
-                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
-                                        <polyline points="20 6 9 17 4 12" />
-                                      </svg>
-                                    }
-                                  />
-                                  <ChoiceButton
-                                    title={isRelay ? "置けなかった（危険・途中で断念）" : "応答がなかった"}
-                                    description={isRelay ? "荷物が重い、体調不良、階段が危険などのため運搬を完了できませんでした。" : "インターホンへの返答がなく、室内の物音も聞こえません。"}
-                                    accentColor={isRelay ? "danger" : "ink"}
-                                    onClick={() => handleReportTask(isRelay ? "UNSAFE" : "TARGET_NO_RESPONSE")}
-                                    icon={
-                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isRelay ? "var(--color-danger)" : "var(--color-ink)"} strokeWidth="2.5">
-                                        {isRelay ? (
-                                          <line x1="18" y1="6" x2="6" y2="18" />
-                                        ) : (
-                                          <>
+                                  {isEscort ? (
+                                    <>
+                                      <ChoiceButton
+                                        title="同行して地上（西側駐車場）へ到着した"
+                                        description="無事に合流し、西側非常階段経由で退避完了しました。"
+                                        accentColor="brand"
+                                        onClick={() => handleReportTask("TARGET_RESPONDED")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
+                                            <polyline points="20 6 9 17 4 12" />
+                                          </svg>
+                                        }
+                                      />
+                                      <ChoiceButton
+                                        title="相手の部屋に応答がなく、先行して避難した"
+                                        description="呼びかけましたが返事がなく、危険のため自身で退避しました。"
+                                        accentColor="ink"
+                                        onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2.5">
                                             <circle cx="12" cy="12" r="10" />
                                             <line x1="8" y1="12" x2="16" y2="12" />
-                                          </>
-                                        )}
-                                      </svg>
-                                    }
-                                  />
-                                  {!isRelay && (
-                                    <ChoiceButton
-                                      title="確認できなかった（危険・たどり着けない）"
-                                      description="障害物や煙、落下物などで安全に接近できませんでした。"
-                                      accentColor="danger"
-                                      onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
-                                      icon={
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
-                                          <polygon points="12 2 2 22 22 22 12 2" />
-                                          <line x1="12" y1="9" x2="12" y2="13" />
-                                          <line x1="12" y1="17" x2="12.01" y2="17" />
-                                        </svg>
-                                      }
-                                    />
+                                          </svg>
+                                        }
+                                      />
+                                      <ChoiceButton
+                                        title="煙や火災で合流できず、自身を優先して避難した"
+                                        description="廊下の煙が濃いため合流を断念し、非常階段へ直接退避しました。"
+                                        accentColor="danger"
+                                        onClick={() => handleReportTask("UNSAFE")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
+                                            <polygon points="12 2 2 22 22 22 12 2" />
+                                            <line x1="12" y1="9" x2="12" y2="13" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                          </svg>
+                                        }
+                                      />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChoiceButton
+                                        title={isRelay ? "指定の踊り場に置いた" : "応答があった"}
+                                        description={isRelay ? "無事に指定踊り場のZASHIKI箱に物資を置きました。" : "声や返答があり、無事であることが確認できました。"}
+                                        accentColor="brand"
+                                        onClick={() => handleReportTask("TARGET_RESPONDED")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
+                                            <polyline points="20 6 9 17 4 12" />
+                                          </svg>
+                                        }
+                                      />
+                                      <ChoiceButton
+                                        title={isRelay ? "置けなかった（危険・途中で断念）" : "応答がなかった"}
+                                        description={isRelay ? "荷物が重い、体調不良、階段が危険などのため運搬を完了できませんでした。" : "インターホンへの返答がなく、室内の物音も聞こえません。"}
+                                        accentColor={isRelay ? "danger" : "ink"}
+                                        onClick={() => handleReportTask(isRelay ? "UNSAFE" : "TARGET_NO_RESPONSE")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isRelay ? "var(--color-danger)" : "var(--color-ink)"} strokeWidth="2.5">
+                                            {isRelay ? (
+                                              <line x1="18" y1="6" x2="6" y2="18" />
+                                            ) : (
+                                              <>
+                                                <circle cx="12" cy="12" r="10" />
+                                                <line x1="8" y1="12" x2="16" y2="12" />
+                                              </>
+                                            )}
+                                          </svg>
+                                        }
+                                      />
+                                      {!isRelay && (
+                                        <ChoiceButton
+                                          title="確認できなかった（危険・たどり着けない）"
+                                          description="障害物や煙、落下物などで安全に接近できませんでした。"
+                                          accentColor="danger"
+                                          onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
+                                          icon={
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
+                                              <polygon points="12 2 2 22 22 22 12 2" />
+                                              <line x1="12" y1="9" x2="12" y2="13" />
+                                              <line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                          }
+                                        />
+                                      )}
+                                    </>
                                   )}
                                 </div>
                                 <div style={{ marginTop: "auto", paddingTop: 16 }}>
@@ -975,34 +1227,46 @@ export function PhoneStage({
                           })()}
 
                         {/* FN-07 / FN-08: R08 retains the authorized destination for its assignee. */}
-                        {myTask && myTask.status === "COMPLETED" && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                            <PageTitle
-                              title="確認ありがとうございました"
-                              subtitle={disclosedRoom
-                                ? "確認結果は管理人に送信されました。確認したお部屋を以下に表示しています。"
-                                : "確認結果は管理人に送信されました。確認先の部屋番号はまだ取得できていません。"}
-                            />
-                            {/* FN-07: Use the current task’s authorized API detail. */}
-                            <div
-                              style={{
-                                textAlign: "center",
-                                padding: "20px 0",
-                                backgroundColor: "var(--color-canvas)",
-                                borderRadius: 16,
-                                border: "1px solid var(--color-line)",
-                              }}
-                            >
-                              <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                確認先住戸
-                              </span>
-                              <div style={{ marginTop: 4 }}>
-                                <span className="font-mono-num" style={{ fontSize: 32, fontWeight: 900, color: "var(--color-muted)" }}>
-                                  {disclosedRoom || "•••"}
+                        {myTask && myTask.status === "COMPLETED" && (() => {
+                          const isEscort = myTask.task_type === "EVACUATION_ESCORT";
+
+                          return (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                              <PageTitle
+                                title={isEscort ? "避難同行ありがとうございました" : "確認ありがとうございました"}
+                                subtitle={
+                                  isEscort
+                                    ? (disclosedRoom
+                                        ? "地上集合場所への避難報告が管理人に送信されました。同行したお部屋を以下に表示しています。"
+                                        : "地上集合場所への避難報告が管理人に送信されました。")
+                                    : (disclosedRoom
+                                        ? "確認結果は管理人に送信されました。確認したお部屋を以下に表示しています。"
+                                        : "確認結果は管理人に送信されました。確認先の部屋番号はまだ取得できていません。")
+                                }
+                              />
+                              {/* FN-07: Use the current task’s authorized API detail. */}
+                              <div
+                                style={{
+                                  textAlign: "center",
+                                  padding: "20px 0",
+                                  backgroundColor: "var(--color-canvas)",
+                                  borderRadius: 16,
+                                  border: "1px solid var(--color-line)",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
+                                  {isEscort ? "同行支援先" : "確認先住戸"}
                                 </span>
-                                <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4, color: "var(--color-muted)" }}>号室</span>
+                                <div style={{ marginTop: 4 }}>
+                                  <span className="font-mono-num" style={{ fontSize: 32, fontWeight: 900, color: "var(--color-muted)" }}>
+                                    {disclosedRoom || "•••"}
+                                  </span>
+                                  <span style={{ fontSize: 16, fontWeight: 700, marginLeft: 4, color: "var(--color-muted)" }}>号室</span>
+                                </div>
                               </div>
-                            </div>
 
                             {/* Privacy Audit Trail in Card */}
                             <div
@@ -1036,7 +1300,8 @@ export function PhoneStage({
                               </PrimaryButton>
                             </div>
                           </div>
-                        )}
+                        );
+                      })()}
                       </>
                     )}
                   </div>

@@ -119,7 +119,17 @@ async def test_resident_agent_r3_free_text_and_clarification(seeded_repo):
     assert need_concrete.needs_clarification is False
     assert need_concrete.requires_assistance is True
     assert need_concrete.category == "EVACUATION"
-    assert need_concrete.can_stairs is False
+    # 無事・安全報告の場合（「けがはなく、部屋から出られます」「無事です」）
+    need_safe = agent_i.parse_user_free_text("けがはなく、部屋から出られます。", floor=3)
+    assert need_safe.needs_clarification is False
+    assert need_safe.requires_assistance is False
+    assert need_safe.category == "SAFETY_CHECK"
+    assert need_safe.can_stairs is True
+
+    need_safe_short = agent_i.parse_user_free_text("無事です", floor=3)
+    assert need_safe_short.needs_clarification is False
+    assert need_safe_short.requires_assistance is False
+    assert need_safe_short.category == "SAFETY_CHECK"
 
 
 @pytest.mark.asyncio

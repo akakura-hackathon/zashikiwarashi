@@ -251,13 +251,32 @@ class ResidentAgent:
         ):
             clean_text = text.strip()
 
-            injury_keywords = ["怪我", "けが", "足が痛", "痛い", "血", "動けない", "挟ま", "骨折"]
+            # 否定表現・安全表現の除去（「けがはない」「問題ない」などの誤検知を防ぐ）
+            injury_negations = [
+                "けがはなく", "けがはない", "けがはありません", "けがなし", "けが無し",
+                "怪我はなく", "怪我はない", "怪我はありません", "怪我なし", "怪我無し",
+                "痛くない", "痛くありません", "痛くはない", "痛くはありません",
+            ]
             clean_text_for_injury = clean_text.replace("手助け", "").replace("お助け", "")
+            for neg in injury_negations:
+                clean_text_for_injury = clean_text_for_injury.replace(neg, "")
+
+            injury_keywords = ["怪我", "けが", "足が痛", "痛い", "血", "動けない", "挟ま", "骨折"]
             is_injury = any(k in clean_text_for_injury for k in injury_keywords)
+
+            # 閉じ込めの否定・移動可能表現
+            trapped_negations = [
+                "部屋から出られます", "部屋から出られる", "出られます", "出られる", "出れます",
+                "避難できます", "避難できる", "動けます", "動ける", "歩けます", "歩ける",
+            ]
+            clean_text_for_trapped = clean_text
+            for neg in trapped_negations:
+                clean_text_for_trapped = clean_text_for_trapped.replace(neg, "")
+
             trapped_keywords = [
                 "閉じ込め", "ドアが開かない", "出られない", "ドア遮断", "逃げ道",
             ]
-            is_trapped = any(k in clean_text for k in trapped_keywords)
+            is_trapped = any(k in clean_text_for_trapped for k in trapped_keywords)
             is_water = any(k in clean_text for k in ["水", "飲料水", "喉", "食料", "飲み水"])
             stair_keywords = [
                 "階段", "昇降", "降りられない", "階段不可",
@@ -275,13 +294,23 @@ class ResidentAgent:
             ]
             is_flood = any(k in clean_text for k in flood_keywords)
 
+            safe_short_keywords = [
+                "無事", "大丈夫", "平気", "ok", "OK", "良好",
+                "問題なし", "問題ない", "何もない", "なし", "異常なし",
+            ]
+            is_explicit_safe = any(k in clean_text for k in safe_short_keywords) or (
+                "けがはなく" in clean_text or "怪我はなく" in clean_text
+            )
+
             # 自由文が短すぎて情報不足の場合（聞き返し R3）
+            # ただし「無事」など明確な安全報告がある場合は聞き返しを発動せず安全とする
             if (
                 len(clean_text) <= 2
                 and not is_injury
                 and not is_trapped
                 and not is_fire
                 and not is_flood
+                and not is_explicit_safe
             ):
                 return StructuredNeed(
                     resident_id=self.resident_id,

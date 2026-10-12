@@ -151,12 +151,18 @@ def test_fn08_room_map_tracks_resident_answers_and_emergency_reset():
     assert "504" in initial["likely_away_rooms"]
     assert initial["issue"]["created_at"]
 
-    # resident-i updates their state: UNKNOWN -> SAFE -> NEED_HELP -> SAFE
+    # resident-i updates their state: UNKNOWN -> SAFE (with default safe text) -> NEED_HELP -> SAFE
     response_safe1 = client.post(
         "/emergency/confirm-presence", headers=resident,
-        json={"emergency_id": trigger["emergency_id"], "safety_status": "SAFE"},
+        json={
+            "emergency_id": trigger["emergency_id"],
+            "safety_status": "SAFE",
+            "message": "けがはなく、部屋から出られます。",
+        },
     )
     assert response_safe1.status_code == 200
+    assert response_safe1.json()["safety_status"] == "SAFE"
+    assert response_safe1.json()["needs_clarification"] is False
     detail1 = client.get(path, headers=admin).json()
     assert detail1["room_states"]["301"] == "SAFE"
     assert detail1["current_states_summary"]["SAFE"] == 39

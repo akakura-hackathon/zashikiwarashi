@@ -212,7 +212,7 @@ export function PhoneStage({
           message:
             message ||
             (safetyStatus === "SAFE"
-              ? "けがはなく、部屋から出られます。"
+              ? "無事です。けがはなく、部屋から出られます。"
               : "被害があります。支援が必要です。"),
         },
         activePersona,

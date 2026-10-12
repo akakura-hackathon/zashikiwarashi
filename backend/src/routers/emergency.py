@@ -353,6 +353,8 @@ async def confirm_presence(
         clarification_question = need.clarification_question
         if need.requires_assistance:
             final_safety_status = SafetyStatus.NEED_HELP
+        elif req.safety_status == SafetyStatus.SAFE:
+            final_safety_status = SafetyStatus.SAFE
 
     # 1. Update Presence Context (E-007)
     await repo.set_presence_context(

@@ -11,6 +11,7 @@ import {
 
 import type { User } from "firebase/auth";
 import { TaskBoard } from "./ui/TaskBoard";
+import { DemoGuide } from "./DemoGuide";
 
 export type TriageExecution = {
   count: number;
@@ -36,6 +37,7 @@ type CockpitPanelProps = {
   issueId: string | null;
   issueDetail: IssueDetailResponse | null;
   onTriggerEmergency: () => Promise<void>;
+  onRestartDemo?: () => Promise<void>;
   onStartTriage: () => Promise<void>;
   onRefresh: () => Promise<void>;
   isLoading: boolean;
@@ -57,6 +59,7 @@ export function CockpitPanel({
   issueId: _issueId,
   issueDetail,
   onTriggerEmergency,
+  onRestartDemo,
   onStartTriage,
   onRefresh,
   isLoading,
@@ -215,6 +218,20 @@ export function CockpitPanel({
       {/* タブ1: 災害時検証 */}
       {activeTab === "disaster" && (
         <>
+          {/* FN-08 / #63: 審査員向けデモガイド */}
+          <div className="cockpit-section">
+            <DemoGuide
+              emergencyId={emergencyId}
+              selectedEmergencyType={selectedEmergencyType}
+              issueDetail={issueDetail}
+              activePersona={activePersona}
+              onSelectPersona={onSelectPersona}
+              triageExecution={triageExecution}
+              onRestartDemo={onRestartDemo}
+              isLoading={isLoading}
+            />
+          </div>
+
           {/* 2. 災害シミュレーション制御 */}
           <div className="cockpit-section">
         <div className="section-title">

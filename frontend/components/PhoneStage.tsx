@@ -252,16 +252,6 @@ export function PhoneStage({
     <main className="device-stage">
       <div className="device-wrapper">
         <div className="device-screen">
-          {/* Active Persona indicator bar in Stage */}
-          <div className="persona-switch-bar">
-            <div className="persona-info">
-              <span>🏠</span>
-              <span style={{ fontWeight: 700, color: "var(--color-ink)" }}>
-                {activePersona.name}
-              </span>
-            </div>
-          </div>
-
           {/* ================================================================
               PATTERN 1: Lock Screen Notification (R01)
               ================================================================ */}
@@ -326,6 +316,7 @@ export function PhoneStage({
                   <AppBar
                     variant={emergencySubScreen !== "default" ? "subpage" : "home"}
                     onBack={() => setEmergencySubScreen("default")}
+                    residentName={activePersona.name}
                   />
 
                   {/* C3: Emergency Banner */}
@@ -1417,7 +1408,7 @@ export function PhoneStage({
                    PATTERN 3: Normal Time (P_R1)
                    ============================================================== */
                 <>
-                  <AppBar variant="home" />
+                  <AppBar variant="home" residentName={activePersona.name} />
 
                   <div
                     style={{
@@ -1426,37 +1417,47 @@ export function PhoneStage({
                       flexDirection: "column",
                       padding: "16px 24px 20px",
                       overflowY: "auto",
-                      gap: 18,
                     }}
                   >
-                    <PageTitle
-                      title="平常時 何もしなくて大丈夫です"
-                      subtitle="緊急時のみ、必要な確認やお願いが届きます。"
-                    />
-
-                    {/* Knowledge Card */}
+                    {/* Centered content block */}
                     <div
                       style={{
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 14,
-                        padding: "16px",
-                        border: "1px solid var(--color-line)",
+                        flex: 1,
                         display: "flex",
                         flexDirection: "column",
-                        gap: 10,
+                        justifyContent: "center",
+                        gap: 18,
                       }}
                     >
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                        いま Zashikiwarashi が知っていること
-                      </span>
-                      <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
-                        • 在館推定：在宅の可能性が高い<br />
-                        • 階段の支援：健脚（短時間の階段移動が可能）<br />
-                        • 個人の性格・評価・ランキングは一切作成・保存しません。
+                      <PageTitle
+                        title="平常時 何もしなくて大丈夫です"
+                        subtitle="緊急時のみ、必要な確認やお願いが届きます。"
+                      />
+
+                      {/* Knowledge Card */}
+                      <div
+                        style={{
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: 14,
+                          padding: "16px",
+                          border: "1px solid var(--color-line)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                          いま Zashikiwarashi が知っていること
+                        </span>
+                        <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
+                          • 在館推定：在宅の可能性が高い<br />
+                          • 階段の支援：健脚（短時間の階段移動が可能）<br />
+                          • 個人の性格・評価・ランキングは一切作成・保存しません。
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                    <div style={{ paddingTop: 16 }}>
                       <PrivacyNote note="Zashikiwarashiは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
                     </div>
                   </div>

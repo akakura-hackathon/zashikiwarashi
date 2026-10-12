@@ -4,12 +4,14 @@ interface AppBarProps {
   variant?: "home" | "subpage";
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  residentName?: string;
 }
 
 export const AppBar: React.FC<AppBarProps> = ({
   variant = "home",
   onBack,
   rightAction,
+  residentName,
 }) => {
 
   return (
@@ -18,7 +20,7 @@ export const AppBar: React.FC<AppBarProps> = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "14px 16px 6px",
+        padding: "34px 18px 8px",
         backgroundColor: "var(--color-surface)",
         borderBottom: "1px solid transparent",
       }}
@@ -74,10 +76,24 @@ export const AppBar: React.FC<AppBarProps> = ({
         )}
       </div>
 
-      {/* Right: Optional Action */}
+      {/* Right: Optional Action or Resident Name */}
       {rightAction ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {rightAction}
+        </div>
+      ) : residentName ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: "var(--color-muted)",
+          }}
+        >
+          <span>🏠</span>
+          <span>{residentName}</span>
         </div>
       ) : (
         <div style={{ minWidth: 44 }} />

@@ -59,7 +59,7 @@ export function CockpitPanel({
   selectedEmergencyType,
   onSelectEmergencyType,
   emergencyId,
-  issueId,
+  issueId: _issueId,
   issueDetail,
   onTriggerEmergency,
   onStartTriage,
@@ -332,7 +332,7 @@ export function CockpitPanel({
                   ? `${triageExecution.count}回目のトリアージ進行中…`
                   : triageExecution.count > 0
                     ? `${triageExecution.count + 1}回目のトリアージをする`
-                    : "🎯 トリアージ開始 (API-08)"}
+                    : "トリアージ開始"}
               </button>
               <button
                 onClick={onRefresh}
@@ -478,11 +478,6 @@ export function CockpitPanel({
       <div className="cockpit-section">
         <div className="section-title">
           <span>棟内50戸の安否状況</span>
-          {emergencyId && (
-            <span className="font-mono-num" style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
-              Emg: {emergencyId.slice(0, 6)} / Issue: {issueId ? issueId.slice(0, 6) : "-"}
-            </span>
-          )}
         </div>
         {emergencyId && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>

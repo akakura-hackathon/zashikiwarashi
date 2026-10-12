@@ -408,11 +408,10 @@ export function PhoneStage({
                   ============================================================== */}
               {emergencyId ? (
                 <>
-                  {/* Top Bar with Read Aloud */}
+                  {/* Top Bar */}
                   <AppBar
                     variant={emergencySubScreen !== "default" ? "subpage" : "home"}
                     onBack={() => setEmergencySubScreen("default")}
-                    showReadAloud={true}
                   />
 
                   {/* C3: Emergency Banner */}
@@ -1515,7 +1514,7 @@ export function PhoneStage({
                    PATTERN 3: Normal Time (P_R1〜P_R3)
                    ============================================================== */
                 <>
-                  <AppBar variant="home" showReadAloud={false} />
+                  <AppBar variant="home" />
 
                   <div
                     style={{

@@ -1,34 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 
 interface AppBarProps {
   variant?: "home" | "subpage";
   onBack?: () => void;
-  showReadAloud?: boolean;
-  onReadAloud?: () => void;
+  rightAction?: React.ReactNode;
 }
 
 export const AppBar: React.FC<AppBarProps> = ({
   variant = "home",
   onBack,
-  showReadAloud = false,
-  onReadAloud,
+  rightAction,
 }) => {
-  const [reading, setReading] = useState(false);
-
-  const handleRead = () => {
-    setReading(true);
-    if (onReadAloud) {
-      onReadAloud();
-    } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      const textToRead = document.querySelector(".app-content")?.textContent || "画面の内容を読み上げます";
-      const utter = new SpeechSynthesisUtterance(textToRead.slice(0, 100));
-      utter.lang = "ja-JP";
-      utter.onend = () => setReading(false);
-      window.speechSynthesis.speak(utter);
-    } else {
-      setTimeout(() => setReading(false), 2000);
-    }
-  };
 
   return (
     <header
@@ -92,34 +74,14 @@ export const AppBar: React.FC<AppBarProps> = ({
         )}
       </div>
 
-      {/* Right: Read Aloud Button */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {showReadAloud && (
-          <button
-            onClick={handleRead}
-            aria-label="画面を読み上げる"
-            title="画面を読み上げる"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              border: "1px solid var(--color-line)",
-              backgroundColor: reading ? "var(--color-brand-tint)" : "var(--color-surface)",
-              color: reading ? "var(--color-brand)" : "var(--color-ink)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-          </button>
-        )}
-      </div>
+      {/* Right: Optional Action */}
+      {rightAction ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {rightAction}
+        </div>
+      ) : (
+        <div style={{ minWidth: 44 }} />
+      )}
     </header>
   );
 };

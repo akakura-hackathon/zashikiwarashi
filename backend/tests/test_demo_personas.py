@@ -57,7 +57,7 @@ def test_claims_do_not_override_selected_demo_resident(login_role):
             detail = client.get(f"/issues/{emergency['issue_id']}", headers=admin).json()
             assert detail["resident_states"][resident_id] == safety
             assert detail["room_states"][room] == safety
-    assert detail["current_states_summary"] == {"SAFE": 4, "UNKNOWN": 46}
+    assert detail["current_states_summary"] == {"SAFE": 42, "UNKNOWN": 6, "NEED_HELP": 2}
 
 
 def test_demo_rejects_unknown_identity_role_and_cross_building():
@@ -96,4 +96,4 @@ def test_admin_persona_cannot_create_a_resident_safety_state():
     )
     assert response.status_code == 403
     detail = client.get(f"/issues/{trigger['issue_id']}", headers=admin).json()
-    assert detail["current_states_summary"] == {"UNKNOWN": 50}
+    assert detail["current_states_summary"] == {"SAFE": 38, "UNKNOWN": 10, "NEED_HELP": 2}

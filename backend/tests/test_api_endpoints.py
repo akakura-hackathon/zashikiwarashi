@@ -144,30 +144,67 @@ def test_fn08_room_map_tracks_resident_answers_and_emergency_reset():
     path = f"/issues/{trigger['issue_id']}"
     initial = client.get(path, headers=admin).json()
     assert len(initial["room_states"]) == 50
-    assert set(initial["room_states"].values()) == {"UNKNOWN"}
+    # NFR-05 / SC-3: Realistic initial distribution (38 SAFE, 10 UNKNOWN, 2 NEED_HELP)
+    assert initial["current_states_summary"] == {"SAFE": 38, "UNKNOWN": 10, "NEED_HELP": 2}
+    assert initial["room_states"]["301"] == "UNKNOWN"
     assert initial["likely_away_count"] == 1
     assert "504" in initial["likely_away_rooms"]
     assert initial["issue"]["created_at"]
-    for safety in ("SAFE", "NEED_HELP", "SAFE"):
-        response = client.post(
-            "/emergency/confirm-presence", headers=resident,
-            json={"emergency_id": trigger["emergency_id"], "safety_status": safety},
-        )
-        assert response.status_code == 200
-        detail = client.get(path, headers=admin).json()
-        assert detail["room_states"]["301"] == safety
-        assert detail["resident_states"]["resident-i"] == safety
-        assert detail["current_states_summary"][safety] == 1
-        assert detail["current_states_summary"]["UNKNOWN"] == 49
+
+    # resident-i updates their state: UNKNOWN -> SAFE -> NEED_HELP -> SAFE
+    response_safe1 = client.post(
+        "/emergency/confirm-presence", headers=resident,
+        json={"emergency_id": trigger["emergency_id"], "safety_status": "SAFE"},
+    )
+    assert response_safe1.status_code == 200
+    detail1 = client.get(path, headers=admin).json()
+    assert detail1["room_states"]["301"] == "SAFE"
+    assert detail1["current_states_summary"]["SAFE"] == 39
+    assert detail1["current_states_summary"]["UNKNOWN"] == 9
+    assert detail1["current_states_summary"]["NEED_HELP"] == 2
+
+    response_help = client.post(
+        "/emergency/confirm-presence", headers=resident,
+        json={"emergency_id": trigger["emergency_id"], "safety_status": "NEED_HELP"},
+    )
+    assert response_help.status_code == 200
+    detail2 = client.get(path, headers=admin).json()
+    assert detail2["room_states"]["301"] == "NEED_HELP"
+    assert detail2["current_states_summary"]["SAFE"] == 38
+    assert detail2["current_states_summary"]["UNKNOWN"] == 9
+    assert detail2["current_states_summary"]["NEED_HELP"] == 3
+
+    response_safe2 = client.post(
+        "/emergency/confirm-presence", headers=resident,
+        json={"emergency_id": trigger["emergency_id"], "safety_status": "SAFE"},
+    )
+    assert response_safe2.status_code == 200
+    detail3 = client.get(path, headers=admin).json()
+    assert detail3["room_states"]["301"] == "SAFE"
+    assert detail3["current_states_summary"]["SAFE"] == 39
+    assert detail3["current_states_summary"]["UNKNOWN"] == 9
+
     resident_view = client.get(path, headers=resident).json()
     assert resident_view["room_states"] == {}
     assert resident_view["likely_away_rooms"] == []
     assert resident_view["likely_away_count"] == 0
+
+    # Reset with default deterministic simulation
     new = client.post("/emergency/trigger", headers=admin, json={"building_id": "bld-01"}).json()
     reset = client.get(f"/issues/{new['issue_id']}", headers=admin).json()
-    assert set(reset["room_states"].values()) == {"UNKNOWN"}
+    assert reset["current_states_summary"] == {"SAFE": 38, "UNKNOWN": 10, "NEED_HELP": 2}
     assert reset["likely_away_count"] == 1
     assert "504" in reset["likely_away_rooms"]
+
+    # Reset with simulate_distribution=False (all UNKNOWN fallback)
+    no_sim = client.post(
+        "/emergency/trigger",
+        headers=admin,
+        json={"building_id": "bld-01", "simulate_distribution": False},
+    ).json()
+    reset_no_sim = client.get(f"/issues/{no_sim['issue_id']}", headers=admin).json()
+    assert set(reset_no_sim["room_states"].values()) == {"UNKNOWN"}
+    assert reset_no_sim["current_states_summary"] == {"UNKNOWN": 50}
 
 
 def test_fn02_anonymous_gateway_session_cannot_use_demo_personas():

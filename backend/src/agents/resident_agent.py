@@ -159,10 +159,78 @@ class ResidentAgent:
                 "floor": floor,
             }
 
-        return {"status": "UNKNOWN_INQUIRY"}
+    def _get_genai_client(self):
+        """Google GenAI クライアントを環境変数に応じて初期化する。"""
+        import os
+
+        from google import genai
+
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if api_key:
+            return genai.Client(api_key=api_key)
+
+        project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+        use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("true", "1")
+        if use_vertex or project:
+            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            return genai.Client(vertexai=True, project=project, location=location)
+
+        return None
+
+    async def parse_user_free_text_llm(self, text: str, floor: int) -> StructuredNeed:
+        """R3: Gemini 2.5 Flash による自由文の自然言語理解（NLU）と構造化 Need 変換。
+        
+        LLM 失敗時は即座にルールベース parse_user_free_text へフォールバックする。
+        """
+        client = self._get_genai_client()
+        if not client:
+            return self.parse_user_free_text(text, floor)
+
+        import json
+
+        from google.genai import types
+
+        prompt = f"""
+あなたはマンション住民の専属AI代理人「Resident Agent」です。
+担当住民の階数: {floor}F
+住民からの自由文メッセージ: "{text}"
+
+住民のメッセージから被害・支援状況を分析し、以下のJSON形式のみで出力してください:
+{{
+  "category": "SAFETY_CHECK" 等の該当カテゴリ,
+  "requires_assistance": true または false,
+  "can_stairs": true または false,
+  "needs_clarification": true または false (曖昧で緊急度不明ならtrue),
+  "clarification_question": "不足情報がある場合の聞き返し質問文（不要ならnull）"
+}}
+"""
+        try:
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+            )
+            if not response.text:
+                return self.parse_user_free_text(text, floor)
+
+            parsed = json.loads(response.text)
+            return StructuredNeed(
+                resident_id=self.resident_id,
+                floor=floor,
+                category=parsed.get("category", "SAFETY_CHECK"),
+                requires_assistance=bool(parsed.get("requires_assistance", False)),
+                can_stairs=bool(parsed.get("can_stairs", True)),
+                raw_message=text.strip(),
+                needs_clarification=bool(parsed.get("needs_clarification", False)),
+                clarification_question=parsed.get("clarification_question"),
+            )
+        except Exception:
+            return self.parse_user_free_text(text, floor)
 
     def parse_user_free_text(self, text: str, floor: int) -> StructuredNeed:
-        """R3: 本人の自由文メッセージを構造化 Need に変換し、不足があれば聞き返す。
+        """R3 (フォールバック): 本人の自由文メッセージを構造化 Need に変換し、不足があれば聞き返す。
 
         例:
         - 「ドアが開かない。足が痛い」 -> [負傷あり, 救助要, 階段不可]

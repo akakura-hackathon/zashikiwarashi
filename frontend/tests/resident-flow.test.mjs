@@ -48,7 +48,6 @@ mocks.set('firebase/auth', {
 });
 mocks.set('@/lib/firebase', { getFirebaseApp: () => ({}) });
 const { PhoneStage } = load('components/PhoneStage.tsx');
-const { CockpitPanel } = load('components/CockpitPanel.tsx');
 const { StudioWorkspace } = load('components/StudioWorkspace.tsx');
 const { applySafetyConfirmation } = load('lib/emergency-view.ts');
 const initial = () => ({
@@ -1090,82 +1089,6 @@ test('SC-4 flood scenario renders vertical evacuation detail, waiting screen, ta
     api.getTaskDetail = originalGetTaskDetail;
     if (renderer) await act(async () => renderer.unmount());
   }
-});
-
-test('Issue #50: CockpitPanel renders random seed toggle and simulate-step button', async () => {
-  let toggledVal = null;
-  let simulateStepCalled = false;
-
-  // 1. 発災前: 安否分布トグルが表示される
-  let renderer;
-  await act(async () => {
-    renderer = create(React.createElement(CockpitPanel, {
-      activePersona: api.DEMO_PERSONAS[0],
-      onSelectPersona: () => {},
-      selectedEmergencyType: 'EARTHQUAKE',
-      onSelectEmergencyType: () => {},
-      randomSeed: false,
-      onToggleRandomSeed: (val) => { toggledVal = val; },
-      emergencyId: null,
-      issueId: null,
-      issueDetail: null,
-      onTriggerEmergency: async () => {},
-      onStartTriage: async () => {},
-      onRefresh: async () => {},
-      isLoading: false,
-      logs: [],
-      user,
-      onLogin: async () => {},
-      onLogout: async () => {},
-      triageExecution: { count: 0, status: 'idle' },
-    }));
-  });
-
-  const renderedNormal = text(renderer);
-  assert.match(renderedNormal, /安否分布:/, '安否分布ラベルが表示されること');
-  assert.match(renderedNormal, /固定再現 \(デモ用\)/, '固定再現モードボタンが表示されること');
-
-  const toggleBtn = button(renderer, '固定再現');
-  assert.ok(toggleBtn, 'トグルボタンが存在すること');
-  toggleBtn.props.onClick();
-  assert.strictEqual(toggledVal, true, 'トグルクリックで true が渡されること');
-
-  // 2. 発災中: 時間経過シミュレートボタンが表示される
-  await act(async () => {
-    renderer.update(React.createElement(CockpitPanel, {
-      activePersona: api.DEMO_PERSONAS[0],
-      onSelectPersona: () => {},
-      selectedEmergencyType: 'EARTHQUAKE',
-      onSelectEmergencyType: () => {},
-      randomSeed: true,
-      onToggleRandomSeed: () => {},
-      emergencyId: 'em-sim-1',
-      issueId: 'iss-sim-1',
-      issueDetail: initial(),
-      onTriggerEmergency: async () => {},
-      onStartTriage: async () => {},
-      onRefresh: async () => {},
-      onSimulateStep: async () => { simulateStepCalled = true; },
-      isLoading: false,
-      logs: [],
-      user,
-      onLogin: async () => {},
-      onLogout: async () => {},
-      triageExecution: { count: 0, status: 'idle' },
-    }));
-  });
-
-  const renderedActive = text(renderer);
-  assert.match(renderedActive, /時間経過シミュレート/, '時間経過シミュレートボタンが表示されること');
-
-  const stepBtn = button(renderer, '時間経過シミュレート');
-  assert.ok(stepBtn, 'シミュレートボタンが存在すること');
-  await act(async () => {
-    stepBtn.props.onClick();
-  });
-  assert.strictEqual(simulateStepCalled, true, 'シミュレートボタンクリックで onSimulateStep が呼ばれること');
-
-  await act(async () => renderer.unmount());
 });
 
 

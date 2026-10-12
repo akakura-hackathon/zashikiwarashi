@@ -126,6 +126,30 @@ export type IssueDetailResponse = {
   priority_targets: PriorityAlertTarget[];
   likely_away_count?: number;
   likely_away_rooms?: string[];
+  task_board?: TaskBoardItem[]; // 管理人のみ（FN-08、#61）
+};
+
+// FN-08 / #61: 管理人の確認状況ボードの1行（確認先の住戸ごと。DESIGN §6.3 D）
+export type TaskBoardItem = {
+  target_resident_id: string;
+  target_room_number: string;
+  target_floor: number;
+  group: "ACTION" | "ACTIVE" | "DONE";
+  state:
+    | "NO_RESPONSE"
+    | "EXHAUSTED"
+    | "UNASSIGNED"
+    | "RETRY_PENDING"
+    | "OFFERED"
+    | "APPROVED"
+    | "IN_PROGRESS"
+    | "RESPONDED";
+  reason: string;
+  task_id?: string | null;
+  task_type?: string | null;
+  helper_room_number?: string | null;
+  expires_at?: string | null;
+  offer_count: number;
 };
 
 export type TaskDetailResponse = {

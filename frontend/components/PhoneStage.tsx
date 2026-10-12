@@ -39,6 +39,7 @@ import {
   PrivacyNote,
 } from "./ui/NavigationAndInfo";
 import { LockNotification } from "./ui/LockNotification";
+import { TaskBoard } from "./ui/TaskBoard";
 import { FloorMap, type RoomItem } from "./ui/FloorMap";
 import { safetyRoomStatus } from "@/lib/emergency-view";
 import type { PriorityAlertTarget } from "@/lib/api-client";
@@ -389,6 +390,8 @@ export function PhoneStage({
                     </div>
                   </div>
                 )}
+                {/* FN-08 / #61: AI が振った隣室確認の状況 */}
+                <TaskBoard items={issueDetail?.task_board ?? []} />
               </div>
             </div>
           </div>

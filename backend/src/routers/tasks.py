@@ -85,6 +85,7 @@ async def get_issue_progress(
     room_states = {}
     likely_away_count = 0
     likely_away_rooms: list[str] = []
+    task_board = []
 
     if user.role == "admin":
         # FN-08: Resolve rooms from repository data, never from demo labels.
@@ -113,6 +114,9 @@ async def get_issue_progress(
         priority_targets = await triage_svc.calculate_priority_alerts(
             building_id, actual_emergency_id
         )
+        task_board = await triage_svc.build_task_board(
+            building_id, actual_emergency_id, issue_id
+        )
 
     return IssueDetailResponse(
         issue=issue,
@@ -123,6 +127,7 @@ async def get_issue_progress(
         priority_targets=priority_targets,
         likely_away_count=likely_away_count,
         likely_away_rooms=likely_away_rooms,
+        task_board=task_board,
     )
 
 

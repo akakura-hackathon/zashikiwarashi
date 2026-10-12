@@ -67,6 +67,12 @@ class TaskService:
         if response not in (TaskStatus.APPROVED, TaskStatus.DECLINED):
             raise PolicyViolationError("Response must be APPROVED or DECLINED.")
 
+        # 期限切れで別の住民へ再打診済みの Task などを承認させない（DESIGN §6.3 D、#60）
+        if task.status != TaskStatus.OFFERED:
+            raise PolicyViolationError(
+                f"Task {task_id} is no longer offered (status={task.status})."
+            )
+
         now = datetime.now(UTC)
         event_id = f"evt-{uuid.uuid4().hex[:12]}"
 

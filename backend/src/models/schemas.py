@@ -1,6 +1,7 @@
 """API Request and Response Pydantic Schemas based on docs/DESIGN.md §8."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,7 @@ from src.models.domain import (
     Task,
     TaskEvent,
     TaskStatus,
+    TaskType,
 )
 
 # --- Legacy / Chat (Existing) ---
@@ -117,6 +119,23 @@ class PriorityAlertTarget(BaseModel):
     priority_level: str = "HIGH"  # HIGH | MEDIUM | LOW
 
 
+class TaskBoardItem(BaseModel):
+    """FN-08 / #61: 管理人の確認状況ボードの1行（確認先の住戸ごと。DESIGN §6.3 D）"""
+    target_resident_id: str
+    target_room_number: str
+    target_floor: int
+    group: Literal["ACTION", "ACTIVE", "DONE"]  # 要対応 | 進行中 | 完了
+    # ACTION: NO_RESPONSE | EXHAUSTED | UNASSIGNED | RETRY_PENDING
+    # ACTIVE: OFFERED | APPROVED | IN_PROGRESS / DONE: RESPONDED
+    state: str
+    reason: str = ""
+    task_id: str | None = None
+    task_type: TaskType | None = None
+    helper_room_number: str | None = None
+    expires_at: datetime | None = None
+    offer_count: int = 0
+
+
 class IssueDetailResponse(BaseModel):
     issue: Issue
     tasks: list[Task]
@@ -126,6 +145,7 @@ class IssueDetailResponse(BaseModel):
     priority_targets: list[PriorityAlertTarget] = Field(default_factory=list)
     likely_away_count: int = 0
     likely_away_rooms: list[str] = Field(default_factory=list)
+    task_board: list[TaskBoardItem] = Field(default_factory=list)  # 管理人のみ（#61）
 
 
 # --- API-04: POST /tasks/{taskId}/respond ---

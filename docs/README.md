@@ -19,6 +19,8 @@ Zashikiwarashi の企画・設計ドキュメントと図の入口。実装の�
 | 機能（FN-xx）から要件・設計・データ・API をたどる | [TRACEABILITY.md](TRACEABILITY.md) |
 | 未解決の指摘・未決事項 | [FUCHIUE_REVIEW.txt](FUCHIUE_REVIEW.txt)、各図の TBD 欄 |
 | レビュー指摘への回答・対策方針 | [FUCHIUE_REVIEW_RESPONSE.txt](FUCHIUE_REVIEW_RESPONSE.txt) |
+| デモ動画撮影仕様・絵コンテ・実演手順 | [DEMO_SPEC.md](DEMO_SPEC.md)（5分間動画スクリプト） |
+| ハッカソン提出フォーム提出文下書き | [submission.md](submission.md) |
 
 ## 図（`diagrams/`）
 

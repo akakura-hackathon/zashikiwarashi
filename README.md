@@ -1,106 +1,181 @@
-# Zashikiwarashi
+# Zashikiwarashi（座敷わらし）
 
-マンション内の潜在的な助け合いを、緊急時（停電・火災・地震・洪水）だけ安全に利用可能にする Multi-Agent サービス。Google Cloud Japan AI Hackathon Vol.5 向け（提出 2026-10-15）。
-課題と要件は [docs/SPEC.md](docs/SPEC.md)、設計は [docs/DESIGN.md](docs/DESIGN.md)、ドキュメントと図の案内は [docs/README.md](docs/README.md)。
+> **マンション内の潜在的な助け合いを、緊急時だけ安全に利用可能にする Multi-Agent サービス**  
+> Google Cloud Japan AI Hackathon Vol.5 参加プロジェクト（提出: 2026-10-15）
 
-このリポジトリは Akakura の `akakura-ai-web-template` をベースにしている。技術スタックは Next.js（frontend） + FastAPI/Google ADK（backend） + Firestore + Terraform（単一GCP環境） + GitHub Actions（WIFデプロイ）。
+[![Deploy](https://github.com/akakura-hackathon/zashikiwarashi/actions/workflows/deploy.yml/badge.svg)](https://github.com/akakura-hackathon/zashikiwarashi/actions/workflows/deploy.yml)
+[![CI](https://github.com/akakura-hackathon/zashikiwarashi/actions/workflows/ci.yml/badge.svg)](https://github.com/akakura-hackathon/zashikiwarashi/actions/workflows/ci.yml)
+[![Production Demo](https://img.shields.io/badge/Demo-zashikiwarashi.web.app-blue?logo=googlecloud)](https://zashikiwarashi.web.app)
 
-## 思想
+---
 
-このテンプレートは「**AIエージェントとユーザーが対話しながら実装を進める**」ことを前提に設計している。エージェントがいきなりコードを書き始めるのではなく、次の流れで進むことを想定する。
+## 🌐 ライブデモ環境（審査員向け）
 
+**本番デモ URL**: [https://zashikiwarashi.web.app](https://zashikiwarashi.web.app)
+
+> [!TIP]
+> **ワンクリックで体験可能（Google ログイン不要モード搭載）**  
+> 画面右側の住民スマホエリアにある **「🚀 クイックデモセッションで開始（審査用）」** をクリックするだけで、事前の認証登録不要で全機能を即座にフル体験いただけます。
+
+---
+
+## 💡 プロジェクト概要と解決する課題
+
+### 背景・社会課題
+首都直下地震や大規模風水害時、タワーマンションや中高層住宅では**エレベーター全基停止による「垂直の陸の孤島」化**が極めて深刻な課題です。高齢単身者や要配慮世帯が部屋に取り残される一方、公的救助が到着するまでには数時間から数日を要します。
+
+マンション内には「体力に余裕のある住民」「医療心得のある住民」などの助け合いの潜在力（共助）が存在しますが、既存の仕組みには以下の致命的な障壁がありました：
+1. **平時のプライバシー懸念**: 「助けられる」と事前登録すると、日常的なボランティア負担や人間関係の煩わしさを恐れて誰も登録しない。
+2. **緊急時の情報断絶**: 誰が困っていて、誰なら無理なく助けられるかが分からない。
+3. **過度な善意依存**: 高齢者やケガ人に無理な力仕事や階段昇降を頼んでしまう二次災害リスク。
+
+### 解決策: Zashikiwarashi
+**「平時の手入力ゼロ」「人物プロファイリング禁止」** を大原則とし、災害時のみ住民ごとの **Resident Agent** と建物全体の **Building Agent** が自律的に立ち上がり、個人情報を秘匿したまま最適な助け合い計画を策定・実行する Multi-Agent システムです。
+
+---
+
+## 🤖 Multi-Agent アーキテクチャと自律協調
+
+Google Cloud の最新マネージド AI 基盤（**Vertex AI Agent Platform / Reasoning Engines**）上に、2 体の自律エージェントを**独立した専用ランタイム**としてデプロイ・稼働させています。
+
+```mermaid
+flowchart TB
+    subgraph UI ["Studio Architecture UI (Dual View)"]
+        AdminDesk["防災センター卓 (全館把握・トリアージ)"]
+        PhoneUI["住民スマホ実機 (1タップ安否・タスク承認)"]
+    end
+
+    subgraph SecurityGateway ["Agent Gateway & Governance Layer"]
+        ModelArmor["🛡️ Google Cloud Model Armor\n(Input/Output Guardrail G2)"]
+        PolicyEngine["⚖️ Policy Engine (コード強制・権限遮断 G4)"]
+        PrivacyGateway["🔒 Privacy Gateway (抽象トークン化 G5)"]
+    end
+
+    subgraph AgentRuntime ["Google Cloud Agent Platform (Reasoning Engines)"]
+        subgraph BuildingRuntime ["Building Coordinator Runtime"]
+            BuildingAgent["🏢 Building Coordinator Agent\n(Gemini 2.5 Flash on Vertex AI)\n- 棟内空間近接トリアージ\n- 隣室ペアリング計画立案"]
+        end
+        subgraph ResidentRuntime ["Resident Agent Runtime"]
+            ResidentAgent["👤 Resident Agent (住民代理人)\n- 本人の身体制約保護\n- 段階的開示 (Progressive Disclosure)\n- 過大タスク拒絶・代案逆提案"]
+        end
+    end
+
+    subgraph Storage ["Google Cloud Datastore"]
+        Firestore[("Cloud Firestore\n(棟内50戸リアルタイムデータ)")]
+    end
+
+    AdminDesk --> PolicyEngine
+    PhoneUI --> PolicyEngine
+    PolicyEngine --> ModelArmor
+    ModelArmor --> BuildingAgent
+    BuildingAgent <-->|Agent-to-Agent 通信| PrivacyGateway
+    PrivacyGateway <--> ResidentAgent
+    BuildingAgent --> Firestore
+    ResidentAgent --> Firestore
 ```
-docs/SPEC.md          課題・ユーザー・要件をヒアリングしながら埋める
-   ↓
-docs/DESIGN.md        API・データモデル・エージェント構成を合意する
-   ↓
-docs/ARCHITECTURE.md  合意内容をシステム構成として整理する
-   ↓
-docs/PLAN.md          タスクに分解する
-   ↓
-実装（backend / frontend / infra）
-```
 
-`docs/*.md` は v1.0 として記述済み。エージェントは実装の前にこれらを読み、不明点はユーザーに確認する。仕様が変わったら実装より先にドキュメントを更新する（ドキュメントとコードを乖離させない）。この流れの詳細は `AGENTS.md` の Workflow セクションを参照。
+### 2体のエージェントの役割分担
 
-その他の技術的な方針:
-
-- **モノレポ**: `frontend` と `backend` を1リポジトリで管理する。
-- **シングル環境**: dev/stg/prodのような環境分割はしない。GCPプロジェクトは1つ、Terraform stateも1つ。
-- **AIエージェントはADKに集約**: `backend/src/agents/agent.py` の `root_agent` を唯一のエントリポイントとし、マルチエージェント化する場合は `sub_agents/` に追加する。
-- **デプロイはWIF経由**: サービスアカウントキーを発行せず、GitHub Actions → Workload Identity Federation → Cloud Run / Firebase Hosting でデプロイする。
-- **レイヤード構成（backend）**: `routers → services → clients/db`、`agents` は独立レイヤー。責務を混ぜない（詳細は `rules/backend.md`）。
-- **秘密情報はコミットしない**: `.env` 系は `*.env.example` のみコミット。実際の値やサービスアカウントキーは対象外（`.gitignore` 参照）。
-- **使い捨てコードは `sandbox/`**: 実験的なコードは `src/` に置かず `sandbox/`（gitignore対象）に置く。
-
-## 使い方
-
-1. このリポジトリを clone する。
-2. Claude Code / Antigravity（Gemini CLI）/ GitHub Copilot などのAIコーディングエージェントを起動する。どのツールも `AGENTS.md` を読み込む前提（`CLAUDE.md` / `GEMINI.md` / `.github/copilot-instructions.md` は各ツール向けのポインタ。下記「エージェント向け設定ファイル」参照）。
-3. `docs/PLAN.md` で担当機能（FN-xx）と MVP の範囲を確認し、`docs/TRACEABILITY.md` の対応表で関連する docs を読んでから実装する。
-4. `backend/` `frontend/` `infra/` を実装する。各ファイルの `TODO` コメントが実装対象の目印。
-5. Getting Started（下記）でローカル起動して動作確認する。
-
-## エージェント向け設定ファイル
-
-| ファイル | 対象ツール | 役割 |
+| エージェント | デプロイ先 | 主な自律動作 |
 |---|---|---|
-| `AGENTS.md` | 共通 | 指示の実体。プロジェクト概要・Domain Principles・Workflow・Core Rules・Commands・Code Style・Skills を定義 |
-| `CLAUDE.md` | Claude Code | `@AGENTS.md` で取り込むだけのポインタ |
-| `GEMINI.md` | Antigravity / Gemini CLI | `AGENTS.md` を参照するだけのポインタ |
-| `.github/copilot-instructions.md` | GitHub Copilot | `AGENTS.md` を参照するだけのポインタ |
-| `rules/{backend,frontend,infra}.md` | 共通 | 各領域の詳細規約 |
-| `.agents/skills/` | 共通（Antigravity・Copilot が読む） | draw.io 図作成スキル3種。実体はここに置く |
-| `.claude/skills/` | Claude Code・Copilot | `.agents/skills/` の各スキルへのシンボリックリンク（Windows では下記注意） |
+| **Building Coordinator Agent** | Vertex AI Agent Runtime<br>`4267310455392829440` | **棟内全体の空間近接トリアージ**: 地震や停電の発生時、50戸の安否状況と空間データ（階層・同フロア隣室距離・エレベーター停止状況）を推論し、階段移動を最小化する最適ペアリング計画を立案。 |
+| **Resident Agent** | Vertex AI Agent Runtime<br>`895240234399170560` | **住民個人の身体制約とプライバシーの守護神**: 高齢・歩行困難世帯に対する階段作業を自律的に拒絶し援助要へと逆提案。本人の承認が得られるまで部屋番号などの個人情報を絶対に開示しない（段階的開示）。 |
 
-> **Windows で clone する場合**: `.claude/skills/` はシンボリックリンクなので、開発者モードを有効にして `git config --global core.symlinks true` を設定してから clone する。設定できない場合は、`.agents/skills/` の3フォルダを `.claude/skills/` にコピーして使う（そのコピーはコミットしない）。
+---
 
-## ディレクトリ構成
+## 🛡️ 厳格なガバナンスとセキュリティ（G1〜G7）
 
+本システムでは、**「LLM に開示権限やアクセス制御を委ねない」** ことを鉄則としています。
+
+1. **Google Cloud Model Armor (G2)**:
+   - 入出力プロンプトをリアルタイムで検査（テンプレート: `zashikiwarashi-guardrails`）。
+   - プロンプトインジェクション（`Ignore all previous instructions...`）やジェイルブレイク攻撃を確実に物理遮断。
+2. **段階的開示（Progressive Disclosure / G5）**:
+   - エージェント間の調整フェーズでは `[3F_UNIT]` などの抽象トークンのみで通信。
+   - 住民本人がスマートフォン上で「協力する」と 1 タップ承認した瞬間にのみ、相手に部屋番号（例: `302号室`）を開示。
+3. **Agent Isolation & Egress Gate (G3/G4)**:
+   - 各 Resident Agent は他住民の生データやメモリにアクセス不可。
+   - 認可外のツール呼び出しは Policy Engine および IAP CEL ポリシーで即時拒絶。
+
+---
+
+## 🎯 4大災害シナリオへの対応
+
+| 災害種別 | 課題 | Zashikiwarashi の自律協調アプローチ |
+|---|---|---|
+| 🚨 **地震 (SC-3 基幹デモ)** | エレベーター停止・多数の未応答住戸 | 同フロアの元気な住民（301号室）に、未応答の隣室高齢者（302号室）の安否確認タスクを打診。 |
+| ⚡ **停電 (SC-1)** | ポンプ停止・断水・熱中症・高層階孤立 | 低層階から高層階への物資リレー計画を階層ごとに分割立案し、階段負担を分散。 |
+| 🔥 **火災 (SC-2)** | 煙感知・非常階段避難の要介助 | 車椅子・歩行困難世帯に対し、同一動線上の避難同行者を即時マッチング。 |
+| 🌊 **洪水 (SC-4)** | 内水氾濫・1〜2階の浸水危機 | 低層階住民から上層階（3階以上）への垂直避難受け入れ・誘導タスクを策定。 |
+
+---
+
+## 🖥️ Studio Architecture（検証用 UI）
+
+ハッカソン審査員および防災管理者が **「全体俯瞰の視点」と「被災住民の体験」を 1 画面で同時に検証** できるデュアルビュー構成を採用しています。
+
+- **左画面（防災センター コックピット）**:
+  - 全館 50 戸の安否マップ（FloorMap）
+  - 災害発令ボタン（地震・停電・火災・洪水）
+  - Building Coordinator Agent のトリアージ推論ログ
+  - **Agent ガバナンス検証タブ**: Model Armor プロンプトインジェクション遮断テスト、IAP 権限拒否テスト、Outbound SDP 漏洩遮断テストをボタン 1 つで実行可能。
+- **右画面（スマートフォン実機ステージ）**:
+  - 住民ペルソナ（住民I: 健常単身、住民H: 高齢単身要配慮 など）の切り替え。
+  - 1タップ安否報告・支援依頼・困りごと送信。
+  - 依頼されたタスクの確認と Human-in-the-Loop 承認（承認後に初めて部屋番号が開示される UX）。
+
+---
+
+## 📊 審査基準への適合
+
+| 審査基準 | 本プロジェクトでの具現化と有効性 |
+|---|---|
+| **① 課題の新規性と解決策の有効性** | • **平時の手入力ゼロ・人物プロファイリング禁止**: プライバシー懸念を払拭し、災害時だけ安全に共助を立ち上げる世界初の Multi-Agent 防災モデル。<br>• 都市部タワーマンションの「垂直孤立」という現実の社会課題を根本解決。 |
+| **② 自律性・エージェントらしさ** | • Building Agent と Resident Agent がそれぞれ独立した Vertex AI Agent Runtime で稼働し、Agent Gateway を介して自律協調。<br>• 身体制約に応じた過大タスク拒絶・逆提案、段階的開示（Progressive Disclosure）の自律制御。 |
+| **③ 実装品質と拡張性** | • **モックなしの本番 GCP 環境**: Cloud Run, API Gateway, Firebase Hosting, Vertex AI Reasoning Engines, Model Armor を Terraform で完全コード化（単一環境）。<br>• 全 67 件の自動テスト（`pytest`）パス、GitHub Actions（WIF）による完全自動デプロイパイプライン稼働中。 |
+
+---
+
+## 🚀 ローカル起動・開発手順
+
+### 前提条件
+- Node.js 20+
+- Python 3.12+ / [uv](https://docs.astral.sh/uv/)
+- Google Cloud SDK (`gcloud`)
+
+### 起動手順
+
+```bash
+# 1. リポジトリのクローン
+git clone https://github.com/akakura-hackathon/zashikiwarashi.git
+cd zashikiwarashi
+
+# 2. バックエンドの起動 (FastAPI + Google ADK)
+cd backend
+uv sync
+uv run uvicorn src.main:app --port 8000 --reload
+
+# 3. フロントエンドの起動 (Next.js App Router)
+cd ../frontend
+npm install
+npm run dev
 ```
-.
-├── AGENTS.md / CLAUDE.md / GEMINI.md  # AIエージェント向け指示（上表参照）
-├── .agents/skills/         # draw.io 図作成スキル（実体）
-├── .claude/skills/         # ↑へのシンボリックリンク（Claude Code 用）
-├── rules/                  # 領域ごとの実装規約（backend / frontend / infra）
-├── docs/                   # 企画・設計ドキュメント（構造化済み v1.0）
-│   ├── README.md           # docs と図の案内（まずここ）
-│   ├── SPEC.md             # 課題・ユーザー・要件
-│   ├── DESIGN.md           # API・データモデル・エージェント設計・フロントエンドUI/UX・PWA仕様
-│   ├── ARCHITECTURE.md     # システム構成
-│   ├── PLAN.md             # マイルストーン・タスク分解（機能ID FN-xx）
-│   ├── TRACEABILITY.md     # ID一覧と、機能 ↔ 要件・設計・データ・API の対応表
-│   ├── FUCHIUE_REVIEW.txt  # レビュー指摘・未決事項
-│   ├── FUCHIUE_REVIEW_RESPONSE.txt  # 上記への回答・対策方針
-│   └── diagrams/           # draw.io の図（構成図・ER図・業務フロー）
-├── frontend/               # Next.js (App Router)
-│   ├── app/                # ルーティング・ページ
-│   ├── components/         # UIコンポーネント
-│   └── lib/                # Firebaseクライアント・APIクライアント
-├── backend/                # FastAPI + Google ADK
-│   ├── src/
-│   │   ├── routers/        # エンドポイント定義
-│   │   ├── services/       # ビジネスロジック・ADK Runner呼び出し
-│   │   ├── agents/         # ADKエージェント定義（root_agent, sub_agents/）
-│   │   ├── clients/        # 外部サービスへの薄いラッパー
-│   │   ├── db/             # データアクセス層
-│   │   └── models/         # Pydanticスキーマ
-│   ├── tests/
-│   └── scripts/            # デプロイ等の運用スクリプト
-├── infra/terraform/        # GCPリソース定義（シングル環境）
-├── .github/workflows/      # CI / WIFデプロイ
-└── sandbox/                # 使い捨てコード（gitignore対象）
-```
 
-> **正とするもの**: 仕様は `docs/*.md`。データモデル（エンティティ・属性・関係）は `docs/diagrams/` の ER図を正とし、`docs/DESIGN.md` §7 はそれに合わせる。
-## Getting Started
+ブラウザで `http://localhost:3000` を開くと、Studio 検証画面が起動します。
 
-```
-# backend
-cd backend && uv sync && uv run uvicorn src.main:app --reload
+---
 
-# frontend
-cd frontend && npm install && npm run dev
-```
+## 📚 ドキュメント一覧
 
-その他コマンド・品質ゲートは `AGENTS.md` を参照。
+- [システム要件定義書 (docs/SPEC.md)](docs/SPEC.md)
+- [システム詳細設計書 (docs/DESIGN.md)](docs/DESIGN.md)
+- [システムアーキテクチャ・GCP構成図 (docs/ARCHITECTURE.md)](docs/ARCHITECTURE.md)
+- [開発計画・マイルストーン (docs/PLAN.md)](docs/PLAN.md)
+- [要件・機能・設計トレーサビリティ表 (docs/TRACEABILITY.md)](docs/TRACEABILITY.md)
+
+---
+
+## 👥 チーム情報
+- **プロダクト名**: Zashikiwarashi（座敷わらし）
+- **イベント**: Google Cloud Japan AI Hackathon Vol.5
+- **提出期限**: 2026-10-15 23:59

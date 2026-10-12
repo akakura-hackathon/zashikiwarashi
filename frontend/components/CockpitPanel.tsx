@@ -51,6 +51,10 @@ type CockpitPanelProps = {
   onAddLog?: (text: string) => void;
   triageAiResult?: TriageAiResult | null;
   triageExecution: TriageExecution;
+  randomSeed?: boolean;
+  onToggleRandomSeed?: (val: boolean) => void;
+  onSimulateStep?: () => Promise<void>;
+  isSimulatingStep?: boolean;
 };
 
 export function CockpitPanel({
@@ -72,6 +76,10 @@ export function CockpitPanel({
   onAddLog,
   triageAiResult,
   triageExecution,
+  randomSeed = false,
+  onToggleRandomSeed,
+  onSimulateStep,
+  isSimulatingStep = false,
 }: CockpitPanelProps) {
   const safetyTimeRemaining = useSafetyCountdown(
     emergencyId && issueDetail?.issue.emergency_id === emergencyId
@@ -287,6 +295,41 @@ export function CockpitPanel({
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {!emergencyId ? (
             <>
+              {/* 安否分布モード選択 */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "5px 10px",
+                  backgroundColor: "var(--color-bg-secondary, #F4F4F6)",
+                  borderRadius: "8px",
+                  fontSize: "0.74rem",
+                }}
+              >
+                <span style={{ fontWeight: 600, color: "var(--color-muted)" }}>安否分布:</span>
+                <button
+                  type="button"
+                  onClick={() => onToggleRandomSeed?.(!randomSeed)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--cockpit-border, #E2E2E8)",
+                    backgroundColor: randomSeed ? "var(--color-brand, #2563EB)" : "#FFFFFF",
+                    color: randomSeed ? "#FFFFFF" : "var(--color-ink)",
+                    fontWeight: 700,
+                    fontSize: "0.72rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {randomSeed ? "🎲 ランダム変動モード" : "🎯 固定再現 (デモ用)"}
+                </button>
+              </div>
+
               <button
                 onClick={onTriggerEmergency}
               disabled={isLoading}
@@ -313,47 +356,74 @@ export function CockpitPanel({
             </button>
           </>
           ) : (
-            <div style={{ display: "flex", gap: "8px" }}>
+            <>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={onStartTriage}
+                  aria-busy={triageExecution.status === "running"}
+                  disabled={isLoading || triageExecution.status === "running"}
+                  style={{
+                    flex: 2,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: "var(--color-ink)",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {triageExecution.status === "running"
+                    ? `${triageExecution.count}回目のトリアージ進行中…`
+                    : triageExecution.count > 0
+                      ? `${triageExecution.count + 1}回目のトリアージをする`
+                      : "🎯 トリアージ開始 (API-08)"}
+                </button>
+                <button
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: "#FFFFFF",
+                    color: "var(--color-ink)",
+                    border: "1.5px solid var(--color-ink)",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  🔄 再同期
+                </button>
+              </div>
+
+              {/* 時間経過シミュレーション（自律回答進行） */}
               <button
-                onClick={onStartTriage}
-                aria-busy={triageExecution.status === "running"}
-                disabled={isLoading || triageExecution.status === "running"}
+                type="button"
+                onClick={onSimulateStep}
+                disabled={isLoading || isSimulatingStep}
                 style={{
-                  flex: 2,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: "var(--color-ink)",
-                  color: "#FFFFFF",
-                  border: "none",
-                  fontSize: "0.82rem",
+                  width: "100%",
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "#F0FDF4",
+                  color: "#166534",
+                  border: "1px solid #BBF7D0",
+                  fontSize: "0.76rem",
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: isSimulatingStep ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
                 }}
               >
-                {triageExecution.status === "running"
-                  ? `${triageExecution.count}回目のトリアージ進行中…`
-                  : triageExecution.count > 0
-                    ? `${triageExecution.count + 1}回目のトリアージをする`
-                    : "🎯 トリアージ開始 (API-08)"}
+                {isSimulatingStep ? "回答更新中…" : "⏱ 時間経過シミュレート（1〜2戸が無事回答）"}
               </button>
-              <button
-                onClick={onRefresh}
-                disabled={isLoading}
-                style={{
-                  flex: 1,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: "#FFFFFF",
-                  color: "var(--color-ink)",
-                  border: "1.5px solid var(--color-ink)",
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                🔄 再同期
-              </button>
-            </div>
+            </>
           )}
 
           {/* Building Agent (AI) 推論結果カード */}

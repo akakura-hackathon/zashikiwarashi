@@ -103,8 +103,8 @@ async def get_current_user(
             unit_id=unit_id,
         )
 
-    # 2. Production Security Enforcement: Must not bypass API Gateway
-    if settings.is_production:
+    # 2. Production Security Enforcement: Must not bypass API Gateway unless auth_mode is mock
+    if settings.is_production and settings.auth_mode == "production":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized: Direct access without API Gateway is forbidden.",

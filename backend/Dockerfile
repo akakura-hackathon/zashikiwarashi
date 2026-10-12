@@ -1,6 +1,6 @@
 FROM python:3.12-slim AS base
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN pip install --no-cache-dir uv
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./

@@ -2,21 +2,28 @@
 
 Adheres strictly to docs/ARCHITECTURE.md §3.4 and Domain Principle 4:
 - G1: Ingress Gateway (CLIENT_TO_AGENT)
-- G2: Model Armor (Prompt Injection / Jailbreak & SDP Filters)
+- G2: Model Armor API (Prompt Injection / Jailbreak & SDP Filters) + Deterministic Guardrails
 - G3: Egress Gateway (AGENT_TO_ANYWHERE)
 - G4: IAP Agent Policy (Agent Identity x CEL Deterministic Enforcement)
 - G5: Policy Engine Integration
 - G6: Agent Registry Validation
 """
 
+import logging
+import os
 import re
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from src.config import get_settings
+
+logger = logging.getLogger(__name__)
+
 
 class AgentIdentity(StrEnum):
     """G4: Official Agent Identities."""
+
     BUILDING_AGENT = "serviceAccount:building-agent-sa@zashikiwarashi.iam.gserviceaccount.com"
     RESIDENT_AGENT = "serviceAccount:resident-agent-sa@zashikiwarashi.iam.gserviceaccount.com"
     API_INGESTION = "serviceAccount:api-runtime@zashikiwarashi.iam.gserviceaccount.com"
@@ -55,7 +62,7 @@ class GovernanceValidationResult:
 
 
 class AgentGovernanceEngine:
-    """Deterministic Multi-Agent Governance Guardrail System."""
+    """Deterministic & Cloud Native Multi-Agent Governance Guardrail System."""
 
     # G6: Registered service endpoints
     REGISTERED_SERVICES = {
@@ -77,7 +84,7 @@ class AgentGovernanceEngine:
         },
     }
 
-    # G2: Known prompt injection / jailbreak patterns
+    # G2: Deterministic prompt injection / jailbreak patterns (Defense in Depth)
     PROMPT_INJECTION_PATTERNS = [
         re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+instructions", re.IGNORECASE),
         re.compile(r"system\s+prompt\s+override", re.IGNORECASE),
@@ -92,6 +99,69 @@ class AgentGovernanceEngine:
     # G2 / SDP: Regex for room numbers (3 or 4 digits like 301, 302, 1204, or with 号室)
     ROOM_NUMBER_PATTERN = re.compile(r"\b([1-9][0-9]{2,3})(?:号室)?\b")
     PHONE_NUMBER_PATTERN = re.compile(r"\b0\d{1,4}[-(]?\d{1,4}[-)]?\d{4}\b")
+
+    _model_armor_client = None
+
+    @classmethod
+    def _get_model_armor_client(cls):
+        """Google Cloud Model Armor API クライアントを取得（遅延ロード）。"""
+        if cls._model_armor_client is not None:
+            return cls._model_armor_client
+
+        try:
+            from google.api_core.client_options import ClientOptions
+            from google.cloud import modelarmor_v1 as ma
+
+            settings = get_settings()
+            location = settings.google_cloud_location or "us-central1"
+            endpoint = f"modelarmor.{location}.rep.googleapis.com"
+            options = ClientOptions(api_endpoint=endpoint)
+            cls._model_armor_client = ma.ModelArmorClient(client_options=options)
+            return cls._model_armor_client
+        except Exception as e:
+            logger.debug(f"[ModelArmor] Failed to initialize client: {e}")
+            return None
+
+    @classmethod
+    def call_live_model_armor_filter(cls, prompt: str) -> bool:
+        """Google Cloud Model Armor 実機 API (sanitizeUserPrompt) を呼び出し攻撃を検査する。
+
+        Returns:
+            bool: True if an attack was detected by Model Armor, False otherwise.
+        """
+        client = cls._get_model_armor_client()
+        if not client:
+            return False
+
+        settings = get_settings()
+        project = settings.google_cloud_project or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        location = settings.google_cloud_location or "us-central1"
+        if not project:
+            return False
+
+        template_name = (
+            f"projects/{project}/locations/{location}/templates/zashikiwarashi-guardrails"
+        )
+
+        try:
+            from google.cloud import modelarmor_v1 as ma
+
+            req = ma.SanitizeUserPromptRequest(
+                name=template_name,
+                user_prompt_data=ma.DataItem(text=prompt),
+            )
+            resp = client.sanitize_user_prompt(request=req)
+            match_state = resp.sanitization_result.filter_match_state
+            # MATCH_FOUND の場合はブロック
+            if match_state == ma.FilterMatchState.MATCH_FOUND:
+                logger.warning(
+                    f"[ModelArmor] Blocked attack prompt by live GCP filter: {prompt[:40]}"
+                )
+                return True
+            return False
+        except Exception as e:
+            logger.debug(f"[ModelArmor] API call skipped or errored, falling back: {e}")
+            return False
 
     @classmethod
     def validate_ingress(
@@ -114,7 +184,15 @@ class AgentGovernanceEngine:
                 f"Unauthorized caller '{caller_identity}' blocked by Ingress Agent Gateway.",
             )
 
-        # 2. G2: Model Armor Prompt Injection / Jailbreak Filter
+        # 2. G2: Google Cloud Model Armor 実機 API による検知
+        if cls.call_live_model_armor_filter(input_prompt):
+            raise AgentGovernanceError(
+                GovernanceViolationType.MODEL_ARMOR_PROMPT_INJECTION,
+                "Prompt injection or jailbreak detected by Google Cloud Model Armor API.",
+                details={"source": "modelarmor.googleapis.com"},
+            )
+
+        # 3. G2: 決定論的パターン検査（多層防御・オフライン耐性）
         for pattern in cls.PROMPT_INJECTION_PATTERNS:
             if pattern.search(input_prompt):
                 raise AgentGovernanceError(

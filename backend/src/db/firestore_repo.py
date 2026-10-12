@@ -48,10 +48,18 @@ class FirestoreRepository(BaseRepository):
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        project = settings.google_cloud_project or None
+        import os
+        project = (
+            settings.google_cloud_project
+            or os.environ.get("GCP_PROJECT_ID")
+            or os.environ.get("GOOGLE_CLOUD_PROJECT")
+            or "zashikiwarashi"
+        )
+        if project and project.isdigit():
+            project = "zashikiwarashi"
         self.db = firestore.AsyncClient(
             project=project,
-            database=settings.firestore_database_id,
+            database=settings.firestore_database_id or "(default)",
         )
 
     def _clean_dict(self, data: dict[str, Any]) -> dict[str, Any]:

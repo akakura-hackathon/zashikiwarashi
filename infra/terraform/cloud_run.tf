@@ -38,10 +38,11 @@ locals {
     tools = "ツールサービス（Cloud Run・MCP）"
   }
 
-  # 実行時に必要なロール。Firestore（roles/datastore.user）はステップ 3b で追加する
+  # 実行時に必要なロール（Logging, Trace, Vertex AI 推論権限）
   runtime_roles = [
     "roles/logging.logWriter",
     "roles/cloudtrace.agent",
+    "roles/aiplatform.user",
   ]
 
   runtime_role_bindings = {
@@ -115,6 +116,14 @@ resource "google_cloud_run_v2_service" "service" {
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
         value = var.region
+      }
+      env {
+        name  = "GOOGLE_GENAI_USE_VERTEXAI"
+        value = "true"
+      }
+      env {
+        name  = "GOOGLE_GENAI_USE_ENTERPRISE"
+        value = "true"
       }
       # 画面（Firebase Hosting）からの呼び出しを許可するオリジン（API Gateway は OPTIONS を api に通す）
       env {

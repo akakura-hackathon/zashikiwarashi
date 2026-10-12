@@ -3,7 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import get_settings
 from src.observability import init_tracer
-from src.routers import audit, chat, emergency, governance, health, me, push, tasks
+from src.routers import (
+    audit,
+    chat,
+    emergency,
+    governance,
+    health,
+    me,
+    push,
+    resident_agent_router,
+    tasks,
+)
 
 
 def create_app() -> FastAPI:
@@ -27,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router)
     app.include_router(governance.router)
     app.include_router(chat.router, prefix="/api")
+    app.include_router(resident_agent_router.router)
 
     return app
 

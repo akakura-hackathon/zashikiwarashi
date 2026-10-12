@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     port: int = 8080
     cors_allow_origins: list[str] = ["http://localhost:3000"]
 
-    google_cloud_project: str = ""
+    gcp_project_id: str = "zashikiwarashi"
+    google_cloud_project: str = "zashikiwarashi"
     google_cloud_location: str = "us-central1"
+    gemini_api_key: str = ""
+    google_genai_use_vertexai: bool = True
 
     # Firestore 設定
     firestore_database_id: str = "(default)"
@@ -39,5 +42,16 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    import os
+    s = Settings()
+    if s.google_cloud_project:
+        os.environ["GOOGLE_CLOUD_PROJECT"] = s.google_cloud_project
+    if s.google_cloud_location:
+        os.environ["GOOGLE_CLOUD_LOCATION"] = s.google_cloud_location
+    if s.google_genai_use_vertexai:
+        os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
+        os.environ["GOOGLE_GENAI_USE_ENTERPRISE"] = "true"
+    if s.gemini_api_key:
+        os.environ["GEMINI_API_KEY"] = s.gemini_api_key
+    return s
 

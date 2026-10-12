@@ -73,6 +73,7 @@ dependencies = [
     { name = "firebase-admin" },
     { name = "google-adk" },
     { name = "google-cloud-firestore" },
+    { name = "google-cloud-modelarmor" },
     { name = "google-cloud-secret-manager" },
     { name = "google-cloud-storage" },
     { name = "google-genai" },
@@ -95,6 +96,7 @@ requires-dist = [
     { name = "firebase-admin", specifier = ">=6.5" },
     { name = "google-adk", specifier = ">=0.1.0" },
     { name = "google-cloud-firestore", specifier = ">=2.19" },
+    { name = "google-cloud-modelarmor", specifier = ">=0.7.2" },
     { name = "google-cloud-secret-manager", specifier = ">=2.20" },
     { name = "google-cloud-storage", specifier = ">=2.18" },
     { name = "google-genai", specifier = ">=0.5.0" },
@@ -399,6 +401,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a9/78/d04241812220bba1fbf05a1f13715d383eef30a1a5f8cde56bafe26b82d6/google_cloud_firestore-2.32.0.tar.gz", hash = "sha256:554ca59a9bbbeb4c14d3025797e4010835db9a681d6fc1dd1c0c4af900569d7e", size = 667065, upload-time = "2026-09-24T23:20:07.293Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b0/4e/bd21c6d6574c213e7a0a2d1986193c2936e1fe3b89398ea4a544d68fd781/google_cloud_firestore-2.32.0-py3-none-any.whl", hash = "sha256:97e793d47c4e0c4ca1d70e56658ce50c3da48f9d3ddaff90d6a337639faf404e", size = 440688, upload-time = "2026-09-24T23:19:43.06Z" },
+]
+
+[[package]]
+name = "google-cloud-modelarmor"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8d/68/6a109ae46d3e22b9572996be85762cbed244d24165cc361214a0a2204043/google_cloud_modelarmor-0.7.2.tar.gz", hash = "sha256:31dff476580b7ea2eff3889e1169d6b4521aa51885a7abcc369e522b3ac22abf", size = 168839, upload-time = "2026-10-01T18:17:13.992Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/55/98723ed4e82678ee8c3928e2b769eb56c0d47314569f8b14ee2fff0294b8/google_cloud_modelarmor-0.7.2-py3-none-any.whl", hash = "sha256:fa98c39c3847fd653dc0c15662bbfc7ca00d23438d9a62c7c4048911b18c6a03", size = 144346, upload-time = "2026-10-01T18:11:05.111Z" },
 ]
 
 [[package]]

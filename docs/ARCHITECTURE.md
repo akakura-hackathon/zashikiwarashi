@@ -222,14 +222,14 @@ Agent・コンポーネントのID（AG-xx）は DESIGN.md §5.1 と同じ。
 
 | コンポーネント | 実行場所 | 役割 |
 | :--- | :--- | :--- |
-| Building Agent（AG-02） | **Agent Runtime**（Gemini Enterprise Agent Platform、旧 Vertex AI Agent Engine） | Agent Gateway の配下で動く Coordinator。専用の Agent Identity を持つ |
-| Resident Agent（AG-01、Privacy Gateway AG-03 を内蔵） | **Agent Runtime** | Agent Gateway の配下で動く住民の代理人。1つのデプロイで全住民を扱い、セッションを `user_id=resident_id` で分ける。専用の Agent Identity を持つ |
-| ツールサービス（Policy Engine AG-04 を内蔵） | **Cloud Run**（MCP サーバー） | Firestore の読み書き・打診送信などのツール。Agent Registry に登録し、Agent Gateway 経由で呼ばれる |
+| Building Agent（AG-02） | **Agent Runtime インスタンス 1**（サービス名: `building-coordinator-agent`） | 全体最適 Coordinator。Vertex AI Gemini 2.5 Flash でトリアージを推論し、Agent Gateway 経由で Resident Agent ランタイムへ打診 |
+| Resident Agent（AG-01、Privacy Gateway AG-03 を内蔵） | **Agent Runtime インスタンス 2**（サービス名: `resident-agent`） | 住民専属の代理人。独立ランタイムとして稼働し、世帯身体制約の保護（`/evaluate-task`）および Progressive Disclosure（`/disclose-location`）を自律処理 |
+| ツールサービス（Policy Engine AG-04 を内蔵） | **Cloud Run**（FastAPI / MCP サーバー） | Firestore の読み書き・打診送信などのツール。Agent Registry に登録し、Agent Gateway 経由で呼ばれる |
 | API Ingestion | **Cloud Run** | クライアント・Webhook の終端。Agent Gateway の Ingress 経由で Agent を呼ぶ |
 
-- **Agent は Agent Runtime、ツールは Cloud Run** に分ける。Agent Gateway が統制できる Agent の実行基盤は Agent Runtime のみ（Cloud Run・GKE 上の Agent は対象外）で、Agent Runtime は自作の MCP サーバーを直接は載せられないため。
+- **Agent は独立した 2 つの Agent Runtime、ツールは Cloud Run** に分ける。Building Agent と Resident Agent を物理的に別個の Agent Runtime（Reasoning Engines）インスタンスに分離することで、他人の生データや世帯プロファイルに物理的にもアクセスできないエージェント完全分離（Agent Isolation）を実現する。
+- **Agent 間協業プロトコル**: Building Agent から Resident Agent への打診・評価は、Agent Gateway / Model Armor を介した HTTP/A2A 通信によって行われ、未承認時の部屋番号マスクや悪意あるプロンプト攻撃の自動遮断を強制する。
 - 同じプロジェクト・リージョンの Agent Runtime の Agent は、すべて同じ Ingress / Egress の Agent Gateway に紐づける（Agent Runtime のデプロイ時に `agent_gateway_config` で指定）。Building Agent と Resident Agent の外向き通信（ツール呼び出し・Agent 間の A2A）は、どちらも Egress の Agent Gateway を通る。
-- Resident Agent は Firestore に直接アクセスしない。自分の住民のデータもツールサービス経由で読み、IAP ポリシーで Resident Agent の Agent Identity が呼べるツールを「自分の住民のデータの読み取り」と「評価結果の記録」に限定する。
 - **リージョンは us-central1 に統一する**（Firestore・Cloud Run・Agent Runtime・Agent Gateway・Model Armor）。Agent と Agent Gateway は同じリージョンに置く必要がある。単一リージョンの方針は変えない。
 - Cloud Run の 2 サービス（API Ingestion・ツールサービス）は同じコンテナイメージを使い、起動コマンドで役割を分ける（`backend/src` を共有し、Policy Engine を両方から呼べるようにする）。
 - 開発時は `adk web` などでローカル実行し、Agent Runtime へのデプロイは結合確認時に行う（Agent Runtime のデプロイは Cloud Run より時間がかかるため）。

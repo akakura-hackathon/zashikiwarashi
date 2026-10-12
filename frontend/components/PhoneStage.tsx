@@ -7,21 +7,13 @@ import {
   type Task,
   type TaskDetailResponse,
   type IssueDetailResponse,
-  type AuditEvent,
   type EmergencyType,
   type ReasonCode,
   confirmPresence,
   respondToTask,
   reportTask,
   getTaskDetail,
-  getMyAuditEvents,
 } from "@/lib/api-client";
-import {
-  requestPushPermission,
-  scheduleSleepNotificationTest,
-  type PushPermissionState,
-} from "@/lib/push-notification";
-
 import { useSafetyCountdown } from "@/lib/use-safety-countdown";
 import { useTaskCountdown } from "@/lib/use-task-countdown";
 import { incomingCheckStatus } from "@/lib/emergency-view";
@@ -41,12 +33,10 @@ import {
 import {
   CheckRow,
   CountdownPill,
-  ProgressBar,
 } from "./ui/StatusAndInput";
 import {
   Timeline,
   PrivacyNote,
-  TabBar,
 } from "./ui/NavigationAndInfo";
 import { LockNotification } from "./ui/LockNotification";
 
@@ -71,9 +61,6 @@ export function PhoneStage({
   isLoading: _isLoading,
   user,
 }: PhoneStageProps) {
-  // Navigation Tabs: home (P_R1), history (P_R2), settings (P_R3)
-  const [currentTab, setCurrentTab] = useState<"home" | "history" | "settings">("home");
-
   // Emergency flow sub-screens for resident
   // "lock" (R01), "safety_answer" (R02), "damage_detail" (R09), "reporting" (R07)
   const [emergencySubScreen, setEmergencySubScreen] = useState<
@@ -117,14 +104,6 @@ export function PhoneStage({
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
 
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
-
-  // Push notification state
-  const [pushStatus, setPushStatus] = useState<PushPermissionState>("default");
-  const [fcmToken, setFcmToken] = useState<string | null>(null);
-  const [pushMsg, setPushMsg] = useState<string>("");
-  const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
-  const [countdown, setCountdown] = useState<number>(5);
 
   const safetyTimeRemaining = useSafetyCountdown(
     emergencyId && issueDetail?.issue.emergency_id === emergencyId
@@ -170,29 +149,6 @@ export function PhoneStage({
   useEffect(() => {
     fetchTaskDetail();
   }, [fetchTaskDetail]);
-
-  // 監査イベント取得
-  const fetchAuditEvents = useCallback(async () => {
-    try {
-      const res = await getMyAuditEvents(user, activePersona);
-      setAuditEvents(res.audit_events);
-    } catch (err) {
-      console.error("Failed to fetch audit events:", err);
-    }
-  }, [user, activePersona]);
-
-  useEffect(() => {
-    if (currentTab === "history") {
-      fetchAuditEvents();
-    }
-  }, [currentTab, fetchAuditEvents]);
-
-  // Push通知の初期状態確認
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPushStatus(Notification.permission as PushPermissionState);
-    }
-  }, []);
 
   const sendingSafety = useRef(false);
   const [isSendingSafety, setIsSendingSafety] = useState(false);
@@ -262,45 +218,6 @@ export function PhoneStage({
       setEmergencySubScreen("default");
     } catch (err) {
       alert(`完了報告に失敗しました: ${String(err)}`);
-    }
-  };
-
-  // Push通知有効化
-  const handleEnablePush = async () => {
-    setPushMsg("通知権限をリクエスト中...");
-    const res = await requestPushPermission();
-    setPushStatus(res.status);
-    if (res.token) {
-      setFcmToken(res.token);
-      setPushMsg("✅ Web Pushが有効化されました！");
-    } else if (res.error) {
-      setPushMsg(`⚠️ ${res.error}`);
-    }
-  };
-
-  // スリープ通知テスト
-  const handleTriggerSleepTest = async () => {
-    if (!fcmToken) return;
-    setIsCountingDown(true);
-    setCountdown(5);
-    setPushMsg("画面をロックしてください...");
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsCountingDown(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    try {
-      await scheduleSleepNotificationTest(5, fcmToken);
-      setPushMsg("✅ 5秒後に通知を送信しました。ロック画面をご確認ください。");
-    } catch (err) {
-      setPushMsg(`エラー: ${String(err)}`);
-      setIsCountingDown(false);
     }
   };
 
@@ -987,12 +904,6 @@ export function PhoneStage({
                               title="無事を受け付けました"
                               subtitle="8:04 回答済み。ご協力ありがとうございます。"
                             />
-                            {/* C17 ProgressBar */}
-                            <ProgressBar
-                              title="全館の安否回答状況"
-                              current={totalAnswered}
-                              total={50}
-                            />
                             <div
                               style={{
                                 backgroundColor: "var(--color-canvas)",
@@ -1494,11 +1405,6 @@ export function PhoneStage({
                               </div>
                             </div>
 
-                            <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                              <PrimaryButton onClick={() => setCurrentTab("history")}>
-                                くわしい利用記録を見る
-                              </PrimaryButton>
-                            </div>
                           </div>
                         );
                       })()}
@@ -1508,7 +1414,7 @@ export function PhoneStage({
                 </>
               ) : (
                 /* ==============================================================
-                   PATTERN 3: Normal Time (P_R1〜P_R3)
+                   PATTERN 3: Normal Time (P_R1)
                    ============================================================== */
                 <>
                   <AppBar variant="home" />
@@ -1520,282 +1426,40 @@ export function PhoneStage({
                       flexDirection: "column",
                       padding: "16px 24px 20px",
                       overflowY: "auto",
+                      gap: 18,
                     }}
                   >
-                    {/* Tab 1: P_R1 ホーム（平時マイページ） */}
-                    {currentTab === "home" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                        <PageTitle
-                          title="平常時 何もしなくて大丈夫です"
-                          subtitle="緊急時のみ、必要な確認やお願いが届きます。"
-                        />
+                    <PageTitle
+                      title="平常時 何もしなくて大丈夫です"
+                      subtitle="緊急時のみ、必要な確認やお願いが届きます。"
+                    />
 
-                        {/* Status Card */}
-                        <div
-                          style={{
-                            backgroundColor: "var(--color-canvas)",
-                            borderRadius: 14,
-                            padding: "16px",
-                            border: "1px solid var(--color-line)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                          }}
-                        >
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                            連携状況
-                          </span>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13.5 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ color: "var(--color-muted)" }}>プッシュ通知</span>
-                              <span style={{ fontWeight: 700, color: "var(--color-brand)" }}>
-                                {pushStatus === "granted" ? "受信可能" : "未設定"}
-                              </span>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ color: "var(--color-muted)" }}>Google カレンダー</span>
-                              <span style={{ fontWeight: 700, color: "var(--color-brand)" }}>連携中</span>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ color: "var(--color-muted)" }}>在宅シグナル</span>
-                              <span style={{ fontWeight: 700 }}>自動検知中</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Knowledge Card */}
-                        <div
-                          style={{
-                            backgroundColor: "#FFFFFF",
-                            borderRadius: 14,
-                            padding: "16px",
-                            border: "1px solid var(--color-line)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 10,
-                          }}
-                        >
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                            いま Zashikiwarashi が知っていること
-                          </span>
-                          <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
-                            • 在館推定：在宅の可能性が高い<br />
-                            • 階段の支援：健脚（短時間の階段移動が可能）<br />
-                            • 個人の性格・評価・ランキングは一切作成・保存しません。
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: "auto", paddingTop: 16 }}>
-                          <PrivacyNote note="Zashikiwarashiは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
-                        </div>
+                    {/* Knowledge Card */}
+                    <div
+                      style={{
+                        backgroundColor: "#FFFFFF",
+                        borderRadius: 14,
+                        padding: "16px",
+                        border: "1px solid var(--color-line)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
+                        いま Zashikiwarashi が知っていること
+                      </span>
+                      <div style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.6 }}>
+                        • 在館推定：在宅の可能性が高い<br />
+                        • 階段の支援：健脚（短時間の階段移動が可能）<br />
+                        • 個人の性格・評価・ランキングは一切作成・保存しません。
                       </div>
-                    )}
+                    </div>
 
-                    {/* Tab 2: P_R2 記録（監査ログ・利用履歴） */}
-                    {currentTab === "history" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        <PageTitle
-                          title="情報の利用記録"
-                          subtitle="わたしの情報を、いつ誰が使い、誰に見せたかを透明に記録しています。"
-                        />
-                        <div
-                          style={{
-                            backgroundColor: "var(--color-canvas)",
-                            padding: "10px 14px",
-                            borderRadius: 10,
-                            fontSize: 12.5,
-                            color: "var(--color-muted)",
-                          }}
-                        >
-                          断ったお願いや不参加は評価として一切残りません。
-                        </div>
-
-                        {auditEvents.length === 0 ? (
-                          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--color-muted)", fontSize: 14 }}>
-                            平常時のため、情報の外部利用・開示の記録はありません。
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {auditEvents.map((evt) => {
-                              const eventId = evt.audit_event_id || evt.audit_id || "";
-                              const rawTime = evt.occurred_at || evt.created_at || "";
-                              const timeStr = rawTime.length >= 16 ? rawTime.slice(11, 16) : rawTime;
-
-                              const formatAction = (actionName: string) => {
-                                switch (actionName) {
-                                  case "DISCLOSE_ROOM_NUMBER_ON_APPROVAL":
-                                    return "協力承認に伴う部屋番号の限定開示";
-                                  case "APPROVE_TASK":
-                                    return "協力依頼の承認";
-                                  case "DECLINE_TASK":
-                                    return "協力依頼の辞退（理由不要）";
-                                  case "EVALUATE_TASK":
-                                    return "Agentによるタスク実行可否の評価";
-                                  case "REPORT_SAFETY":
-                                    return "安否・在館の一次回答";
-                                  default:
-                                    return actionName || "情報の取り扱い記録";
-                                }
-                              };
-
-                              const formatActor = (actorType: string, actorId: string) => {
-                                switch (actorType) {
-                                  case "RESIDENT":
-                                    return `本人（${actorId}）`;
-                                  case "RESIDENT_AGENT":
-                                    return `Resident Agent（${actorId}）`;
-                                  case "BUILDING_AGENT":
-                                    return "Building Agent（全体調整）";
-                                  case "ADMIN":
-                                    return "管理人";
-                                  case "SYSTEM":
-                                    return "システム（Policy Engine）";
-                                  default:
-                                    return `${actorType || "システム"} (${actorId || "自律制御"})`;
-                                }
-                              };
-
-                              return (
-                                <div
-                                  key={eventId}
-                                  style={{
-                                    backgroundColor: "#FFFFFF",
-                                    border: "1px solid var(--color-line)",
-                                    borderRadius: 12,
-                                    padding: "14px 16px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 8,
-                                  }}
-                                >
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                                      {formatAction(evt.action || evt.event_name || "")}
-                                    </span>
-                                    <span className="font-mono-num" style={{ fontSize: 12, color: "var(--color-muted)" }}>
-                                      {timeStr}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: 12.5, color: "var(--color-muted)" }}>
-                                    操作主体: {formatActor(evt.actor_type, evt.actor_id)}
-                                  </div>
-
-                                  {/* data_used（使われた情報） */}
-                                  {evt.data_used && evt.data_used.length > 0 && (
-                                    <div style={{ fontSize: 12, color: "var(--color-ink)", display: "flex", flexDirection: "column", gap: 3 }}>
-                                      <span style={{ fontWeight: 700, color: "var(--color-muted)", fontSize: 11 }}>使われた情報:</span>
-                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                        {evt.data_used.map((d, i) => (
-                                          <span key={i} style={{ backgroundColor: "var(--color-canvas)", padding: "2px 8px", borderRadius: 4, fontSize: 11.5 }}>
-                                            {d === "resident_approval" ? "本人の協力承認" : d === "task_id" ? "タスク識別子" : d}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* data_disclosed（開示された情報） */}
-                                  {evt.data_disclosed && evt.data_disclosed.length > 0 && (
-                                    <div style={{ fontSize: 12, color: "var(--color-brand)", display: "flex", flexDirection: "column", gap: 3 }}>
-                                      <span style={{ fontWeight: 700, color: "var(--color-muted)", fontSize: 11 }}>開示された情報:</span>
-                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                        {evt.data_disclosed.map((d, i) => (
-                                          <span key={i} style={{ backgroundColor: "var(--color-brand-tint)", color: "var(--color-brand)", padding: "2px 8px", borderRadius: 4, fontSize: 11.5, fontWeight: 700 }}>
-                                            {d.startsWith("unit_room_number:") ? `${d.replace("unit_room_number:", "")}号室` : d}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {evt.description && (
-                                    <div style={{ fontSize: 12.5, color: "var(--color-ink)", lineHeight: 1.5 }}>
-                                      {evt.description}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Tab 3: P_R3 設定 */}
-                    {currentTab === "settings" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                        <PageTitle
-                          title="設定"
-                          subtitle="通知や外部サービスとの連携設定です。"
-                        />
-
-                        {/* Push Notification Setup */}
-                        <div
-                          style={{
-                            backgroundColor: "var(--color-canvas)",
-                            borderRadius: 14,
-                            padding: "16px",
-                            border: "1px solid var(--color-line)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                          }}
-                        >
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                            Web Push通知（スリープ対応）
-                          </span>
-                          <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>
-                            緊急時にロック画面へ通知を灯すための設定です。
-                          </p>
-                          {pushStatus !== "granted" ? (
-                            <PrimaryButton onClick={handleEnablePush}>
-                              通知を有効にする
-                            </PrimaryButton>
-                          ) : (
-                            <SecondaryButton
-                              onClick={handleTriggerSleepTest}
-                              disabled={isCountingDown}
-                            >
-                              {isCountingDown ? `${countdown}秒後に送信...` : "5秒後にテスト通知を送信"}
-                            </SecondaryButton>
-                          )}
-                          {pushMsg && (
-                            <span style={{ fontSize: 12.5, color: "var(--color-brand)", fontWeight: 600 }}>
-                              {pushMsg}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Google Calendar */}
-                        <div
-                          style={{
-                            backgroundColor: "#FFFFFF",
-                            borderRadius: 14,
-                            padding: "16px",
-                            border: "1px solid var(--color-line)",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink)" }}>
-                              Google カレンダー
-                            </div>
-                            <div style={{ fontSize: 12.5, color: "var(--color-muted)", marginTop: 2 }}>
-                              在宅シグナルの推定に使用
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-brand)" }}>
-                            連携中
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    <div style={{ marginTop: "auto", paddingTop: 16 }}>
+                      <PrivacyNote note="Zashikiwarashiは119番の代わりではありません。命に関わるときは、直ちに119番へ。" />
+                    </div>
                   </div>
-
-                  {/* C22 TabBar */}
-                  <TabBar currentTab={currentTab} onChangeTab={setCurrentTab} />
                 </>
               )}
             </div>

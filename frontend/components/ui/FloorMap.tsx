@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 export type RoomStatusType = "safe" | "urgent" | "unassigned" | "unresponsive" | "away";
 
@@ -16,8 +16,6 @@ interface FloorMapProps {
 }
 
 export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
-  const [filter, setFilter] = useState<"all" | "attention" | "unassigned">("all");
-
   // デフォルトで15階×10列のデータ（モック／実データ用）を構築
   const roomMap = React.useMemo(() => {
     const map = new Map<string, RoomItem>();
@@ -31,7 +29,6 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
           let status: RoomStatusType = "safe";
           if (roomNo === "302") status = "urgent";
           else if (roomNo === "504") status = "away";
-          else if (roomNo === "405") status = "unassigned";
           else if (f === 2 && c <= 3) status = "unresponsive";
 
           map.set(roomNo, { roomNo, floor: f, col: c, status });
@@ -70,33 +67,6 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
         border: "1px solid var(--color-line)",
       }}
     >
-      {/* Filter Tabs */}
-      <div style={{ display: "flex", gap: 6 }}>
-        {[
-          { id: "all", label: "すべて" },
-          { id: "attention", label: "要確認" },
-          { id: "unassigned", label: "担当なし" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setFilter(item.id as "all" | "attention" | "unassigned")}
-            style={{
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--color-line)",
-              backgroundColor: filter === item.id ? "var(--color-ink)" : "#FFFFFF",
-              color: filter === item.id ? "#FFFFFF" : "var(--color-muted)",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
       {/* Grid Floor Map */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {floors.map((floor) => (
@@ -122,10 +92,6 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
                 const roomNo = `${floor}${col < 10 ? "0" + col : col}`;
                 const r = roomMap.get(roomNo) || { roomNo, floor, col, status: "safe" as RoomStatusType };
 
-                const isDimmed =
-                  (filter === "attention" && r.status !== "urgent" && r.status !== "unassigned") ||
-                  (filter === "unassigned" && r.status !== "unassigned");
-
                 return (
                   <div
                     key={roomNo}
@@ -136,7 +102,6 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
                       height: 20,
                       borderRadius: 3,
                       backgroundColor: getCellColor(r.status),
-                      opacity: isDimmed ? 0.25 : 1,
                       cursor: "pointer",
                       transition: "transform 0.1s ease",
                     }}
@@ -168,10 +133,6 @@ export const FloorMap: React.FC<FloorMapProps> = ({ rooms, onSelectRoom }) => {
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: "var(--color-danger)" }} />
           <span>要確認・被害</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: "var(--color-warn-map)" }} />
-          <span>担当なし</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: "var(--color-neutral-cell)" }} />

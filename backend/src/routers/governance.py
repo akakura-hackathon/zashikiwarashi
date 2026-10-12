@@ -15,7 +15,7 @@ from src.agents.governance import (
     AgentIdentity,
 )
 
-router = APIRouter(prefix="/api/v1/governance", tags=["governance"])
+router = APIRouter(prefix="/governance", tags=["governance"])
 
 
 class GuardrailTestRequest(BaseModel):

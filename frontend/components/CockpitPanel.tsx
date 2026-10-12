@@ -434,12 +434,12 @@ export function CockpitPanel({
       <div className="cockpit-section">
         <div className="section-title">
           <span>利用ペルソナの切り替え</span>
-          <span className="font-mono-num" style={{ fontSize: "0.72rem", color: "var(--color-brand)", fontWeight: 700 }}>
-            選択中: {activePersona.roomNumber}
+          <span style={{ fontSize: "0.72rem", color: "var(--color-brand)", fontWeight: 700 }}>
+            選択中: {activePersona.name}
           </span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {DEMO_PERSONAS.filter((p) => p.roomNumber !== "303" && p.roomNumber !== "504").map((p) => {
+          {DEMO_PERSONAS.filter((p) => p.userId === "admin-001" || p.userId === "resident-i").map((p) => {
             const isSelected = p.userId === activePersona.userId;
             return (
               <button
@@ -447,7 +447,7 @@ export function CockpitPanel({
                 onClick={() => onSelectPersona(p)}
                 style={{
                   textAlign: "left",
-                  padding: "8px 10px",
+                  padding: "10px 12px",
                   borderRadius: "8px",
                   backgroundColor: isSelected ? "var(--color-brand-tint)" : "#FFFFFF",
                   border: isSelected ? "1.5px solid var(--color-brand)" : "1px solid var(--cockpit-border)",
@@ -456,16 +456,11 @@ export function CockpitPanel({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  fontSize: "0.76rem",
+                  fontSize: "0.82rem",
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 700, color: isSelected ? "var(--color-brand)" : "var(--color-ink)" }}>
-                    {p.name}
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "var(--color-muted)" }}>
-                    {p.desc}
-                  </div>
+                <div style={{ fontWeight: 700, color: isSelected ? "var(--color-brand)" : "var(--color-ink)" }}>
+                  {p.name}
                 </div>
                 {isSelected && <span style={{ color: "var(--color-brand)", fontWeight: 700 }}>✔</span>}
               </button>

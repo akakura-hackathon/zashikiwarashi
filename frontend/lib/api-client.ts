@@ -177,41 +177,41 @@ export const DEMO_PERSONAS: Persona[] = [
   {
     userId: "admin-001",
     role: "admin",
-    name: "防災センター（管理人）",
-    roomNumber: "防災センター",
-    desc: "全館把握・トリアージ発令・現地確認出動",
+    name: "管理人",
+    roomNumber: "管理人",
+    desc: "",
   },
   {
     userId: "resident-i",
     role: "resident",
-    name: "住民 I（301号室）",
+    name: "住民（301号室）",
     roomNumber: "301",
-    desc: "健常単身・在宅・「無事」回答・隣室確認候補",
+    desc: "",
   },
   {
     userId: "resident-h",
     role: "resident",
-    name: "住民 H（302号室）",
+    name: "住民（302号室）",
     roomNumber: "302",
-    desc: "高齢単身・在宅・安否未応答（要確認）",
+    desc: "",
   },
   {
     userId: "resident-j",
     role: "resident",
-    name: "住民 J（303号室）",
+    name: "住民（303号室）",
     roomNumber: "303",
-    desc: "一般世帯・在宅・別住戸確認担当中",
+    desc: "",
   },
   {
     userId: "resident-k",
     role: "resident",
-    name: "住民 K（504号室）",
+    name: "住民（504号室）",
     roomNumber: "504",
-    desc: "カレンダー外出中・Likely Away（低優先）",
+    desc: "",
   },
 ];
 
-let activePersona: Persona = DEMO_PERSONAS[1]; // デフォルト: 住民I
+let activePersona: Persona = DEMO_PERSONAS[1]; // デフォルト: 住民（301号室）
 
 export function setActivePersona(persona: Persona) {
   activePersona = persona;

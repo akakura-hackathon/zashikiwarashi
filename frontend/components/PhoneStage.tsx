@@ -323,7 +323,7 @@ export function PhoneStage({
     return (
       <main className="device-stage">
         <section className="zashiki-card">
-          <h2>防災センター（管理人）</h2>
+          <h2>管理人</h2>
           <p>発令・トリアージ・住戸別の状況確認は管理人コンソールで操作してください。</p>
           <p>安否回答済み：{totalAnswered} / 50戸</p>
         </section>
@@ -339,10 +339,7 @@ export function PhoneStage({
           <div className="persona-switch-bar">
             <div className="persona-info">
               <span>🏠</span>
-              <span className="font-mono-num" style={{ fontWeight: 700 }}>
-                {activePersona.roomNumber}号室
-              </span>
-              <span style={{ color: "var(--color-muted)", fontWeight: 500 }}>
+              <span style={{ fontWeight: 700, color: "var(--color-ink)" }}>
                 {activePersona.name}
               </span>
             </div>

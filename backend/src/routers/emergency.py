@@ -1,5 +1,6 @@
 """Emergency management and safety check endpoints (API-01, API-02, API-08)."""
 
+import random
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -157,7 +158,7 @@ async def trigger_emergency(
     )
     await repo.create_issue(building_id, issue)
 
-    # 3. Initialize all 50 residents' state to UNKNOWN via Batch Write (E-009)
+    # 3. Initialize residents' states (E-009, NFR-05)
     valid_resident_ids = {
         "resident-h", "resident-i", "resident-j", "resident-k"
     } | {
@@ -170,16 +171,59 @@ async def trigger_emergency(
     if len(target_residents) != 50:
         target_residents = residents[:50]
 
+    # Manual demo personas: 301 (resident-i), 302 (resident-h), 303 (resident-j), 504 (resident-k)
+    manual_resident_ids = {"resident-i", "resident-h", "resident-j", "resident-k"}
+    safety_status_map: dict[str, SafetyStatus] = {
+        r.resident_id: SafetyStatus.UNKNOWN for r in target_residents
+    }
+
+    if req.simulate_distribution:
+        # Deterministic seed distribution for demo reproducibility (NFR-05 / SC-3)
+        other_residents = sorted(
+            [r for r in target_residents if r.resident_id not in manual_resident_ids],
+            key=lambda r: r.resident_id,
+        )
+        rng = random.Random(req.seed if req.seed is not None else 42)
+        shuffled_ids = [r.resident_id for r in other_residents]
+        rng.shuffle(shuffled_ids)
+
+        # 46 units: 2 NEED_HELP, 6 UNKNOWN, 38 SAFE
+        need_help_ids = set(shuffled_ids[:2])
+        unknown_ids = set(shuffled_ids[2:8])
+
+        for r_id in shuffled_ids:
+            if r_id in need_help_ids:
+                safety_status_map[r_id] = SafetyStatus.NEED_HELP
+            elif r_id in unknown_ids:
+                safety_status_map[r_id] = SafetyStatus.UNKNOWN
+            else:
+                safety_status_map[r_id] = SafetyStatus.SAFE
+
     initial_states = [
         ResidentEmergencyCurrentState(
             emergency_id=emergency_id,
             resident_id=res.resident_id,
-            safety_status=SafetyStatus.UNKNOWN,
+            safety_status=safety_status_map[res.resident_id],
             observed_at=now,
         )
         for res in target_residents
     ]
     await repo.batch_set_current_states(building_id, initial_states)
+
+    # Append initial state history events (E-010)
+    for res in target_residents:
+        status_val = safety_status_map[res.resident_id]
+        await repo.append_state_event(
+            building_id,
+            ResidentEmergencyStateEvent(
+                event_id=f"state-evt-{uuid.uuid4().hex[:12]}",
+                emergency_id=emergency_id,
+                resident_id=res.resident_id,
+                safety_status=status_val,
+                occurred_at=now,
+                source="SIMULATED_INITIAL" if status_val != SafetyStatus.UNKNOWN else "SYSTEM_INIT",
+            ),
+        )
 
     return EmergencyTriggerResponse(
         emergency_id=emergency_id,

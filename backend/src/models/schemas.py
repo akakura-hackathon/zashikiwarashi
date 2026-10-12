@@ -35,6 +35,8 @@ class EmergencyTriggerRequest(BaseModel):
     building_id: str
     emergency_type: EmergencyType = EmergencyType.EARTHQUAKE
     instruction: str = "震度5強の地震が発生しました。各戸の安否確認を実施します。"
+    simulate_distribution: bool = True
+    seed: int | None = 42
 
 
 class EmergencyTriggerResponse(BaseModel):

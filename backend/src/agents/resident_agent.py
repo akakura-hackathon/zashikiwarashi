@@ -180,7 +180,8 @@ class ResidentAgent:
             clean_text = text.strip()
 
             injury_keywords = ["怪我", "けが", "足が痛", "痛い", "血", "動けない", "挟ま", "骨折"]
-            is_injury = any(k in clean_text for k in injury_keywords)
+            clean_text_for_injury = clean_text.replace("手助け", "").replace("お助け", "")
+            is_injury = any(k in clean_text_for_injury for k in injury_keywords)
             trapped_keywords = [
                 "閉じ込め", "ドアが開かない", "出られない", "ドア遮断", "逃げ道",
             ]
@@ -196,9 +197,20 @@ class ResidentAgent:
             is_heat = any(k in clean_text for k in ["熱中症", "暑い", "エアコン", "空調"])
             fire_keywords = ["火", "煙", "煙充満", "火災", "避難同行", "火が見え"]
             is_fire = any(k in clean_text for k in fire_keywords)
+            flood_keywords = [
+                "洪水", "浸水", "冠水", "垂直避難", "上階",
+                "上層階", "水が迫", "床下浸水", "床上浸水",
+            ]
+            is_flood = any(k in clean_text for k in flood_keywords)
 
             # 自由文が短すぎて情報不足の場合（聞き返し R3）
-            if len(clean_text) <= 2 and not is_injury and not is_trapped and not is_fire:
+            if (
+                len(clean_text) <= 2
+                and not is_injury
+                and not is_trapped
+                and not is_fire
+                and not is_flood
+            ):
                 return StructuredNeed(
                     resident_id=self.resident_id,
                     floor=floor,
@@ -215,6 +227,8 @@ class ResidentAgent:
             category = "SAFETY_CHECK"
             if is_injury or is_trapped or is_fire:
                 category = "EVACUATION"
+            elif is_flood:
+                category = "VERTICAL_EVACUATION"
             elif is_water:
                 category = "WATER"
             elif is_medical:
@@ -232,6 +246,7 @@ class ResidentAgent:
                 or is_medical
                 or is_heat
                 or is_fire
+                or is_flood
             )
             can_stairs = not (is_injury or is_stair_diff)
 

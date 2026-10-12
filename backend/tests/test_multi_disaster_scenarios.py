@@ -391,3 +391,111 @@ async def test_sc2_fire_scenario_e2e(setup_test_db):
     assert res_report.status_code == 200
     assert res_report.json()["status"] == "COMPLETED"
 
+
+@pytest.mark.asyncio
+async def test_sc4_flood_scenario_e2e(setup_test_db):
+    """SC-4 洪水・内水氾濫シナリオの一気通貫検証。
+
+    - 垂直避難状況送信（浸水・上階への移動困難）
+    - ResidentAgent による Need 構造化（VERTICAL_EVACUATION）
+    - BuildingAgent による上層階垂直避難同行タスクの生成
+    - タスク受諾・部屋番号限定開示・結果報告（6階共用ラウンジ退避完了）
+    """
+    repo = setup_test_db
+    from src.agents.resident_agent import ResidentAgent
+    from src.models.domain import ResidentEmergencyCurrentState, TaskStatus
+
+    # 1. ResidentAgent による Need 解析
+    ra_l = ResidentAgent(resident_id="resident-h", repo=repo, building_id="bld-01")
+    flood_msg = (
+        "1階で浸水が始まっています。足腰が弱く階段を登れず、上階への垂直避難に手助けが必要です。"
+    )
+    need = ra_l.parse_user_free_text(flood_msg, floor=1)
+    assert need.category == "VERTICAL_EVACUATION"
+    assert need.can_stairs is False
+    assert need.requires_assistance is True
+
+    # 2. 洪水災害および Issue の作成
+    building_agent = BuildingAgent(repo)
+    emergency = Emergency(
+        emergency_id="em-sc4-flood",
+        building_id="bld-01",
+        emergency_type=EmergencyType.FLOOD,
+        status=EmergencyStatus.ACTIVE,
+        triggered_by="admin-01",
+    )
+    await repo.create_emergency(emergency)
+    issue = Issue(
+        issue_id="iss-sc4-flood",
+        emergency_id="em-sc4-flood",
+        building_id="bld-01",
+        issue_type=IssueType.VERTICAL_EVACUATION,
+        title="上層階への垂直避難同行",
+        description="低層階要支援者と避難可能住民のマッチング",
+        instruction="浸水のおそれ。1階・2階の方は6階共用ラウンジなど上層階へ垂直避難してください。",
+        created_by_admin_id="admin-01",
+    )
+    await repo.create_issue("bld-01", issue)
+
+    # 3. 住民Hは NEED_HELP、住民Iは SAFE で回答
+    await repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="em-sc4-flood",
+            resident_id="resident-h",
+            safety_status=SafetyStatus.NEED_HELP,
+        ),
+    )
+    await repo.set_current_state(
+        "bld-01",
+        ResidentEmergencyCurrentState(
+            emergency_id="em-sc4-flood",
+            resident_id="resident-i",
+            safety_status=SafetyStatus.SAFE,
+        ),
+    )
+
+    # 4. トリアージ実行 -> VERTICAL_EVACUATION タスク生成
+    triage_result = await building_agent.execute_triage(
+        building_id="bld-01",
+        emergency_id="em-sc4-flood",
+        issue_id="iss-sc4-flood",
+        use_llm=False,
+    )
+    tasks = triage_result.created_tasks
+    assert len(tasks) > 0
+    vertical_task = tasks[0]
+    assert vertical_task.task_type == TaskType.VERTICAL_EVACUATION
+    assert vertical_task.title == "上層階への垂直避難同行"
+    assert vertical_task.estimated_seconds == 60
+    assert vertical_task.status == TaskStatus.OFFERED
+
+    # 5. REST API 経由でのタスク受諾・報告フロー
+    client = TestClient(app)
+    # 受諾 (APPROVED)
+    res_respond = client.post(
+        f"/tasks/{vertical_task.task_id}/respond",
+        json={"response": "APPROVED"},
+        headers={"X-User-Id": "resident-i", "X-User-Role": "resident"},
+    )
+    assert res_respond.status_code == 200
+
+    # 開示確認 (API-04: target_room_number が開示される)
+    res_detail = client.get(
+        f"/tasks/{vertical_task.task_id}",
+        headers={"X-User-Id": "resident-i", "X-User-Role": "resident"},
+    )
+    assert res_detail.status_code == 200
+    detail_data = res_detail.json()
+    assert detail_data["is_disclosed"] is True
+    assert detail_data["target_room_number"] is not None
+
+    # 結果報告 (API-06: TARGET_RESPONDED -> COMPLETED)
+    res_report = client.post(
+        f"/tasks/{vertical_task.task_id}/report",
+        json={"status": "COMPLETED", "reason_code": "TARGET_RESPONDED"},
+        headers={"X-User-Id": "resident-i", "X-User-Role": "resident"},
+    )
+    assert res_report.status_code == 200
+    assert res_report.json()["status"] == "COMPLETED"
+

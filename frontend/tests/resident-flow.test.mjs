@@ -960,6 +960,138 @@ test('Issue #41: SC-2 火災シナリオの避難状況選択（S2_E1）と避�
   }
 });
 
+test('SC-4 flood scenario renders vertical evacuation detail, waiting screen, task escort, and arrival report', async () => {
+  let renderer;
+  const originalGetTaskDetail = api.getTaskDetail;
+
+  try {
+    // 1. S4_L1: 洪水・垂直避難状況の詳細選択画面
+    const detailL1 = initial();
+    detailL1.resident_states['resident-h'] = 'UNKNOWN';
+
+    await act(async () => {
+      renderer = create(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[2],
+        emergencyId: 'em-flood-1',
+        emergencyType: 'FLOOD',
+        tasks: [],
+        issueDetail: detailL1,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    // 「手助けが必要」ボタンを押して damage_detail へ
+    const needHelpBtn = button(renderer, '手助け・同行が必要');
+    assert.ok(needHelpBtn, '垂直避難の手助け・同行が必要ボタンが存在すること');
+    await act(async () => {
+      needHelpBtn.props.onClick();
+    });
+
+    const renderedL1 = text(renderer);
+    assert.match(renderedL1, /垂直避難の状況を教えてください/, '垂直避難状況のタイトルが表示されること');
+    assert.match(renderedL1, /自力で上層階へ階段を上がれない/, '階段不可チェック項目が表示されること');
+    assert.match(renderedL1, /室内や玄関まで浸水している/, '浸水チェック項目が表示されること');
+    assert.match(renderedL1, /停電で足元が暗く動けない・けが/, '暗闇・けがチェック項目が表示されること');
+    assert.match(renderedL1, /乳幼児・要介助者がいて移動が困難/, '介助者移動困難チェック項目が表示されること');
+
+    // 送信ボタンを押して待機画面へ遷移
+    const sendBtn = button(renderer, '管理人に送る');
+    assert.ok(sendBtn, '管理人に送るボタンが存在すること');
+    await act(async () => {
+      sendBtn.props.onClick();
+    });
+
+    // 2. S4_L2: 垂直避難同行の待機画面
+    const detailL2 = initial();
+    detailL2.resident_states['resident-h'] = 'NEED_HELP';
+
+    await act(async () => {
+      renderer.update(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[2],
+        emergencyId: 'em-flood-1',
+        emergencyType: 'FLOOD',
+        tasks: [],
+        issueDetail: detailL2,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const renderedL2 = text(renderer);
+    assert.match(renderedL2, /垂直避難同行の手配状況/, '手配状況タイトルが表示されること');
+    assert.match(renderedL2, /垂直避難の準備・待機時の心得/, '心得バッジが表示されること');
+    assert.match(renderedL2, /上層階へ自力避難・119番通報/, '自力避難の注記が表示されること');
+
+    // 3. S4_M2 & S4_M3: 承認後画面と6階共用ラウンジ到着報告
+    const verticalTask = {
+      task_id: 'task-vertical-1',
+      issue_id: 'issue-flood-1',
+      resident_id: 'resident-i',
+      target_resident_id: 'resident-h',
+      task_type: 'VERTICAL_EVACUATION',
+      title: '上層階への垂直避難同行',
+      description: '浸水警戒区域のため、上層階（6階以上）への垂直避難への同行支援を依頼します。',
+      estimated_seconds: 60,
+      status: 'APPROVED',
+      created_at: new Date(Date.now() - 10_000).toISOString(),
+      expires_at: new Date(Date.now() + 50_000).toISOString(),
+    };
+
+    api.getTaskDetail = async () => ({
+      task: verticalTask,
+      is_disclosed: true,
+      target_room_number: '102',
+      latest_event: {
+        event_id: 'evt-vertical-1',
+        task_id: verticalTask.task_id,
+        event_type: 'APPROVED',
+        actor_type: 'RESIDENT',
+        occurred_at: verticalTask.created_at,
+      },
+    });
+
+    const detailWithTask = initial();
+    detailWithTask.resident_states['resident-i'] = 'SAFE';
+    detailWithTask.tasks = [verticalTask];
+
+    await act(async () => {
+      renderer.update(React.createElement(PhoneStage, {
+        activePersona: api.DEMO_PERSONAS[1],
+        emergencyId: 'em-flood-1',
+        emergencyType: 'FLOOD',
+        tasks: [verticalTask],
+        issueDetail: detailWithTask,
+        user,
+        onActionComplete: async () => {},
+      }));
+    });
+
+    const renderedM2 = text(renderer);
+    assert.match(renderedM2, /合流場所と垂直避難先/, '合流場所と垂直避難先タイトルが表示されること');
+    assert.match(renderedM2, /102/, '開示された部屋番号が表示されること');
+    assert.match(renderedM2, /合流場所（低層階・上方向避難ルート上）/, '低層階・上方向避難ルートの表示があること');
+    assert.match(renderedM2, /浸水に注意し、エレベーターは絶対に使用せず非常階段で6階へ向かってください/, '浸水注意バッジが表示されること');
+
+    // 「報告する」ボタンを押して S4_M3 へ
+    const reportBtn = button(renderer, '報告');
+    assert.ok(reportBtn, '報告画面へ進むボタンが存在すること');
+    await act(async () => {
+      reportBtn.props.onClick();
+    });
+
+    const renderedM3 = text(renderer);
+    assert.match(renderedM3, /6階共用ラウンジに到着しましたか？/, '到着報告タイトルが表示されること');
+    assert.match(renderedM3, /同行して6階共用ラウンジへ到着した/, '退避完了選択肢が表示されること');
+    assert.match(renderedM3, /相手の部屋に応答がなく、先行して上階へ避難した/, '先行上階退避選択肢が表示されること');
+    assert.match(renderedM3, /浸水・危険のため合流できず、自身を優先して退避した/, '浸水断念選択肢が表示されること');
+  } finally {
+    api.getTaskDetail = originalGetTaskDetail;
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+
 
 
 

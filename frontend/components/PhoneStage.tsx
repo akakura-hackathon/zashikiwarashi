@@ -104,6 +104,14 @@ export function PhoneStage({
     blocked: false,       // 逃げ道・ドアが遮断されている
   });
 
+  // SC-4: 洪水・垂直避難時の状況項目（S4_L1）
+  const [floodItems, setFloodItems] = useState({
+    stairsUnable: false,  // 自力で上層階へ階段を上がれない（同行支援希望）
+    flooded: false,       // 室内や玄関まで浸水している
+    darkInjury: false,    // 停電で足元が暗く動けない・けが
+    caregiver: false,     // 乳幼児・要介助者がいて移動が困難
+  });
+
   // FN-03 / REQ-15: 自由文メッセージと代理人（Resident Agent）からの聞き返し質問
   const [damageFreeText, setDamageFreeText] = useState("");
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
@@ -435,21 +443,28 @@ export function PhoneStage({
                     {emergencySubScreen === "damage_detail" && (() => {
                       const isOutage = emergencyType === "POWER_OUTAGE";
                       const isFire = emergencyType === "FIRE";
+                      const isFlood = emergencyType === "FLOOD";
                       const pageTitle = isOutage
                         ? "停電時の困りごとを教えてください"
                         : isFire
                           ? "避難の状況を教えてください"
-                          : "被害の内容を教えてください";
+                          : isFlood
+                            ? "垂直避難の状況を教えてください"
+                            : "被害の内容を教えてください";
                       const pageSubtitle = isOutage
                         ? "エレベーター停止に伴う困りごとを管理人に届けます。命に関わるときは迷わず119番通報してください。"
                         : isFire
                           ? "西側非常階段からの避難方針のもと、同一フロアの支援可能者や管理人に届きます。命に関わるときは迷わず119番通報してください。"
-                          : "管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。";
+                          : isFlood
+                            ? "浸水リスクのある低層階から上階へ移動するため、同一動線の避難可能者や管理人に届きます。命に関わるときは迷わず119番通報してください。"
+                            : "管理人に優先して情報が届きます。命に関わるときは迷わず119番通報してください。";
                       const placeholder = isOutage
                         ? "例: 14階で水が切れました / 足が悪く階段が降りられません"
                         : isFire
                           ? "例: 廊下に煙が少し漂っています / 足腰に不安があり一人で階段を降りられません"
-                          : "例: 棚が倒れて足を挟まれ動けません / 飲料水が必要です";
+                          : isFlood
+                            ? "例: 玄関まで水が入ってきています / 足が悪く一人で上階へ階段を上がれません"
+                            : "例: 棚が倒れて足を挟まれ動けません / 飲料水が必要です";
 
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -550,6 +565,41 @@ export function PhoneStage({
                                   }
                                 />
                               </>
+                            ) : isFlood ? (
+                              <>
+                                <CheckRow
+                                  label="自力で上層階へ階段を上がれない（同行支援希望）"
+                                  sublabel="足腰の不安、車椅子、荷物が多く単独移動不可など"
+                                  checked={floodItems.stairsUnable}
+                                  onChange={(checked) =>
+                                    setFloodItems({ ...floodItems, stairsUnable: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="室内や玄関まで浸水している"
+                                  sublabel="床下・床上浸水、廊下の冠水など"
+                                  checked={floodItems.flooded}
+                                  onChange={(checked) =>
+                                    setFloodItems({ ...floodItems, flooded: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="停電で足元が暗く動けない・けが"
+                                  sublabel="足元が見えない、転倒によるけがなど"
+                                  checked={floodItems.darkInjury}
+                                  onChange={(checked) =>
+                                    setFloodItems({ ...floodItems, darkInjury: checked })
+                                  }
+                                />
+                                <CheckRow
+                                  label="乳幼児・要介助者がいて移動が困難"
+                                  sublabel="子どもや高齢者がおり一人では連れ出せないなど"
+                                  checked={floodItems.caregiver}
+                                  onChange={(checked) =>
+                                    setFloodItems({ ...floodItems, caregiver: checked })
+                                  }
+                                />
+                              </>
                             ) : (
                               <>
                                 <CheckRow
@@ -635,15 +685,25 @@ export function PhoneStage({
                                           if (k === "blocked") return "逃げ道・ドア遮断";
                                           return k;
                                         })
-                                    : Object.entries(damageItems)
-                                        .filter(([, v]) => v)
-                                        .map(([k]) => {
-                                          if (k === "injury") return "けがをしている";
-                                          if (k === "trapped") return "部屋から出られない";
-                                          if (k === "broken") return "家具・設備の破損";
-                                          if (k === "gasSmell") return "ガス・水漏れのにおい";
-                                          return k;
-                                        });
+                                    : isFlood
+                                      ? Object.entries(floodItems)
+                                          .filter(([, v]) => v)
+                                          .map(([k]) => {
+                                            if (k === "stairsUnable") return "上階歩行困難・同行要";
+                                            if (k === "flooded") return "室内・玄関浸水";
+                                            if (k === "darkInjury") return "暗闇・足元負傷";
+                                            if (k === "caregiver") return "乳幼児・要介助者同行要";
+                                            return k;
+                                          })
+                                      : Object.entries(damageItems)
+                                          .filter(([, v]) => v)
+                                          .map(([k]) => {
+                                            if (k === "injury") return "けがをしている";
+                                            if (k === "trapped") return "部屋から出られない";
+                                            if (k === "broken") return "家具・設備の破損";
+                                            if (k === "gasSmell") return "ガス・水漏れのにおい";
+                                            return k;
+                                          });
                                 const parts = [];
                                 if (checkedLabels.length > 0) {
                                   parts.push(
@@ -651,7 +711,9 @@ export function PhoneStage({
                                       ? `【困りごと】${checkedLabels.join("、")}`
                                       : isFire
                                         ? `【避難状況】${checkedLabels.join("、")}`
-                                        : `【被害項目】${checkedLabels.join("、")}`
+                                        : isFlood
+                                          ? `【垂直避難状況】${checkedLabels.join("、")}`
+                                          : `【被害項目】${checkedLabels.join("、")}`
                                   );
                                 }
                                 if (damageFreeText.trim()) {
@@ -663,7 +725,9 @@ export function PhoneStage({
                                     ? "停電により困りごとがあります。支援が必要です。"
                                     : isFire
                                       ? "火災避難に手助け・同行が必要です。"
-                                      : "被害があります。支援が必要です。");
+                                      : isFlood
+                                        ? "垂直避難に手助け・同行が必要です。"
+                                        : "被害があります。支援が必要です。");
                                 handleConfirmPresence("NEED_HELP", finalMsg);
                               }}
                             >
@@ -683,36 +747,49 @@ export function PhoneStage({
                     {(!isSafetyAnswered || emergencySubScreen === "safety_answer") && emergencySubScreen !== "damage_detail" && (() => {
                       const isOutage = emergencyType === "POWER_OUTAGE";
                       const isFire = emergencyType === "FIRE";
+                      const isFlood = emergencyType === "FLOOD";
                       const r02Title = isOutage
                         ? "ご自宅にいらっしゃいますか？ 状況を教えてください"
                         : isFire
                           ? "避難できますか？ 状況を教えてください"
-                          : "ご自身とお部屋は無事ですか？";
+                          : isFlood
+                            ? "垂直避難できますか？ 状況を教えてください"
+                            : "ご自身とお部屋は無事ですか？";
                       const r02Subtitle = isOutage
                         ? "エレベーターが全基停止しています。回答は全体の把握に使われ、部屋番号は外部に公開されません。"
                         : isFire
                           ? "6階で火災が発生し、西側非常階段からの避難指示が出ています。"
-                          : "回答は建物全体の把握に使われ、部屋番号は外部に公開されません。";
+                          : isFlood
+                            ? "浸水のおそれがあります。1階・2階の方は6階共用ラウンジなど上層階へ移動してください。"
+                            : "回答は建物全体の把握に使われ、部屋番号は外部に公開されません。";
                       const choice1Title = isOutage
                         ? "在宅・問題なし（特別な手助けは不要）"
                         : isFire
                           ? "自力避難できる（同行支援は不要）"
-                          : "無事（けがはなく、部屋から出られる）";
+                          : isFlood
+                            ? "自力で垂直避難できる（同行支援は不要）"
+                            : "無事（けがはなく、部屋から出られる）";
                       const choice1Desc = isOutage
                         ? "自室で待機可能で、水や階段昇降の特別な手助けは不要です。"
                         : isFire
                           ? "西側非常階段から地上へ向かって単独で避難可能です。"
-                          : "自身で身の安全が確保できており、特別な手助けは不要です。";
+                          : isFlood
+                            ? "階段を使って自力で6階以上の上層階へ避難可能です。"
+                            : "自身で身の安全が確保できており、特別な手助けは不要です。";
                       const choice2Title = isOutage
                         ? "困っている（水・階段・薬・体調など）"
                         : isFire
                           ? "避難に手助け・同行が必要"
-                          : "被害あり（けが・閉じ込め・部屋の損傷など）";
+                          : isFlood
+                            ? "垂直避難に手助け・同行が必要"
+                            : "被害あり（けが・閉じ込め・部屋の損傷など）";
                       const choice2Desc = isOutage
                         ? "飲料水の不足や階段昇降困難、熱中症リスクなど支援が必要です。"
                         : isFire
                           ? "階段の歩行に不安がある、煙が充満しているなど同行が必要です。"
-                          : "家具の転倒、けが、室内に閉じ込められているなど支援が必要です。";
+                          : isFlood
+                            ? "上階への階段昇降に不安がある、または浸水・体調不良等で同行が必要です。"
+                            : "家具の転倒、けが、室内に閉じ込められているなど支援が必要です。";
 
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -762,11 +839,16 @@ export function PhoneStage({
                     })()}
 
                     {/* --------------------------------------------------------
-                        R10: 被害あり送信後の待機タイムライン画面（SC-2: 避難同行待機 S2_E2）
+                        R10: 被害あり送信後の待機タイムライン画面（SC-2: 避難同行待機 S2_E2 / SC-4: 垂直避難待機 S4_L2）
                         -------------------------------------------------------- */}
                     {isSafetyAnswered && currentResidentSafety === "NEED_HELP" && emergencySubScreen === "default" && (() => {
                       const isFire = emergencyType === "FIRE";
-                      const helpTitle = isFire ? "避難同行の手配状況" : "管理人に伝わりました";
+                      const isFlood = emergencyType === "FLOOD";
+                      const helpTitle = isFire
+                        ? "避難同行の手配状況"
+                        : isFlood
+                          ? "垂直避難同行の手配状況"
+                          : "管理人に伝わりました";
                       const helpSubtitle = isFire
                         ? (checkStatus === "in_progress"
                             ? "同行支援の方があなたのお部屋（ドア前）へ向かっています。"
@@ -775,13 +857,21 @@ export function PhoneStage({
                               : checkStatus === "triaging"
                                 ? "同一フロアの自力避難可能者とマッチング中です。"
                                 : "避難同行の要請を受け付けました。同一フロアの支援可能者を探しています。")
-                        : (checkStatus === "in_progress"
-                            ? "近隣の方による安否確認が始まりました。"
-                            : checkStatus === "approved"
-                              ? "近隣の方が、あなたのお宅の安否確認への協力を承認しました。"
-                              : checkStatus === "triaging"
-                                ? "安否状況の確認・対応の検討中です。あなたへの対応はまだ確定していません。"
-                                : "被害状況を受け付けました。管理人による確認をお待ちください。");
+                        : isFlood
+                          ? (checkStatus === "in_progress"
+                              ? "同行支援の方があなたのお部屋（ドア前）へ向かっています。"
+                              : checkStatus === "approved"
+                                ? "上方向へ避難中の住民が同行を承認しました（移動目安 約1分）。"
+                                : checkStatus === "triaging"
+                                  ? "上方向へ移動中の避難可能者とマッチング中です。"
+                                  : "垂直避難同行の要請を受け付けました。上方向へ移動中の住民を探しています。")
+                          : (checkStatus === "in_progress"
+                              ? "近隣の方による安否確認が始まりました。"
+                              : checkStatus === "approved"
+                                ? "近隣の方が、あなたのお宅の安否確認への協力を承認しました。"
+                                : checkStatus === "triaging"
+                                  ? "安否状況の確認・対応の検討中です。あなたへの対応はまだ確定していません。"
+                                  : "被害状況を受け付けました。管理人による確認をお待ちください。");
 
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -805,6 +895,22 @@ export function PhoneStage({
                                 煙が充満してきた場合は無理に廊下に出ず、濡れタオル等で口と鼻を覆い、姿勢を低くして待機してください。30秒以上来ない場合や危険が迫った場合は無理をせず即座に通報・避難してください。
                               </p>
                             </div>
+                          ) : isFlood ? (
+                            <div
+                              style={{
+                                backgroundColor: "#E3F2FD",
+                                borderRadius: 12,
+                                padding: "14px 16px",
+                                border: "1px solid #90CAF9",
+                              }}
+                            >
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "#1565C0" }}>
+                                ⚠️ 垂直避難の準備・待機時の心得
+                              </span>
+                              <p style={{ fontSize: 13, color: "var(--color-ink)", marginTop: 4, lineHeight: 1.5 }}>
+                                浸水が始まる前に、貴重品や非常持ち出し品を持って玄関付近でお待ちください。同行者が到着したら、エレベーターは使わず非常階段で6階共用ラウンジへ向かいます。
+                              </p>
+                            </div>
                           ) : hasConfirmedCheck && (
                             <div
                               style={{
@@ -824,7 +930,7 @@ export function PhoneStage({
                           )}
 
                           {/* Timeline */}
-                          {(isFire || hasConfirmedCheck) && (
+                          {(isFire || isFlood || hasConfirmedCheck) && (
                             <div style={{ marginTop: 8 }}>
                               <Timeline
                                 items={isFire ? [
@@ -839,6 +945,18 @@ export function PhoneStage({
                                     text: checkStatus === "in_progress" ? "合流して西側階段へ移動中" : "合流を待機中",
                                     status: checkStatus === "in_progress" ? "in_progress" : "pending",
                                   },
+                                ] : isFlood ? [
+                                  { text: "垂直避難同行の要請を送信しました", status: "completed" },
+                                  {
+                                    text: checkStatus === "approved" || checkStatus === "in_progress"
+                                      ? "上方向避難者が同行を承認しました（約1分）"
+                                      : "上方向へ移動中の避難可能者を探しています",
+                                    status: checkStatus === "approved" || checkStatus === "in_progress" ? "completed" : "pending",
+                                  },
+                                  {
+                                    text: checkStatus === "in_progress" ? "合流して6階共用ラウンジへ移動中" : "合流を待機中",
+                                    status: checkStatus === "in_progress" ? "in_progress" : "pending",
+                                  },
                                 ] : [
                                   { text: "被害状況を送信しました", status: "completed" },
                                   { text: "近隣の方が安否確認への協力を承認しました", status: "completed" },
@@ -850,7 +968,7 @@ export function PhoneStage({
                               />
                             </div>
                           )}
-                          <PrivacyNote note={isFire ? "火の手が迫った場合は、支援を待たずに直ちに避難・119番通報してください。" : "命に関わるときは、対応を待たずに119番へ通報してください。"} />
+                          <PrivacyNote note={isFire ? "火の手が迫った場合は、支援を待たずに直ちに避難・119番通報してください。" : isFlood ? "浸水が急激に進む場合は、支援を待たずに直ちに上層階へ自力避難・119番通報してください。" : "命に関わるときは、対応を待たずに119番へ通報してください。"} />
 
                           <div style={{ marginTop: "auto", paddingTop: 20 }}>
                             <SecondaryButton onClick={() => setEmergencySubScreen("safety_answer")}>
@@ -983,6 +1101,7 @@ export function PhoneStage({
                             const targetRoom = disclosedRoom || "•••";
                             const isRelay = myTask.task_type === "SUPPLY_RELAY";
                             const isEscort = myTask.task_type === "EVACUATION_ESCORT";
+                            const isVertical = myTask.task_type === "VERTICAL_EVACUATION";
 
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -990,16 +1109,20 @@ export function PhoneStage({
                                   title={
                                     isEscort
                                       ? "合流場所と避難ルート"
-                                      : isRelay
-                                        ? "物資の受取場所と運搬先"
-                                        : "確認・支援先のお部屋"
+                                      : isVertical
+                                        ? "合流場所と垂直避難先"
+                                        : isRelay
+                                          ? "物資の受取場所と運搬先"
+                                          : "確認・支援先のお部屋"
                                   }
                                   subtitle={
                                     isEscort
                                       ? "無理は禁物です。煙が濃い場合や危険を感じたら直ちに自身を優先し避難してください。"
-                                      : isRelay
-                                        ? "無理は禁物です。荷物が重い場合や危険を感じたら中断してください。"
-                                        : "無理は禁物です。危険を感じたら直ちに引き返してください。"
+                                      : isVertical
+                                        ? "無理は禁物です。浸水の深さや危険を感じたら直ちに自身を優先し上階へ避難してください。"
+                                        : isRelay
+                                          ? "無理は禁物です。荷物が重い場合や危険を感じたら中断してください。"
+                                          : "無理は禁物です。危険を感じたら直ちに引き返してください。"
                                   }
                                 />
                                 {/* Big Room Number / Location */}
@@ -1013,7 +1136,13 @@ export function PhoneStage({
                                   }}
                                 >
                                   <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                    {isEscort ? "合流場所（西側非常階段ルート上）" : isRelay ? "物資の受取場所" : "対象住戸"}
+                                    {isEscort
+                                      ? "合流場所（西側非常階段ルート上）"
+                                      : isVertical
+                                        ? "合流場所（低層階・上方向避難ルート上）"
+                                        : isRelay
+                                          ? "物資の受取場所"
+                                          : "対象住戸"}
                                   </span>
                                   <div style={{ marginTop: 4 }}>
                                     <span
@@ -1044,6 +1173,22 @@ export function PhoneStage({
                                       ⚠️ 姿勢を低く保ち、エレベーターは絶対に使用しないでください
                                     </div>
                                   )}
+                                  {isVertical && (
+                                    <div
+                                      style={{
+                                        display: "inline-block",
+                                        fontSize: 12,
+                                        color: "#1565C0",
+                                        backgroundColor: "#E3F2FD",
+                                        padding: "4px 12px",
+                                        borderRadius: 8,
+                                        marginTop: 8,
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      ⚠️ 浸水に注意し、エレベーターは絶対に使用せず非常階段で6階へ向かってください
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Steps list */}
@@ -1055,9 +1200,11 @@ export function PhoneStage({
                                     <span>
                                       {isEscort
                                         ? (isDisclosed ? `${targetRoom}号室ドア前へ向かいます（西側階段ルート上）` : "合流場所ドア前へ向かいます")
-                                        : isRelay
-                                          ? (isDisclosed ? `${targetRoom}号室ドア前に置かれた物資を受け取ります（非対面）` : "受取場所ドア前へ向かいます")
-                                          : (isDisclosed ? `${targetRoom}号室の前へ向かいます` : "対象住戸の前へ向かいます")}
+                                        : isVertical
+                                          ? (isDisclosed ? `${targetRoom}号室ドア前へ向かいます（低層階合流場所）` : "合流場所ドア前へ向かいます")
+                                          : isRelay
+                                            ? (isDisclosed ? `${targetRoom}号室ドア前に置かれた物資を受け取ります（非対面）` : "受取場所ドア前へ向かいます")
+                                            : (isDisclosed ? `${targetRoom}号室の前へ向かいます` : "対象住戸の前へ向かいます")}
                                     </span>
                                   </div>
                                   <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -1067,10 +1214,10 @@ export function PhoneStage({
                                     <span>
                                       {isEscort
                                         ? "合流して西側非常階段へ向かいます（エレベーター使用禁止・手すり側通行）"
-                                        : isRelay
-                                          ? "指定階（8階踊り場）の「ZASHIKI箱」へ運んで置きます"
-                                          : myTask.task_type === "VERTICAL_EVACUATION"
-                                            ? "合流して上層階へ垂直避難します"
+                                        : isVertical
+                                          ? "合流して非常階段から6階共用ラウンジへ向かいます（エレベーター使用禁止）"
+                                          : isRelay
+                                            ? "指定階（8階踊り場）の「ZASHIKI箱」へ運んで置きます"
                                             : "インターホンを1回だけ鳴らします（不在時は深追い不要）"}
                                     </span>
                                   </div>
@@ -1081,10 +1228,10 @@ export function PhoneStage({
                                     <span>
                                       {isEscort
                                         ? "地上集合場所（西側駐車場）到着後、避難完了を報告してください"
-                                        : isRelay
-                                          ? "置き終えたら「踊り場に置いた」ボタンを押して報告してください"
-                                          : myTask.task_type === "VERTICAL_EVACUATION"
-                                            ? "同行・避難完了をアプリで報告してください"
+                                        : isVertical
+                                          ? "6階共用ラウンジへ到着後、避難完了を報告してください"
+                                          : isRelay
+                                            ? "置き終えたら「踊り場に置いた」ボタンを押して報告してください"
                                             : "応答の有無をアプリで報告してください"}
                                     </span>
                                   </div>
@@ -1094,9 +1241,11 @@ export function PhoneStage({
                                   <PrimaryButton onClick={() => setEmergencySubScreen("reporting")}>
                                     {isEscort
                                       ? "合流した・地上集合場所へ向かう（報告へ）"
-                                      : isRelay
-                                        ? "指定の踊り場に着いた・報告する"
-                                        : (isDisclosed ? `${targetRoom}号室に着いた・報告する` : "現地に着いた・報告する")}
+                                      : isVertical
+                                        ? "合流した・6階ラウンジへ向かう（報告へ）"
+                                        : isRelay
+                                          ? "指定の踊り場に着いた・報告する"
+                                          : (isDisclosed ? `${targetRoom}号室に着いた・報告する` : "現地に着いた・報告する")}
                                   </PrimaryButton>
                                 </div>
                               </div>
@@ -1109,6 +1258,7 @@ export function PhoneStage({
                           emergencySubScreen === "reporting" && (() => {
                             const isRelay = myTask.task_type === "SUPPLY_RELAY";
                             const isEscort = myTask.task_type === "EVACUATION_ESCORT";
+                            const isVertical = myTask.task_type === "VERTICAL_EVACUATION";
 
                             return (
                               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1116,16 +1266,20 @@ export function PhoneStage({
                                   title={
                                     isEscort
                                       ? "地上集合場所に到着しましたか？"
-                                      : isRelay
-                                        ? "踊り場に置けましたか？"
-                                        : "応答はありましたか？"
+                                      : isVertical
+                                        ? "6階共用ラウンジに到着しましたか？"
+                                        : isRelay
+                                          ? "踊り場に置けましたか？"
+                                          : "応答はありましたか？"
                                   }
                                   subtitle={
                                     isEscort
                                       ? "合流および地上への退避状況を選んでください。"
-                                      : isRelay
-                                        ? "運搬と引き継ぎの状況を選んでください。"
-                                        : "確認できた状況を選んでください。"
+                                      : isVertical
+                                        ? "合流および6階共用ラウンジへの垂直避難状況を選んでください。"
+                                        : isRelay
+                                          ? "運搬と引き継ぎの状況を選んでください。"
+                                          : "確認できた状況を選んでください。"
                                   }
                                 />
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
@@ -1157,6 +1311,45 @@ export function PhoneStage({
                                       <ChoiceButton
                                         title="煙や火災で合流できず、自身を優先して避難した"
                                         description="廊下の煙が濃いため合流を断念し、非常階段へ直接退避しました。"
+                                        accentColor="danger"
+                                        onClick={() => handleReportTask("UNSAFE")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5">
+                                            <polygon points="12 2 2 22 22 22 12 2" />
+                                            <line x1="12" y1="9" x2="12" y2="13" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                          </svg>
+                                        }
+                                      />
+                                    </>
+                                  ) : isVertical ? (
+                                    <>
+                                      <ChoiceButton
+                                        title="同行して6階共用ラウンジへ到着した"
+                                        description="無事に合流し、階段経由で6階共用ラウンジへ退避完了しました。"
+                                        accentColor="brand"
+                                        onClick={() => handleReportTask("TARGET_RESPONDED")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5">
+                                            <polyline points="20 6 9 17 4 12" />
+                                          </svg>
+                                        }
+                                      />
+                                      <ChoiceButton
+                                        title="相手の部屋に応答がなく、先行して上階へ避難した"
+                                        description="呼びかけましたが応答がなく、浸水危険のため自身で上階へ退避しました。"
+                                        accentColor="ink"
+                                        onClick={() => handleReportTask("TARGET_NO_RESPONSE")}
+                                        icon={
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="8" y1="12" x2="16" y2="12" />
+                                          </svg>
+                                        }
+                                      />
+                                      <ChoiceButton
+                                        title="浸水・危険のため合流できず、自身を優先して退避した"
+                                        description="1階の冠水が進んでいたため合流を断念し、単独で上層階へ退避しました。"
                                         accentColor="danger"
                                         onClick={() => handleReportTask("UNSAFE")}
                                         icon={
@@ -1229,19 +1422,30 @@ export function PhoneStage({
                         {/* FN-07 / FN-08: R08 retains the authorized destination for its assignee. */}
                         {myTask && myTask.status === "COMPLETED" && (() => {
                           const isEscort = myTask.task_type === "EVACUATION_ESCORT";
+                          const isVertical = myTask.task_type === "VERTICAL_EVACUATION";
 
                           return (
                             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                               <PageTitle
-                                title={isEscort ? "避難同行ありがとうございました" : "確認ありがとうございました"}
+                                title={
+                                  isEscort
+                                    ? "避難同行ありがとうございました"
+                                    : isVertical
+                                      ? "垂直避難同行ありがとうございました"
+                                      : "確認ありがとうございました"
+                                }
                                 subtitle={
                                   isEscort
                                     ? (disclosedRoom
                                         ? "地上集合場所への避難報告が管理人に送信されました。同行したお部屋を以下に表示しています。"
                                         : "地上集合場所への避難報告が管理人に送信されました。")
-                                    : (disclosedRoom
-                                        ? "確認結果は管理人に送信されました。確認したお部屋を以下に表示しています。"
-                                        : "確認結果は管理人に送信されました。確認先の部屋番号はまだ取得できていません。")
+                                    : isVertical
+                                      ? (disclosedRoom
+                                          ? "6階共用ラウンジへの避難報告が管理人に送信されました。同行したお部屋を以下に表示しています。"
+                                          : "6階共用ラウンジへの避難報告が管理人に送信されました。")
+                                      : (disclosedRoom
+                                          ? "確認結果は管理人に送信されました。確認したお部屋を以下に表示しています。"
+                                          : "確認結果は管理人に送信されました。確認先の部屋番号はまだ取得できていません。")
                                 }
                               />
                               {/* FN-07: Use the current task’s authorized API detail. */}
@@ -1258,7 +1462,7 @@ export function PhoneStage({
                                 }}
                               >
                                 <span style={{ fontSize: 13, color: "var(--color-muted)", fontWeight: 700 }}>
-                                  {isEscort ? "同行支援先" : "確認先住戸"}
+                                  {isEscort || isVertical ? "同行支援先" : "確認先住戸"}
                                 </span>
                                 <div style={{ marginTop: 4 }}>
                                   <span className="font-mono-num" style={{ fontSize: 32, fontWeight: 900, color: "var(--color-muted)" }}>

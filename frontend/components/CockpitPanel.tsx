@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-client";
 
 import type { User } from "firebase/auth";
+import { TaskBoard } from "./ui/TaskBoard";
 
 export type TriageExecution = {
   count: number;
@@ -54,7 +55,7 @@ export function CockpitPanel({
   onSelectEmergencyType,
   emergencyId,
   issueId: _issueId,
-  issueDetail: _issueDetail,
+  issueDetail,
   onTriggerEmergency,
   onStartTriage,
   onRefresh,
@@ -365,9 +366,6 @@ export function CockpitPanel({
                   {triageAiResult.agent_model}
                 </span>
               </div>
-              <div style={{ fontSize: "0.73rem", color: "var(--color-ink)", lineHeight: 1.45 }}>
-                {triageAiResult.ai_reasoning}
-              </div>
               <div
                 style={{
                   display: "grid",
@@ -391,6 +389,14 @@ export function CockpitPanel({
                   <div style={{ fontWeight: 700, color: "var(--color-brand)" }}>{triageAiResult.tasks_created} 件</div>
                 </div>
               </div>
+              {/* FN-08 / #61: 推論文より、誰にどの住戸を頼んだかを先に見せる */}
+              <TaskBoard items={issueDetail?.task_board ?? []} />
+              <details style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>
+                <summary style={{ cursor: "pointer" }}>AIの判断理由を見る</summary>
+                <div style={{ marginTop: 4, color: "var(--color-ink)", lineHeight: 1.45 }}>
+                  {triageAiResult.ai_reasoning}
+                </div>
+              </details>
               <div style={{ fontSize: "0.65rem", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
                 <span>🔒</span>
                 <span>{triageAiResult.policy_gate}</span>

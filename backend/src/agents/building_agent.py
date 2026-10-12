@@ -4,29 +4,25 @@
 - トリアージ要求を受けて、未応答住戸を分類（在宅要確認 vs Likely Away）
 - Gemini による空間近接ペアリング案（JSON Schema 構造化出力）
 - LLM 失敗時・オフライン時のルールベースフォールバック（NFR-03）
-- 協力タスクの作成と打診開始
+- 協力タスクの作成と打診開始（ルールか Gemini の一方の割り当てだけを保存。#60）
 """
 
 import json
 import logging
-import uuid
-from datetime import UTC, datetime, timedelta
 
 from src.agents.governance import (
     AgentGovernanceEngine,
     AgentIdentity,
 )
 from src.db.base import BaseRepository
-from src.models.domain import (
-    ActorType,
-    EmergencyType,
-    Task,
-    TaskEvent,
-    TaskEventType,
-    TaskStatus,
-)
+from src.models.domain import EmergencyType
 from src.observability import trace_span
-from src.services.triage_service import DISASTER_TASK_CONFIG, TriageResult, TriageService
+from src.services.triage_service import (
+    Assignment,
+    TriageCandidateClassification,
+    TriageResult,
+    TriageService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,32 +76,34 @@ class BuildingAgent:
                 "use_llm": use_llm,
             },
         ):
-            # まずフォールバック用および候補者集計のベースを計算
-            rule_result = await self.triage_service.execute_triage_result(
-                building_id=building_id,
-                emergency_id=emergency_id,
-                issue_id=issue_id,
-                emergency_type=emergency_type,
+            # 1. 期限切れの打診を確定し、既存 Task を踏まえて候補を分類する（#60）
+            await self.triage_service.expire_overdue_offers(building_id, emergency_id)
+            classification = await self.triage_service.classify_candidates(
+                building_id, emergency_id
             )
+            assignments = self.triage_service.match_rule_based(classification)
 
-            if not use_llm:
-                return rule_result
+            # 2. Gemini LLM による実推論（Google GenAI / ADK 連携）。採用できる案だけ置き換える
+            gemini_plan = None
+            if use_llm:
+                try:
+                    gemini_plan = await self._run_gemini_triage(classification, emergency_type)
+                except Exception as e:
+                    logger.info(f"[BuildingAgent] Gemini LLM triage fallback to rules: {e}")
+            if gemini_plan:
+                assignments = gemini_plan[0]
 
-            # Gemini LLM による実推論（Google GenAI / ADK 連携）
-            try:
-                llm_result = await self._run_gemini_triage(
-                    building_id=building_id,
-                    emergency_id=emergency_id,
-                    issue_id=issue_id,
-                    fallback_result=rule_result,
-                    emergency_type=emergency_type,
-                )
-                return llm_result
-            except Exception as e:
-                logger.info(
-                    f"[BuildingAgent] Gemini LLM triage fallback to rules: {e}"
-                )
-                return rule_result
+            # 3. ルールか Gemini のどちらか一方の割り当てだけを Task として保存する（#60）
+            tasks = await self.triage_service.commit_assignments(
+                building_id, emergency_id, issue_id, assignments, emergency_type
+            )
+            result = self.triage_service.build_result(
+                emergency_id, issue_id, tasks, classification, emergency_type
+            )
+            if gemini_plan:
+                result.ai_reasoning = f"【Gemini 2.5 Flash 推論】{gemini_plan[1]}"
+                result.agent_model = "Building Agent (Vertex AI Gemini 2.5 Flash)"
+            return result
 
     def _get_genai_client(self):
         """Google GenAI クライアントを環境設定に応じて初期化する。"""
@@ -131,18 +129,16 @@ class BuildingAgent:
 
     async def _run_gemini_triage(
         self,
-        building_id: str,
-        emergency_id: str,
-        issue_id: str,
-        fallback_result: TriageResult,
+        classification: TriageCandidateClassification,
         emergency_type: EmergencyType = EmergencyType.EARTHQUAKE,
-    ) -> TriageResult:
+    ) -> tuple[list[Assignment], str] | None:
         """Gemini 2.5 Flash に住民候補を渡し、空間近接と災害制約下の自律ペアリングを推論させる。
 
+        Task は作らず、検証済みの割り当て案と判断理由だけを返す（保存は呼び出し側で1回だけ）。
         Policy Engine による検証:
         - 実在する有効な支援者・対象者ペアであるか
         - 重複割り当てがないか
-        - 制約違反時はルールベースに安全にフォールバック
+        - 採用できる案がなければ None を返し、ルールベースの割り当てを使う
         """
         client = self._get_genai_client()
         if not client:
@@ -152,10 +148,9 @@ class BuildingAgent:
 
         from google.genai import types
 
-        # 1. 実際の候補者データを抽出
-        classification = await self.triage_service.classify_candidates(building_id, emergency_id)
+        # 1. 実際の候補者データを抽出（既存 Task を踏まえた今回の対象のみ）
         if not classification.unconfirmed_targets or not classification.safe_helpers:
-            return fallback_result
+            return None
 
         unconfirmed_json = [
             {
@@ -271,12 +266,13 @@ class BuildingAgent:
         parsed = json.loads(text)
         raw_pairings = parsed.get("pairing", [])
         if not raw_pairings:
-            return fallback_result
+            return None
 
         # Policy Engine Guardrails による出力検証
-        valid_helper_ids = {c.resident_id for c in classification.safe_helpers}
-        valid_target_ids = {c.resident_id for c in classification.unconfirmed_targets}
-        resident_unit_map = classification.resident_unit_map
+        helpers_by_id = {c.resident_id: c for c in classification.safe_helpers}
+        targets_by_id = {c.resident_id: c for c in classification.unconfirmed_targets}
+        valid_helper_ids = set(helpers_by_id)
+        valid_target_ids = set(targets_by_id)
 
         assigned_helpers: set[str] = set()
         targeted_units: set[str] = set()
@@ -306,64 +302,14 @@ class BuildingAgent:
             logger.warning(
                 "[BuildingAgent] No validated pairings from LLM output, falling back to rules."
             )
-            return fallback_result
+            return None
 
-        config = DISASTER_TASK_CONFIG.get(
-            emergency_type, DISASTER_TASK_CONFIG[EmergencyType.EARTHQUAKE]
-        )
-        now = datetime.now(UTC)
-        expires_at = now + timedelta(seconds=60)
-        created_tasks: list[Task] = []
-
-        for p in validated_pairings:
-            h_id = p["assigned_resident_id"]
-            t_id = p["target_resident_id"]
-            task_id = f"task-{uuid.uuid4().hex[:12]}"
-            helper_unit = resident_unit_map.get(h_id)
-            target_unit = resident_unit_map.get(t_id)
-
-            task = Task(
-                task_id=task_id,
-                issue_id=issue_id,
-                resident_id=h_id,
-                target_resident_id=t_id,
-                start_node_id=helper_unit.entrance_node_id if helper_unit else None,
-                destination_node_id=target_unit.entrance_node_id if target_unit else None,
-                task_type=config["task_type"],
-                title=config["title"],
-                description=config["description"],
-                status=TaskStatus.OFFERED,
-                estimated_seconds=config["estimated_seconds"],
-                created_at=now,
-                expires_at=expires_at,
-            )
-            await self.repo.create_task(building_id, emergency_id, task)
-            await self.repo.append_task_event(
-                building_id,
-                emergency_id,
-                TaskEvent(
-                    event_id=f"evt-{uuid.uuid4().hex[:12]}",
-                    task_id=task.task_id,
-                    actor_resident_id=h_id,
-                    event_type=TaskEventType.OFFERED,
-                    actor_type=ActorType.BUILDING_AGENT,
-                    occurred_at=now,
-                    expires_at=expires_at,
-                ),
-            )
-            created_tasks.append(task)
-
+        assignments: list[Assignment] = [
+            (helpers_by_id[p["assigned_resident_id"]], targets_by_id[p["target_resident_id"]])
+            for p in validated_pairings
+        ]
         ai_reasoning_text = (
             parsed.get("reasoning")
             or f"Gemini 2.5 Flash により{emergency_type.value}の最適化ペアリングを策定。"
         )
-
-        return TriageResult(
-            emergency_id=emergency_id,
-            issue_id=issue_id,
-            created_tasks=created_tasks,
-            unresponsive_count=len(classification.unconfirmed_targets),
-            likely_away_count=len(classification.likely_away),
-            ai_reasoning=f"【Gemini 2.5 Flash 推論】{ai_reasoning_text}",
-            agent_model="Building Agent (Vertex AI Gemini 2.5 Flash)",
-        )
+        return assignments, ai_reasoning_text

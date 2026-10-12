@@ -19,7 +19,6 @@ import {
   type EmergencyType,
   DEMO_PERSONAS,
   triggerEmergency,
-  simulateEmergencyStep,
   startTriage,
   getIssueDetail,
   getActiveEmergency,
@@ -32,7 +31,6 @@ export function StudioWorkspace() {
   const [user, setUser] = useState<User | null>(null);
   const [activePersona, setActivePersonaState] = useState<Persona>(DEMO_PERSONAS[1]); // デフォルト: 住民I
   const [selectedEmergencyType, setSelectedEmergencyType] = useState<EmergencyType>("EARTHQUAKE");
-  const [randomSeed, setRandomSeed] = useState<boolean>(false);
   const [emergencyId, setEmergencyId] = useState<string | null>(null);
   const [issueId, setIssueId] = useState<string | null>(null);
   const [issueDetail, setIssueDetail] = useState<IssueDetailResponse | null>(null);
@@ -41,7 +39,6 @@ export function StudioWorkspace() {
   const [triageExecution, setTriageExecution] = useState<TriageExecution>({ count: 0, status: "idle" });
   const triageInFlight = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isSimulatingStep, setIsSimulatingStep] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<{ time: string; text: string }>>([
     {
       time: new Date().toLocaleTimeString(),
@@ -193,13 +190,13 @@ export function StudioWorkspace() {
         building_id: "bld-01",
         emergency_type: selectedEmergencyType,
         instruction: defaultInstructions[selectedEmergencyType],
-        random_seed: randomSeed,
+        random_seed: true,
       });
       setTriageExecution({ count: 0, status: "idle" });
       setEmergencyId(res.emergency_id);
       setIssueId(res.issue_id);
       addLog(`[API-01] ${disasterLabels[selectedEmergencyType]}！ 緊急モード発令 (emergency_id=${res.emergency_id.slice(0, 8)}, issue_id=${res.issue_id.slice(0, 8)})`);
-      addLog(`全50戸へ安否確認（Cat 4）の一斉配信を開始しました（${randomSeed ? "🎲 ランダム変動シミュレーション" : "🎯 固定再現シミュレーション"}）。`);
+      addLog("全50戸へ安否確認（Cat 4）の一斉配信を開始しました。");
 
       // FN-08: The issue effect owns synchronization; discard the previous emergency view.
       refreshVersion.current.version++;
@@ -211,25 +208,6 @@ export function StudioWorkspace() {
       addLog(`[ERROR] 発令失敗: ${String(err)}`);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 1.5 時間経過シミュレーション（自律回答進行 Issue #50）
-  const handleSimulateStep = async () => {
-    if (!user || !emergencyId || isLoading || isSimulatingStep) return;
-    setIsSimulatingStep(true);
-    try {
-      addLog("⏱ [時間経過シミュレーション] 未回答住戸からの安否回答を受信中...");
-      const res = await simulateEmergencyStep(user, emergencyId);
-      addLog(
-        `⏱ [自律回答進行] ${res.message} (無事=${res.safe_count}, 要支援=${res.need_help_count}, 未回答=${res.unknown_count})`,
-      );
-      await refreshIssueDetail();
-    } catch (err) {
-      alert(`時間経過シミュレーションに失敗しました: ${String(err)}`);
-      addLog(`[ERROR] 時間経過シミュレーション失敗: ${String(err)}`);
-    } finally {
-      setIsSimulatingStep(false);
     }
   };
 
@@ -287,14 +265,10 @@ export function StudioWorkspace() {
         onSelectPersona={handleSelectPersona}
         selectedEmergencyType={selectedEmergencyType}
         onSelectEmergencyType={setSelectedEmergencyType}
-        randomSeed={randomSeed}
-        onToggleRandomSeed={setRandomSeed}
         emergencyId={emergencyId}
         issueId={issueId}
         issueDetail={issueDetail}
         onTriggerEmergency={handleTriggerEmergency}
-        onSimulateStep={handleSimulateStep}
-        isSimulatingStep={isSimulatingStep}
         onStartTriage={handleStartTriage}
         onRefresh={refreshIssueDetail}
         isLoading={isLoading}

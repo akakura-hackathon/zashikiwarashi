@@ -149,7 +149,7 @@ test('Studio switching during a pending answer preserves the selected resident a
     assert.match(text(renderer), /管理人に伝わりました/);
     await act(async () => { cockpit().props.onSelectPersona(api.DEMO_PERSONAS[0]); });
     assert.doesNotMatch(text(renderer), /ご自身とお部屋は無事ですか/);
-    assert.match(text(renderer), /発令・トリアージ・住戸別の状況確認/);
+    assert.match(text(renderer), /棟内50戸の安否状況/);
   } finally {
     console.error = originalError;
     if (renderer) await act(async () => renderer.unmount());
@@ -287,15 +287,15 @@ test('FN-01 administrator and resident share the answer guide countdown', async 
       .map((node) => node.props.timeRemaining);
     assert.deepEqual(countdowns(), []);
     await act(async () => { await cockpit().props.onTriggerEmergency(); });
-    assert.deepEqual(countdowns(), ['2:00', '2:00']);
+    assert.deepEqual(countdowns(), ['2:00']);
     await act(async () => { t.mock.timers.tick(18000); });
-    assert.deepEqual(countdowns(), ['1:42', '1:42']);
+    assert.deepEqual(countdowns(), ['1:42']);
     await act(async () => { cockpit().props.onSelectPersona(api.DEMO_PERSONAS[2]); });
-    assert.deepEqual(countdowns(), ['1:42', '1:42']);
+    assert.deepEqual(countdowns(), ['1:42']);
     await act(async () => { t.mock.timers.tick(200000); });
-    assert.deepEqual(countdowns(), ['0:00', '0:00']);
+    assert.deepEqual(countdowns(), ['0:00']);
     await act(async () => { await cockpit().props.onTriggerEmergency(); });
-    assert.deepEqual(countdowns(), ['2:00', '2:00']);
+    assert.deepEqual(countdowns(), ['2:00']);
   } finally {
     if (renderer) await act(async () => renderer.unmount());
     t.mock.timers.reset();
@@ -429,9 +429,9 @@ test('平常時スマホ画面: ホーム画面のみ表示され、下部タブ
   }
 });
 
-test('FN-08 CockpitPanel binds likely_away presence to outsideCount and away room status', async () => {
+test('FN-08 PhoneStage admin view binds likely_away presence to outsideCount and away room status', async () => {
   let renderer;
-  const { CockpitPanel } = load('components/CockpitPanel.tsx');
+  const { PhoneStage } = load('components/PhoneStage.tsx');
   const mockIssueDetail = {
     issue: { issue_id: 'issue-1', emergency_id: 'em-1', created_at: new Date().toISOString() },
     tasks: [],
@@ -444,24 +444,15 @@ test('FN-08 CockpitPanel binds likely_away presence to outsideCount and away roo
   try {
     const adminPersona = { id: 'admin', userId: 'admin', role: 'admin', roomNumber: '000', name: '防災センター (管理人)', isHelperCandidate: false };
     await act(async () => {
-      renderer = create(React.createElement(CockpitPanel, {
+      renderer = create(React.createElement(PhoneStage, {
         activePersona: adminPersona,
-        onSelectPersona: () => {},
-        selectedEmergencyType: 'EARTHQUAKE',
-        onSelectEmergencyType: () => {},
         emergencyId: 'em-1',
-        issueId: 'issue-1',
+        emergencyType: 'EARTHQUAKE',
+        tasks: [],
         issueDetail: mockIssueDetail,
-        triageAiResult: null,
-        triageExecution: { count: 0, status: 'idle' },
-        onTriggerEmergency: async () => {},
-        onStartTriage: async () => {},
-        onRefresh: async () => {},
+        onActionComplete: async () => {},
         isLoading: false,
-        logs: [],
         user,
-        onLogin: async () => {},
-        onLogout: async () => {},
       }));
     });
     const renderedText = text(renderer);

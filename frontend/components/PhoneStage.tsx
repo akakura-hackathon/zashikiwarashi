@@ -39,6 +39,29 @@ import {
   PrivacyNote,
 } from "./ui/NavigationAndInfo";
 import { LockNotification } from "./ui/LockNotification";
+import { FloorMap, type RoomItem } from "./ui/FloorMap";
+import { safetyRoomStatus } from "@/lib/emergency-view";
+import type { PriorityAlertTarget } from "@/lib/api-client";
+
+function formatTimeHM(isoString?: string | null): string {
+  if (!isoString) {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  }
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  }
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatDateJa(isoString?: string | null): string {
+  const d = isoString ? new Date(isoString) : new Date();
+  const valid = !isNaN(d.getTime()) ? d : new Date();
+  const days = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${valid.getMonth() + 1}月${valid.getDate()}日 ${days[valid.getDay()]}曜日`;
+}
 
 type PhoneStageProps = {
   activePersona: Persona;
@@ -104,6 +127,10 @@ export function PhoneStage({
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
 
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
+  const [answeredTime, setAnsweredTime] = useState<string | null>(null);
+
+  const issuedAtTime = formatTimeHM(issueDetail?.issue.created_at);
+  const lockScreenDate = formatDateJa(issueDetail?.issue.created_at);
 
   const safetyTimeRemaining = useSafetyCountdown(
     emergencyId && issueDetail?.issue.emergency_id === emergencyId
@@ -173,6 +200,7 @@ export function PhoneStage({
         },
         activePersona,
       );
+      setAnsweredTime(formatTimeHM());
       await onActionComplete(
         `[API-02] ${activePersona.name} が安否回答を送信しました (status=${safetyStatus})`,
         answer,
@@ -221,29 +249,150 @@ export function PhoneStage({
     }
   };
 
-  // 計算値：安否集計
-  const safeCount = Object.values(issueDetail?.resident_states || {}).filter(
-    (s) => s === "SAFE",
-  ).length;
-  const needHelpCount = Object.values(issueDetail?.resident_states || {}).filter(
-    (s) => s === "NEED_HELP",
-  ).length;
-  const totalAnswered = safeCount + needHelpCount;
+  // 管理人向け集計データ
+  const summary = issueDetail?.current_states_summary ?? {};
+  const adminSafeCount = summary["SAFE"] ?? 0;
+  const adminNeedHelpCount = summary["NEED_HELP"] ?? 0;
+  const adminOutsideCount = issueDetail?.likely_away_count ?? summary["OUTSIDE_BUILDING"] ?? 0;
+  const adminRawUnknown = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
+  const adminUnknownCount = Math.max(0, adminRawUnknown - (summary["OUTSIDE_BUILDING"] ? 0 : adminOutsideCount));
+
+  const priorityTargets: PriorityAlertTarget[] = issueDetail?.priority_targets ?? [];
+
+  const adminRooms: RoomItem[] = Array.from({ length: 50 }, (_, i) => {
+    const floor = Math.floor(i / 10) + 1;
+    const col = i % 10 + 1;
+    const roomNo = `${floor}${String(col).padStart(2, "0")}`;
+    const safety = issueDetail?.room_states?.[roomNo];
+    const isLikelyAway = issueDetail?.likely_away_rooms?.includes(roomNo);
+    const status = isLikelyAway && (safety === "UNKNOWN" || !safety) ? "away" : safetyRoomStatus(safety);
+    return { roomNo, floor, col, status };
+  });
 
   // --------------------------------------------------------------------------
   // RENDER: Lock Screen Notification (R01 / R04)
   // --------------------------------------------------------------------------
   const showLockScreen = emergencyId && !isSafetyAnswered && emergencySubScreen === "lock";
 
-  // FN-02: The admin persona has no resident safety answer or resident task.
+  // 管理人スマホ画面
   if (activePersona.role === "admin") {
+    const disasterInfo: Record<EmergencyType, { typeName: string; detail: string }> = {
+      EARTHQUAKE: { typeName: "地震", detail: "震度5強" },
+      POWER_OUTAGE: { typeName: "停電", detail: "EV全基停止" },
+      FIRE: { typeName: "火災", detail: "警報鳴動" },
+      FLOOD: { typeName: "洪水", detail: "垂直避難警戒" },
+    };
+    const bannerInfo = disasterInfo[emergencyType || "EARTHQUAKE"];
+
     return (
       <main className="device-stage">
-        <section className="zashiki-card">
-          <h2>管理人</h2>
-          <p>発令・トリアージ・住戸別の状況確認は管理人コンソールで操作してください。</p>
-          <p>安否回答済み：{totalAnswered} / 50戸</p>
-        </section>
+        <div className="device-wrapper">
+          <div className="device-screen">
+            <div className="app-container">
+              <AppBar variant="home" residentName="管理人" />
+
+              {emergencyId && (
+                <EmergencyBanner
+                  disasterType={bannerInfo.typeName}
+                  detail={bannerInfo.detail}
+                  issuedAt={issuedAtTime}
+                />
+              )}
+
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  padding: "16px 20px 24px",
+                  overflowY: "auto",
+                  gap: 16,
+                }}
+              >
+                {/* ヘッダー部 */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h2 style={{ fontSize: "1.05rem", fontWeight: 800, margin: 0, color: "var(--color-ink)" }}>
+                      棟内50戸の安否状況
+                    </h2>
+                    <p style={{ fontSize: "0.75rem", color: "var(--color-muted)", margin: "2px 0 0" }}>
+                      {emergencyId ? "全自動トリアージ & リアルタイム集計" : "平常時の棟内見守り稼働中"}
+                    </p>
+                  </div>
+                  {emergencyId && (
+                    <CountdownPill label="回答の目安 残り" timeRemaining={safetyTimeRemaining} />
+                  )}
+                </div>
+
+                {/* 4枚のステータスカード */}
+                <div className="status-grid">
+                  <div className="status-card">
+                    <span className="status-label">無事回答</span>
+                    <span className="status-val ok font-mono-num">{adminSafeCount} 戸</span>
+                  </div>
+                  <div className="status-card">
+                    <span className="status-label">未応答 (要トリアージ)</span>
+                    <span className="status-val alert font-mono-num">{adminUnknownCount} 戸</span>
+                  </div>
+                  <div className="status-card">
+                    <span className="status-label">カレンダー外出中</span>
+                    <span className="status-val warn font-mono-num">{adminOutsideCount} 戸</span>
+                  </div>
+                  <div className="status-card">
+                    <span className="status-label">要救助回答</span>
+                    <span className="status-val alert font-mono-num">{adminNeedHelpCount} 戸</span>
+                  </div>
+                </div>
+
+                {/* 5階×10列 (全50戸) FloorMap */}
+                <div style={{ marginTop: 4 }}>
+                  <FloorMap rooms={adminRooms} />
+                </div>
+
+                {/* 🚨 防災センター最優先現地確認アラート (添付画像4枚目) */}
+                {priorityTargets.length > 0 && (
+                  <div className="priority-alert-box">
+                    <div className="priority-header">
+                      <span>🚨 防災センター最優先現地確認アラート</span>
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--color-danger-text)" }}>
+                      「本人未応答 × 隣室確認も応答なし × 高齢単身要配慮」の住戸を検出しました
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
+                      {priorityTargets.map((target) => (
+                        <div key={target.resident_id} className="priority-target-item">
+                          <div>
+                            <span
+                              className="font-mono-num"
+                              style={{ fontWeight: 800, color: "var(--color-ink)", marginRight: "6px" }}
+                            >
+                              {target.room_number}号室
+                            </span>
+                            <span style={{ color: "var(--color-danger)" }}>
+                              {target.is_elderly ? "高齢単身" : "一般"}・安否未確認
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              backgroundColor: "var(--color-danger)",
+                              color: "#FFFFFF",
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {target.priority_level}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
@@ -290,8 +439,8 @@ export function PhoneStage({
 
             return (
               <LockNotification
-                timeStr="8:03"
-                dateStr="10月4日 土曜日"
+                timeStr={issuedAtTime}
+                dateStr={lockScreenDate}
                 title={lockTitle}
                 message={lockMsg}
                 timeRemaining={safetyTimeRemaining}
@@ -328,7 +477,7 @@ export function PhoneStage({
                       FLOOD: { typeName: "洪水", detail: "垂直避難警戒" },
                     };
                     const bannerInfo = disasterInfo[emergencyType || "EARTHQUAKE"];
-                    return <EmergencyBanner disasterType={bannerInfo.typeName} detail={bannerInfo.detail} issuedAt="8:03" />;
+                    return <EmergencyBanner disasterType={bannerInfo.typeName} detail={bannerInfo.detail} issuedAt={issuedAtTime} />;
                   })()}
 
                   {/* Screen Content Container with auto-flex bottom action */}
@@ -893,7 +1042,7 @@ export function PhoneStage({
                           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                             <PageTitle
                               title="無事を受け付けました"
-                              subtitle="8:04 回答済み。ご協力ありがとうございます。"
+                              subtitle={`${answeredTime || issuedAtTime} 回答済み。ご協力ありがとうございます。`}
                             />
                             <div
                               style={{

@@ -5,17 +5,11 @@ import {
   type IssueDetailResponse,
   type Persona,
   DEMO_PERSONAS,
-  type PriorityAlertTarget,
   type EmergencyType,
   testGuardrail,
 } from "@/lib/api-client";
 
-import { useSafetyCountdown } from "@/lib/use-safety-countdown";
-import { CountdownPill } from "./ui/StatusAndInput";
-import { safetyRoomStatus } from "@/lib/emergency-view";
-
 import type { User } from "firebase/auth";
-import { FloorMap, type RoomItem } from "./ui/FloorMap";
 
 export type TriageExecution = {
   count: number;
@@ -60,7 +54,7 @@ export function CockpitPanel({
   onSelectEmergencyType,
   emergencyId,
   issueId: _issueId,
-  issueDetail,
+  issueDetail: _issueDetail,
   onTriggerEmergency,
   onStartTriage,
   onRefresh,
@@ -73,30 +67,6 @@ export function CockpitPanel({
   triageAiResult,
   triageExecution,
 }: CockpitPanelProps) {
-  const safetyTimeRemaining = useSafetyCountdown(
-    emergencyId && issueDetail?.issue.emergency_id === emergencyId
-      ? issueDetail.issue.created_at : undefined,
-  );
-  const summary = issueDetail?.current_states_summary ?? {};
-  const safeCount = summary["SAFE"] ?? 0;
-  const needHelpCount = summary["NEED_HELP"] ?? 0;
-  const outsideCount = issueDetail?.likely_away_count ?? summary["OUTSIDE_BUILDING"] ?? 0;
-  const rawUnknown = summary["UNKNOWN"] ?? (emergencyId ? 50 : 0);
-  const unknownCount = Math.max(0, rawUnknown - (summary["OUTSIDE_BUILDING"] ? 0 : outsideCount));
-
-  const priorityTargets: PriorityAlertTarget[] = issueDetail?.priority_targets ?? [];
-
-  // FN-08: The map and counters share the same API snapshot.
-  const rooms: RoomItem[] = Array.from({ length: 50 }, (_, i) => {
-    const floor = Math.floor(i / 10) + 1;
-    const col = i % 10 + 1;
-    const roomNo = `${floor}${String(col).padStart(2, "0")}`;
-    const safety = issueDetail?.room_states?.[roomNo];
-    const isLikelyAway = issueDetail?.likely_away_rooms?.includes(roomNo);
-    const status = isLikelyAway && (safety === "UNKNOWN" || !safety) ? "away" : safetyRoomStatus(safety);
-    return { roomNo, floor, col, status };
-  });
-
   const [activeTab, setActiveTab] = React.useState<"disaster" | "governance">("disaster");
 
   return (
@@ -469,78 +439,6 @@ export function CockpitPanel({
         </div>
       </div>
 
-      {/* 4. 棟内50戸の安否集約 & C24 FloorMap */}
-      <div className="cockpit-section">
-        <div className="section-title">
-          <span>棟内50戸の安否状況</span>
-        </div>
-        {emergencyId && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-            <CountdownPill label="回答の目安 残り" timeRemaining={safetyTimeRemaining} />
-          </div>
-        )}
-        <div className="status-grid">
-          <div className="status-card">
-            <span className="status-label">無事回答</span>
-            <span className="status-val ok font-mono-num">{safeCount} 戸</span>
-          </div>
-          <div className="status-card">
-            <span className="status-label">未応答 (要トリアージ)</span>
-            <span className="status-val alert font-mono-num">{unknownCount} 戸</span>
-          </div>
-          <div className="status-card">
-            <span className="status-label">カレンダー外出中</span>
-            <span className="status-val warn font-mono-num">{outsideCount} 戸</span>
-          </div>
-          <div className="status-card">
-            <span className="status-label">要救助回答</span>
-            <span className="status-val alert font-mono-num">{needHelpCount} 戸</span>
-          </div>
-        </div>
-
-        {/* 5階×10列 (全50戸) FloorMap (C24) */}
-        <div style={{ marginTop: 8 }}>
-          <FloorMap rooms={rooms} />
-        </div>
-      </div>
-
-      {/* 5. 管理人優先アラート (Priority Target) */}
-      {priorityTargets.length > 0 && (
-        <div className="priority-alert-box">
-          <div className="priority-header">
-            <span>🚨 防災センター最優先現地確認アラート</span>
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "var(--color-danger-text)" }}>
-            「本人未応答 × 隣室確認も応答なし × 高齢単身要配慮」の住戸を検出しました
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-            {priorityTargets.map((target) => (
-              <div key={target.resident_id} className="priority-target-item">
-                <div>
-                  <span className="font-mono-num" style={{ fontWeight: 800, color: "var(--color-ink)", marginRight: "6px" }}>
-                    {target.room_number}号室
-                  </span>
-                  <span style={{ color: "var(--color-danger)" }}>
-                    {target.is_elderly ? "高齢単身" : "一般"}・安否未確認
-                  </span>
-                </div>
-                <span
-                  style={{
-                    backgroundColor: "var(--color-danger)",
-                    color: "#FFFFFF",
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {target.priority_level}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )}
 
@@ -631,7 +529,7 @@ export function CockpitPanel({
   )}
 
   {/* 6. Multi-Agent 通信 & Policy Engine 監査ログ */}
-  <div className="cockpit-section" style={{ flex: 1, minHeight: "180px" }}>
+  <div className="cockpit-section" style={{ flex: 1, minHeight: "380px" }}>
         <div className="section-title">
           <span>📡 Multi-Agent 通信 & Policy Engine 判定ログ</span>
         </div>

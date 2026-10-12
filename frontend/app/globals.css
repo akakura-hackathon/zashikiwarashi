@@ -224,7 +224,7 @@ body {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.72rem;
   color: #333333;
-  height: 170px;
+  height: 380px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

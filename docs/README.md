@@ -20,6 +20,7 @@ Zashikiwarashi の企画・設計ドキュメントと図の入口。実装の�
 | 未解決の指摘・未決事項 | [FUCHIUE_REVIEW.txt](FUCHIUE_REVIEW.txt)、各図の TBD 欄 |
 | レビュー指摘への回答・対策方針 | [FUCHIUE_REVIEW_RESPONSE.txt](FUCHIUE_REVIEW_RESPONSE.txt) |
 | デモ動画撮影仕様・絵コンテ・実演手順 | [DEMO_SPEC.md](DEMO_SPEC.md)（5分間動画スクリプト） |
+| 紹介動画用スライドの作成指示（デザインルール・14枚の構成） | [SLIDE_BRIEF.md](SLIDE_BRIEF.md) |
 | ハッカソン提出フォーム提出文下書き | [submission.md](submission.md) |
 
 ## 図（`diagrams/`）

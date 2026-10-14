@@ -9,22 +9,22 @@
           <mxGeometry as="geometry" x="450" y="16" width="800" height="34" />
         </mxCell>
 
-        {/* 境界: Google Cloud 単一環境 */}
+        <!-- 境界: Google Cloud 単一環境 -->
         <mxCell id="B-001" value="境界: Cloud (Google Cloud プロジェクト / 単一環境 / us-central1)" style="rounded=0;dashed=1;verticalAlign=top;spacingTop=6;fontSize=12;fontStyle=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;fontColor=#616161;align=right;spacingRight=10;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="320" y="160" width="1240" height="740" />
         </mxCell>
 
-        {/* 境界: External Google マネージド (Vertex AI) */}
+        <!-- 境界: External Google マネージド (Vertex AI) -->
         <mxCell id="B-002" value="境界: External (Google マネージド)" style="rounded=0;dashed=1;verticalAlign=top;spacingTop=6;fontSize=12;fontStyle=1;fillColor=#F1F8E9;strokeColor=#43A047;fontColor=#558B2F;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1270" y="270" width="260" height="230" />
         </mxCell>
 
-        {/* 境界: Agent ガバナンス */}
+        <!-- 境界: Agent ガバナンス -->
         <mxCell id="B-005" value="境界: Agent ガバナンス層 (G1〜G6)" style="rounded=0;dashed=1;verticalAlign=top;spacingTop=6;fontSize=12;fontStyle=1;fillColor=#FFFDF5;strokeColor=#FFB300;fontColor=#B26A00;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="650" y="260" width="220" height="460" />
         </mxCell>
 
-        {/* 境界: Agent Runtime */}
+        <!-- 境界: Agent Runtime -->
         <mxCell id="B-004" value="境界: Agent Runtime (Google ADK / Reasoning Engines)" style="rounded=0;dashed=1;verticalAlign=top;spacingTop=6;fontSize=12;fontStyle=1;fillColor=#EAF3FC;strokeColor=#1E88E5;fontColor=#1565C0;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="900" y="260" width="340" height="460" />
         </mxCell>
@@ -32,7 +32,7 @@
           <mxGeometry as="geometry" x="1200" y="264" width="26" height="26" />
         </mxCell>
 
-        {/* 境界: ツールサービス Cloud Run */}
+        <!-- 境界: ツールサービス Cloud Run -->
         <mxCell id="B-006" value="境界: Cloud Run（ツールサービス）" style="rounded=0;dashed=1;verticalAlign=top;spacingTop=6;fontSize=12;fontStyle=1;fillColor=#EAF3FC;strokeColor=#1E88E5;fontColor=#1565C0;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="900" y="740" width="340" height="130" />
         </mxCell>
@@ -40,9 +40,9 @@
           <mxGeometry as="geometry" x="1200" y="744" width="26" height="26" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             Client層 (Next.js 15 PWA / Firebase Hosting)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-101" value="&lt;b&gt;Zashikiwarashi Studio&lt;br&gt;（検証コンソール）&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;Next.js 15 / CockpitPanel&lt;br&gt;災害発令・4大災害シミュレーション&lt;br&gt;ガバナンス攻撃検証・審査員ガイド (C-101)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#FFF3E0;strokeColor=#FB8C00;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="350" y="68" width="230" height="74" />
         </mxCell>
@@ -50,9 +50,9 @@
           <mxGeometry as="geometry" x="610" y="68" width="240" height="74" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             Gateway & 認証層
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-043" value="&lt;b&gt;API Gateway&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;Firebase ID トークンを物理検証&lt;br&gt;未認証リクエストを遮断 (C-043)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#FFF8E1;strokeColor=#FFB300;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="375" y="178" width="180" height="46" />
         </mxCell>
@@ -60,9 +60,9 @@
           <mxGeometry as="geometry" x="635" y="178" width="190" height="46" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             App層: API Ingestion & 再トリアージ自律選定
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-001" value="&lt;b&gt;API Ingestion &amp;amp; Triage Service&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;FastAPI / Cloud Run（非公開）&lt;br&gt;・4大災害トリアージ（地震/停電/火災/洪水）&lt;br&gt;・再トリアージ（Re-triage）代替候補自動選定&lt;br&gt;・承認/開示は Policy Engine を強制 (C-001)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#E3F2FD;strokeColor=#1E88E5;spacingLeft=30;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="350" y="260" width="230" height="200" />
         </mxCell>
@@ -70,7 +70,7 @@
           <mxGeometry as="geometry" x="358" y="347.0" width="26" height="26" />
         </mxCell>
 
-        {/* Data層: Firestore & Secret Manager */}
+        <!-- Data層: Firestore & Secret Manager -->
         <mxCell id="C-010" value="&lt;b&gt;Cloud Firestore（Native Mode）&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;・建物50戸フロア・部屋グラフ&lt;br&gt;・住民・世帯・在館コンテキスト&lt;br&gt;・Issue / Task / TaskEvent (監査履歴) (C-010)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#F3E5F5;strokeColor=#8E24AA;spacingLeft=30;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="350" y="520" width="230" height="90" />
         </mxCell>
@@ -84,9 +84,9 @@
           <mxGeometry as="geometry" x="358" y="662.0" width="26" height="26" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             Agent ガバナンス層 (G1〜G6)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-040" value="&lt;b&gt;[G1] Agent Gateway（Ingress）&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;CLIENT_TO_AGENT (C-040)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#FFF8E1;strokeColor=#FFB300;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="665" y="285" width="190" height="48" />
         </mxCell>
@@ -100,9 +100,9 @@
           <mxGeometry as="geometry" x="665" y="635" width="190" height="50" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             Multi-Agent 実行層 (Agent Runtime)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-003" value="&lt;b&gt;Building Agent (Coordinator)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;Google ADK / Reasoning Engines&lt;br&gt;建物全体最適化・空間タスク分割&lt;br&gt;4大災害トリアージ・再計画自律立案 (C-003)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="925" y="285" width="290" height="85" />
         </mxCell>
@@ -116,14 +116,14 @@
           <mxGeometry as="geometry" x="925" y="605" width="290" height="52" />
         </mxCell>
 
-        {/* ツールサービス Cloud Run */}
+        <!-- ツールサービス Cloud Run -->
         <mxCell id="C-007" value="&lt;b&gt;ツールサービス（MCP on Cloud Run）&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;住民データ読取・近隣候補抽出・再トリアージ打診・結果記録 (C-007)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#E3F2FD;strokeColor=#1E88E5;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="925" y="780" width="290" height="55" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             External (Vertex AI)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-021" value="&lt;b&gt;Vertex AI (Gemini)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;・Gemini 2.5 / 1.5 Pro: 構造化計画・再トリアージ推論&lt;br&gt;・Gemini 2.5 / 1.5 Flash: 高速対話・文脈抽象化 (C-021)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#E8F5E9;strokeColor=#43A047;spacingLeft=30;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1285" y="325" width="230" height="115" />
         </mxCell>
@@ -131,9 +131,9 @@
           <mxGeometry as="geometry" x="1292" y="367.0" width="26" height="26" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             オブザーバビリティ・監査層 (Cloud Logging / Cloud Trace)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="C-014" value="&lt;b&gt;[O2] Cloud Logging&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px&quot;&gt;全サービス監査 sink → [G7] 監査ログバケット (C-014)&lt;/span&gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fontSize=10;fontColor=#333333;align=center;verticalAlign=middle;fillColor=#F3E5F5;strokeColor=#8E24AA;spacingLeft=30;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1285" y="550" width="230" height="52" />
         </mxCell>
@@ -144,15 +144,15 @@
           <mxGeometry as="geometry" x="1285" y="630" width="230" height="50" />
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             エッジ / 接続線（因果関係・制御フロー）
-            ============================================================== */}
-        {/* Studio → API Gateway */}
+            ============================================================== -->
+        <!-- Studio → API Gateway -->
         <mxCell id="L-001" value="HTTPS + IDトークン" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-101" target="C-043">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* Mobile Stage → API Gateway */}
+        <!-- Mobile Stage → API Gateway -->
         <mxCell id="L-004" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-100" target="C-043">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -161,17 +161,17 @@
           </mxGeometry>
         </mxCell>
 
-        {/* Studio & Mobile → Auth */}
+        <!-- Studio & Mobile → Auth -->
         <mxCell id="L-002" value="認証 (HTTPS)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-100" target="C-002">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* API Gateway → API Ingestion */}
+        <!-- API Gateway → API Ingestion -->
         <mxCell id="L-039" value="検証済リクエスト転送" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-043" target="C-001">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* API Ingestion → Auth (JWT検証) */}
+        <!-- API Ingestion → Auth (JWT検証) -->
         <mxCell id="L-005" value="JWT署名検証" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.1;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-001" target="C-002">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -181,7 +181,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* API Ingestion → Secret Manager */}
+        <!-- API Ingestion → Secret Manager -->
         <mxCell id="L-010" value="秘密情報取得" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-001" target="C-013">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -191,27 +191,27 @@
           </mxGeometry>
         </mxCell>
 
-        {/* API Ingestion → Firestore (本人回答・承認直接書込) */}
+        <!-- API Ingestion → Firestore (本人回答・承認直接書込) -->
         <mxCell id="L-012" value="本人安否回答・承認状態更新 (API-02/04)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-001" target="C-010">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* API Ingestion → [G1] Ingress Gateway */}
+        <!-- API Ingestion → [G1] Ingress Gateway -->
         <mxCell id="L-026" value="トリアージ指示・住民自由文" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-001" target="C-040">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G1] Ingress Gateway → [G2] Model Armor (入力検査) */}
+        <!-- [G1] Ingress Gateway → [G2] Model Armor (入力検査) -->
         <mxCell id="L-028" value="悪意プロンプト検査" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-040" target="C-023">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G1] Ingress Gateway → Building Agent */}
+        <!-- [G1] Ingress Gateway → Building Agent -->
         <mxCell id="L-027" value="トリアージ命令" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.5;exitDx=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-040" target="C-003">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G1] Ingress Gateway → Resident Agent */}
+        <!-- [G1] Ingress Gateway → Resident Agent -->
         <mxCell id="L-036" value="住民対話 / 自由文" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-040" target="C-004">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -221,7 +221,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* Building Agent → [G3] Egress Gateway */}
+        <!-- Building Agent → [G3] Egress Gateway -->
         <mxCell id="L-030" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=0.15;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-003" target="C-041">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -231,7 +231,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* Resident Agent → [G3] Egress Gateway */}
+        <!-- Resident Agent → [G3] Egress Gateway -->
         <mxCell id="L-037" value="ツール呼出" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-004" target="C-041">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -241,17 +241,17 @@
           </mxGeometry>
         </mxCell>
 
-        {/* [G3] Egress Gateway → [G2] Model Armor (出力検査) */}
+        <!-- [G3] Egress Gateway → [G2] Model Armor (出力検査) -->
         <mxCell id="L-032" value="SDP 部屋番号漏洩遮断" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-041" target="C-023">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G3] Egress Gateway → [G6] Agent Registry */}
+        <!-- [G3] Egress Gateway → [G6] Agent Registry -->
         <mxCell id="L-031" value="宛先・ツール照合" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-041" target="C-042">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G3] Egress Gateway → A2A Resident Agent */}
+        <!-- [G3] Egress Gateway → A2A Resident Agent -->
         <mxCell id="L-008" value="照会 (A2A)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-041" target="C-004">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -261,7 +261,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* [G3] Egress Gateway → ツールサービス MCP */}
+        <!-- [G3] Egress Gateway → ツールサービス MCP -->
         <mxCell id="L-033" value="ツール実行 (MCP)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-041" target="C-007">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -271,7 +271,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* [G3] Egress Gateway → Vertex AI */}
+        <!-- [G3] Egress Gateway → Vertex AI -->
         <mxCell id="L-038" value="Gemini API (Reasoning)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-041" target="C-021">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -282,17 +282,17 @@
           </mxGeometry>
         </mxCell>
 
-        {/* Resident Agent → Privacy Gateway */}
+        <!-- Resident Agent → Privacy Gateway -->
         <mxCell id="L-006" value="トークン化" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-004" target="C-006">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* ツールサービス MCP → [G5] Policy Engine */}
+        <!-- ツールサービス MCP → [G5] Policy Engine -->
         <mxCell id="L-034" value="書込前ガードレール検査" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-007" target="C-005">
           <mxGeometry as="geometry" relative="1" />
         </mxCell>
 
-        {/* [G5] Policy Engine → Firestore */}
+        <!-- [G5] Policy Engine → Firestore -->
         <mxCell id="L-015" value="Task / TaskEvent 追記 (承認済のみ)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-005" target="C-010">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -302,7 +302,7 @@
           </mxGeometry>
         </mxCell>
 
-        {/* ツールサービス MCP → Firestore (住民データ読取) */}
+        <!-- ツールサービス MCP → Firestore (住民データ読取) -->
         <mxCell id="L-016" value="データ読取" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=9;labelBackgroundColor=#FFFFFF;strokeColor=#757575;fontColor=#555555;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="C-007" target="C-010">
           <mxGeometry as="geometry" relative="1">
             <Array as="points">
@@ -312,9 +312,9 @@
           </mxGeometry>
         </mxCell>
 
-        {/* ==============================================================
+        <!-- ==============================================================
             凡例 (Legend)
-            ============================================================== */}
+            ============================================================== -->
         <mxCell id="LG-title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#1A2538;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="30" y="930" width="60" height="20" />
         </mxCell>
@@ -343,7 +343,7 @@
           <mxGeometry as="geometry" x="1200" y="954" width="190" height="28" />
         </mxCell>
 
-        {/* 注記 */}
+        <!-- 注記 -->
         <mxCell id="NOTE" value="&lt;b&gt;Scope（対象）&lt;/b&gt;：Zashikiwarashi MVP の実稼働ランタイム構成（緊急時のデータ・制御フロー）。実機および Terraform でプロビジョニング済みのリソースに100%準拠。&lt;br&gt;&lt;b&gt;実稼働技術スタック&lt;/b&gt;：Next.js 15 App Router (Firebase Hosting) ＋ FastAPI / Python (Cloud Run) ＋ Cloud Firestore (Native Mode) ＋ Google ADK / Vertex AI Reasoning Engines ＋ Model Armor (プロンプトインジェクション検知遮断) ＋ Cloud Logging / Trace。&lt;br&gt;&lt;b&gt;Pub/Sub・BigQuery について&lt;/b&gt;：MVP の実稼働構成には含まれていません（非同期キューや時系列分析は使わず、Firestore Native Mode のリアルタイム性および Cloud Run の同期トリアージ/再トリアージエンジンで高速・安全に完結）。&lt;br&gt;&lt;b&gt;因果ルール&lt;/b&gt;：Agent への入力（指示・自由文）と呼び出しはすべて Agent Gateway（Ingress / Egress）を通過。Resident Agent は Firestore に直接触れず、ツールサービス経由でアクセス。部屋番号・氏名は [G2] Model Armor の SDP フィルタで物理遮断。Firestore への Agent 起点のタスク書き込みは Policy Engine [G5] を強制通過し、住民の承認（APPROVED / DECLINED）は本人の操作（API Ingestion）のみが直接書き込みます。&lt;br&gt;&lt;b&gt;v1.4 更新点&lt;/b&gt;：① 未使用の Pub/Sub・BigQuery および外部モックを完全撤去し、実稼働構成に100%合致。② Studio Architecture（検証コンソール ＋ モバイル実機フレーム）の最新UIを反映。③ API Ingestion に最新の「4大災害自律トリアージ ＆ 再トリアージ代替候補自動選定エンジン」を反映。④ Model Armor のプロンプトインジェクション検知物理遮断（HTTP 400）および SDP 出力フィルタを明記。" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#444444;spacingLeft=8;spacingTop=6;strokeColor=#D0D0D0;fillColor=#FAFAFA;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="30" y="990" width="1530" height="150" />
         </mxCell>
